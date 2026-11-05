@@ -1,0 +1,6 @@
+# Supabase project config. Fill project_id when linking: `supabase link --project-ref <ref>`.
+project_id = "yuelao"
+
+# Auth is configured in the Dashboard (Authentication → Sign in / Providers → Email):
+# enable Email OTP (6-digit code, no password). Google OAuth stays off for V1.
+# Storage: create a public bucket only when user-generated content needs one (V1: not needed).

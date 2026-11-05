@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // No D1 / R2 / Email / Workflows: the data layer is Supabase (see docs/architecture.md).
+  "name": "yuelao",
+  "main": "src/server.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "upload_source_maps": true,
+  "vars": {
+    "EMAIL_FROM": "noreply@example.com",
+    "SUPABASE_URL": "",
+    "SUPABASE_ANON_KEY": "",
+    // To enable Rybbit, set this to your Rybbit API URL and add analytics.rybbit to site.config.ts.
+    "RYBBIT_UPSTREAM": ""
+  }
+}

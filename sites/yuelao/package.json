@@ -1,0 +1,36 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-start": "1.169.4",
+    "@yuelao/core": "workspace:*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.65.0",
+    "@cloudflare/workers-types": "5.20261027.1",
+    "@inlang/paraglide-js": "2.27.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@tanstack/router-cli": "1.167.46",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "wrangler": "4.153.0"
+  },
+  "name": "yuelao-site",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "check": "pnpm typecheck && pnpm build && node ../../tools/check-site.mjs .",
+    "deploy": "vite build && wrangler deploy",
+    "deploy:preview": "vite build && wrangler versions upload",
+    "dev": "node ../../tools/dev-port.mjs vite dev",
+    "preview": "vite build --outDir .preview && node ../../tools/dev-port.mjs vite preview --outDir .preview",
+    "typecheck": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide && tsr generate && wrangler types && tsc --noEmit"
+  },
+  "type": "module"
+}

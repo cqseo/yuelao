@@ -1,0 +1,19 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "common_close": "关闭",
+  "common_footer_contact": "联系我们",
+  "common_footer_dmca": "DMCA",
+  "common_footer_notice": "© {year} {name}",
+  "common_footer_privacy": "隐私权",
+  "common_footer_refunds": "退款政策",
+  "common_footer_terms": "服务条款",
+  "common_legal_policy_date": "2026 年 11 月 5 日",
+  "common_legal_questions": "有问题请来信",
+  "common_legal_updated": "最后更新：{date}",
+  "common_nav_book": "姻缘簿",
+  "common_nav_pricing": "定价",
+  "common_not_found_heading": "页面不存在",
+  "common_not_found_home": "回首页",
+  "common_not_found_intro": "链接可能过期或拼错了，试试这些：",
+  "common_not_found_title": "页面不存在 — {name}"
+}

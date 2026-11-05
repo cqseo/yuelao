@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+/* 月老站設計令牌（原型已定，見 DESIGN.md）：墨黑底 / 朱紅主體 / 燙金強調 / 米紙紙面。
+   P1 再按 DESIGN.md 細化；P0 先保證結構與可讀性。 */
+
+@theme {
+  --color-ink: #171310;
+  --color-ink-soft: #241d18;
+  --color-vermilion: #c0392b;
+  --color-vermilion-deep: #96281b;
+  --color-gold: #c9a227;
+  --color-gold-soft: #e3c878;
+  --color-paper: #f5efe0;
+  --color-paper-dim: #e8dfc9;
+  --color-muted: #8a7f70;
+  --color-line: #3a3129;
+  --font-serif-tc: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-serif-tc);
+  color: var(--color-paper);
+  background: var(--color-ink);
+}
+
+.page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.site-header,
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  gap: 1rem;
+}
+
+.site-header nav,
+.site-footer nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.site-footer {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  border-top: 1px solid var(--color-line);
+  margin-top: 4rem;
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--color-gold-soft);
+  font-size: 1.25rem;
+}
+
+a {
+  color: var(--color-gold-soft);
+}
+
+h1 {
+  font-size: 2.25rem;
+  line-height: 1.15;
+  margin: 2rem 0 0.5rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 2rem 0 0.5rem;
+}
+
+.lead {
+  color: var(--color-paper-dim);
+  font-size: 1.125rem;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.hero {
+  text-align: center;
+  padding: 3rem 0 1rem;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.category-card {
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  background: var(--color-ink-soft);
+}
+
+.category-card h3 {
+  margin: 0 0 0.25rem;
+  color: var(--color-gold-soft);
+}
+
+.category-card p {
+  margin: 0 0 0.75rem;
+  color: var(--color-paper-dim);
+}
+
+.soon {
+  font-size: 0.75rem;
+  color: var(--color-vermilion);
+  border: 1px solid var(--color-vermilion);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+}
+
+.legal {
+  max-width: 48rem;
+}
+
+.legal h2 {
+  margin-top: 1.5rem;
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "home_categories_heading": "问事总目",
+  "home_category_daily": "每日",
+  "home_category_daily_desc": "今日一签，求个心安。",
+  "home_category_him": "问他",
+  "home_category_him_desc": "他到底是什么意思？",
+  "home_category_reunion": "复合",
+  "home_category_reunion_desc": "还能回到过去吗？",
+  "home_category_single": "脱单",
+  "home_category_single_desc": "正缘什么时候来？",
+  "home_coming_soon": "仪式页搭建中",
+  "home_lead": "摇一支签，问你心里那件事。免费，不用登录。",
+  "home_meta_description": "摇一支月老签，问他、问脱单、问复合。免费求签，掷筊确认，月老亲批。",
+  "home_meta_title": "{name} — 线上月老求签",
+  "home_title": "线上月老求签"
+}

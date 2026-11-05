@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "paths": { "~/*": ["./src/*"] },
+    "types": ["./worker-configuration.d.ts", "vite/client"]
+  },
+  "extends": "../../tsconfig.base.json",
+  "include": ["src", "site.config.ts"]
+}

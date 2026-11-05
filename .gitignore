@@ -1,0 +1,12 @@
+node_modules
+dist
+.preview
+.wrangler
+.dev.vars
+src/paraglide
+worker-configuration.d.ts
+routeTree.gen.ts
+*.gen.ts
+.DS_Store
+supabase/.branches
+supabase/.temp

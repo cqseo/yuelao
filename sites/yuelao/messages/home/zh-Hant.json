@@ -1,0 +1,17 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "home_categories_heading": "問事總目",
+  "home_category_daily": "每日",
+  "home_category_daily_desc": "今日一籤，求個心安。",
+  "home_category_him": "問他",
+  "home_category_him_desc": "他到底是什麼意思？",
+  "home_category_reunion": "複合",
+  "home_category_reunion_desc": "還能回到過去嗎？",
+  "home_category_single": "脫單",
+  "home_category_single_desc": "正緣什麼時候來？",
+  "home_coming_soon": "儀式頁搭建中",
+  "home_lead": "搖一支籤，問你心裡那件事。免費，不用登入。",
+  "home_meta_description": "搖一支月老籤，問他、問脫單、問複合。免費求籤，擲筊確認，月老親批。",
+  "home_meta_title": "{name} — 線上月老求籤",
+  "home_title": "線上月老求籤"
+}

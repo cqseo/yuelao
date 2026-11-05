@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "stripe": "23.0.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261027.1",
+    "@types/react": "19.3.0",
+    "react": "19.3.1",
+    "typescript": "6.0.3"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "name": "@yuelao/core",
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "private": true,
+  "scripts": {
+    "check": "pnpm typecheck",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "version": "0.0.0"
+}
