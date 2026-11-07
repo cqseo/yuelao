@@ -7,7 +7,9 @@
     "pathPattern": [
       "./messages/common/{locale}.json",
       "./messages/home/{locale}.json",
-      "./messages/legal/{locale}.json"
+      "./messages/legal/{locale}.json",
+      "./messages/ritual/{locale}.json",
+      "./messages/sign/{locale}.json"
     ]
   }
 }

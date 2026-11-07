@@ -1,27 +1,67 @@
 @import "tailwindcss";
 
 /* 月老站設計令牌（原型已定，見 DESIGN.md）：墨黑底 / 朱紅主體 / 燙金強調 / 米紙紙面。
-   P1 再按 DESIGN.md 細化；P0 先保證結構與可讀性。 */
+   字體自託管 woff2（public/fonts/，子集化），不要 Google Fonts 外鏈。 */
+
+@font-face {
+  font-family: "Noto Serif TC";
+  src: url("/fonts/noto-serif-tc.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 同 family 的第二個 face：Noto Serif SC 子集，只含 TC 缺的簡體字
+   （112 字，見 tools/subset-fonts.mjs）。瀏覽器按字符回落 TC → SC，
+   繁體頁不下載此檔，簡體頁才下載。 */
+@font-face {
+  font-family: "Noto Serif TC";
+  src: url("/fonts/noto-serif-sc.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Ma Shan Zheng";
+  src: url("/fonts/ma-shan-zheng.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @theme {
-  --color-ink: #171310;
-  --color-ink-soft: #241d18;
+  --color-ink: #12100e;
+  --color-ink-2: #1c1915;
   --color-vermilion: #c0392b;
-  --color-vermilion-deep: #96281b;
+  --color-vermilion-deep: #8e2418;
   --color-gold: #c9a227;
-  --color-gold-soft: #e3c878;
-  --color-paper: #f5efe0;
+  --color-gold-soft: #e6cc7a;
+  --color-paper: #f3e9d2;
   --color-paper-dim: #e8dfc9;
+  --color-paper-78: rgba(243, 233, 210, 0.78);
+  --color-paper-62: rgba(243, 233, 210, 0.62);
+  --color-gold-55: rgba(201, 162, 39, 0.55);
   --color-muted: #8a7f70;
   --color-line: #3a3129;
   --font-serif-tc: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-cal: "Ma Shan Zheng", "Noto Serif TC", serif;
 }
 
 body {
   margin: 0;
   font-family: var(--font-serif-tc);
   color: var(--color-paper);
-  background: var(--color-ink);
+  font-size: 1.0625rem;
+  line-height: 1.9;
+  /* 全站同一座廟會夜：暖色徑向底固定不動，內容在上面流動。 */
+  background-color: #1b110a;
+  background-image: radial-gradient(120% 90% at 50% 28%, #503018 0%, #2c1b0e 58%, #1b110a 100%);
+  background-attachment: fixed;
+}
+
+a {
+  color: var(--color-gold-soft);
 }
 
 .page {
@@ -37,40 +77,102 @@ body {
   align-items: center;
   padding: 1rem 0;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .site-header nav,
 .site-footer nav {
   display: flex;
   gap: 1rem;
+  align-items: center;
+}
+
+/* 主導航（P8）：只留已上線的問事總目；未建的頁面不在頂欄佔位。 */
+.site-header .site-nav {
+  gap: 1.25rem;
+}
+
+.site-nav a {
+  color: var(--color-paper-dim);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0;
+}
+
+.site-nav a[aria-current="true"] {
+  color: var(--color-gold-soft);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.site-meta {
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .site-header .site-nav {
+    order: 3;
+    flex-basis: 100%;
+    gap: 1rem;
+  }
+
+  .site-meta .nav-legal {
+    display: none;
+  }
 }
 
 .site-footer {
   color: var(--color-muted);
   font-size: 0.875rem;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--color-gold-55);
   margin-top: 4rem;
 }
 
 .brand {
-  font-weight: 700;
+  font-family: var(--font-cal);
+  font-weight: 400;
   text-decoration: none;
   color: var(--color-gold-soft);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
 }
 
-a {
+.locale-switch {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.locale-switch a,
+.locale-switch button {
+  color: var(--color-muted);
+  text-decoration: none;
+  padding: 0.25rem 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* 語言切換只是文字，不做藥丸——藥丸只屬於搖一搖 CTA，第一次看也不會認錯。 */
+.locale-switch a[aria-current="true"],
+.locale-switch button[aria-current="true"] {
   color: var(--color-gold-soft);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 h1 {
-  font-size: 2.25rem;
-  line-height: 1.15;
+  font-size: 2.5rem;
+  line-height: 1.2;
   margin: 2rem 0 0.5rem;
 }
 
 h2 {
-  font-size: 1.25rem;
+  font-size: 1.75rem;
+  line-height: 1.35;
   margin: 2rem 0 0.5rem;
 }
 
@@ -83,47 +185,2403 @@ h2 {
   color: var(--color-muted);
 }
 
-.hero {
-  text-align: center;
-  padding: 3rem 0 1rem;
-}
-
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.category-card {
-  border: 1px solid var(--color-line);
-  border-radius: 4px;
-  padding: 1rem 1.25rem;
-  background: var(--color-ink-soft);
-}
-
-.category-card h3 {
-  margin: 0 0 0.25rem;
-  color: var(--color-gold-soft);
-}
-
-.category-card p {
-  margin: 0 0 0.75rem;
-  color: var(--color-paper-dim);
-}
-
-.soon {
-  font-size: 0.75rem;
-  color: var(--color-vermilion);
-  border: 1px solid var(--color-vermilion);
-  border-radius: 999px;
-  padding: 0.1rem 0.6rem;
-}
-
 .legal {
   max-width: 48rem;
+  font-size: 1rem;
+  line-height: 1.9;
+}
+
+.legal p {
+  line-height: 1.9;
+}
+
+.legal h1 {
+  color: var(--color-gold-soft);
 }
 
 .legal h2 {
   margin-top: 1.5rem;
+}
+
+/* ===== 首頁：問事總目（版式抄 kaucim，視覺抄儀式頁） ===== */
+
+.ask-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0 1rem;
+  flex-wrap: wrap;
+}
+
+.ask-system {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ask-system .name {
+  font-family: var(--font-cal);
+  font-size: 2.5rem;
+  line-height: 1;
+  color: var(--color-paper);
+  /* 英雄區簽系名就是首頁 H1（P7）：h1 預設 margin 會把頂欄撐開，清掉。 */
+  margin: 0;
+}
+
+.ask-system .badge-free {
+  color: var(--color-vermilion);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+/* 主行動是朱紅實心方塊 + 一道細內框線（印章的邊框），不用膠囊。
+   不換行：窄屏上寧可字小一點，也不在「搖一搖」中間斷開（P8）。 */
+.ask-shake {
+  appearance: none;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  outline: 1px solid rgba(243, 233, 210, 0.55);
+  outline-offset: -5px;
+  background: var(--color-vermilion);
+  color: var(--color-paper);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0.75rem 1.5rem;
+  min-height: 48px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.ask-direct-btn {
+  appearance: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--color-gold-soft);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  padding: 0.5rem 0;
+  min-height: 44px;
+}
+
+.ask-ways {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.ask-ways .label {
+  color: var(--color-paper-62);
+}
+
+.ask-ways a {
+  color: var(--color-paper-dim);
+  text-decoration: none;
+}
+
+.ask-ways a:hover {
+  color: var(--color-gold-soft);
+}
+
+.ask-ways .sep {
+  color: var(--color-line);
+}
+
+.ask-ways .soon {
+  color: var(--color-muted);
+}
+
+/* 英雄區：簽系名、搖一搖、直接解簽、其他問法都壓在同一幅廟會夜上。
+   與儀式頁同一張 temple-fair.jpg、同一層 scrim（上透下暗，底部沉進
+   頁面暖底）。圖未載入時暖底頂著，不塌成死黑。 */
+.ask-hero {
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 1.5rem;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: radial-gradient(120% 90% at 50% 28%, #503018 0%, #2c1b0e 58%, #1b110a 100%);
+}
+
+.ask-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+.ask-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(18, 16, 14, 0.3) 0%,
+    rgba(18, 16, 14, 0) 34%,
+    rgba(18, 16, 14, 0.06) 58%,
+    rgba(18, 16, 14, 0.88) 100%
+  );
+}
+
+.ask-hero .ask-top,
+.ask-hero .ask-ways {
+  position: relative;
+  z-index: 1;
+}
+
+.ask-hero .ask-top {
+  padding: 1.5rem 1.25rem 1rem;
+}
+
+.ask-hero .ask-ways {
+  padding: 0 1.25rem 1.5rem;
+  border-bottom: none;
+}
+
+.ask-hero .ask-system .name,
+.ask-hero .ask-direct-btn,
+.ask-hero .ask-ways,
+.ask-hero .ask-ways a {
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+}
+
+.ask-hero .ask-shake {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+}
+
+.ask-direct {
+  border: 1px solid var(--color-gold-55);
+  border-radius: 4px;
+  background: var(--color-ink-2);
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.ask-direct h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.ask-direct p {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  color: var(--color-paper-78);
+  line-height: 1.9;
+}
+
+.ask-direct form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ask-direct input {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  color: var(--color-paper);
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.ask-direct input:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+.ask-direct button[type="submit"] {
+  appearance: none;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  outline: 1px solid rgba(243, 233, 210, 0.55);
+  outline-offset: -5px;
+  background: var(--color-vermilion);
+  color: var(--color-paper);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.75rem 1.5rem;
+  min-height: 48px;
+}
+
+.ask-direct .error {
+  color: #e8a0a8;
+  font-size: 0.875rem;
+  margin: 0.75rem 0 0;
+}
+
+.ask-direct-result {
+  margin-top: 1.25rem;
+  padding: 1.75rem 1.5rem 1.5rem;
+  text-align: center;
+  color: #3a2410;
+  background: url("/ritual/paper.jpg") center / cover;
+  border-radius: 4px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+  position: relative;
+}
+
+/* 解出來的是一支籤：給它判詞卡同款米紙 + 朱紅內框，不是深底文字。 */
+.ask-direct-result::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(142, 36, 24, 0.4);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.ask-direct-result .no {
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.3em;
+  color: var(--color-vermilion);
+  position: relative;
+}
+
+.ask-direct-result .grade {
+  font-family: var(--font-cal);
+  font-size: 2rem;
+  line-height: 1.3;
+  color: #5d0b14;
+  margin: 0.25rem 0;
+  position: relative;
+}
+
+.ask-direct-result .poem {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.8;
+  margin: 0;
+  white-space: pre-line;
+  color: #41260f;
+  position: relative;
+}
+
+.ask-direct-result .verdict {
+  font-size: 1rem;
+  line-height: 1.9;
+  color: rgba(58, 36, 16, 0.82);
+  margin: 0.75rem 0 0;
+  position: relative;
+}
+
+.ask-direct-result .cta-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--color-vermilion-deep);
+  position: relative;
+}
+
+.ask-direct-result .muted {
+  color: rgba(58, 36, 16, 0.6);
+  position: relative;
+}
+
+.ask-index {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.ask-index h2 {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.35;
+  letter-spacing: 0.06em;
+}
+
+.ask-cats {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.ask-cat {
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--color-paper);
+  font-family: inherit;
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
+  display: grid;
+  gap: 0.125rem;
+}
+
+.ask-cat .num {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: var(--color-muted);
+}
+
+/* 大類名用書法金字，與儀式頁 .cat-row .word 同款；選中整塊填朱紅，
+   不是只描一條左線。 */
+.ask-cat .cat-name {
+  font-family: var(--font-cal);
+  font-size: 2.25rem;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-gold-soft);
+}
+
+.ask-cat .cat-desc {
+  font-size: 0.875rem;
+  color: var(--color-paper-62);
+  line-height: 1.7;
+}
+
+.ask-cat[aria-selected="true"] {
+  border-left-color: var(--color-vermilion);
+  background: var(--color-vermilion);
+}
+
+.ask-cat[aria-selected="true"] .num {
+  color: rgba(243, 233, 210, 0.78);
+}
+
+.ask-cat[aria-selected="true"] .cat-name {
+  color: var(--color-paper);
+}
+
+.ask-cat[aria-selected="true"] .cat-desc {
+  color: rgba(243, 233, 210, 0.88);
+}
+
+.ask-entries {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+
+.ask-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  border-radius: 4px;
+  background: rgba(28, 25, 21, 0.85);
+  text-decoration: none;
+  color: var(--color-paper);
+}
+
+a.ask-entry:hover {
+  border-color: var(--color-gold-55);
+}
+
+.ask-entry .entry-name {
+  flex: none;
+  font-size: 1.125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ask-entry .entry-desc {
+  flex: 1;
+  font-size: 1rem;
+  line-height: 1.85;
+  color: var(--color-paper-78);
+}
+
+.ask-entry .badge {
+  flex: none;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+
+.ask-entry .badge-free {
+  color: var(--color-vermilion);
+  font-weight: 700;
+}
+
+.ask-entry .badge-featured {
+  color: var(--color-gold-soft);
+  border: 1px solid var(--color-gold);
+  border-radius: 4px;
+  padding: 0.1rem 0.6rem;
+}
+
+.ask-entry .badge-soon {
+  color: var(--color-muted);
+}
+
+.ask-entry[aria-disabled="true"] {
+  opacity: 0.65;
+}
+
+@media (max-width: 640px) {
+  .ask-hero {
+    min-height: 280px;
+  }
+
+  /* 英雄區主行動窄屏不換行（P8）：字小一點、padding 收窄；一行塞不下時
+     整顆按鈕掉到下一行，不在字中間斷開。 */
+  .ask-system {
+    flex-wrap: wrap;
+  }
+
+  .ask-shake {
+    font-size: 0.875rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .ask-index {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* 四個大類是乾淨的 2×2 格子（P7）：之前 flex 換行排得不齊。
+     說明文字隱藏、選中仍是整塊朱紅，對比不變。 */
+  .ask-cats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .ask-cat {
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.75rem;
+  }
+
+  .ask-cat[aria-selected="true"] {
+    border-bottom-color: var(--color-vermilion);
+    background: var(--color-vermilion);
+  }
+
+  .ask-cat .cat-desc {
+    display: none;
+  }
+
+  .ask-entry {
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+  }
+
+  .ask-entry .entry-desc {
+    flex-basis: 100%;
+  }
+}
+
+/* ===== 首頁長卷（P5）：問事總目之下的三章——怎麼問 / 這一百支籤 / 問答。
+   章與章之間金線分隔 + 大留白；每章先小眉題、再 28px H2、正文 16px/1.9。 */
+
+.home-chapters {
+  margin-top: 4rem;
+}
+
+.home-chapter {
+  border-top: 1px solid var(--color-gold-55);
+  padding: 3rem 0 0.5rem;
+  margin-top: 3.5rem;
+}
+
+.home-chapter:first-child {
+  margin-top: 0;
+}
+
+.home-chapter .kicker {
+  font-size: 0.875rem;
+  letter-spacing: 0.3em;
+  color: var(--color-gold);
+  margin: 0;
+}
+
+.home-chapter h2 {
+  margin: 0.5rem 0 1rem;
+  color: var(--color-gold-soft);
+}
+
+.home-chapter > p {
+  font-size: 1rem;
+  line-height: 1.9;
+  color: var(--color-paper-78);
+  margin: 0 0 1rem;
+  max-width: 46rem;
+}
+
+.how-steps {
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.home-chapter .how-steps .num {
+  font-family: var(--font-cal);
+  font-size: 1.75rem;
+  line-height: 1.2;
+  color: var(--color-gold);
+}
+
+.how-steps h3 {
+  font-size: 1.125rem;
+  margin: 0.5rem 0 0.25rem;
+  color: var(--color-paper);
+}
+
+.how-steps p {
+  font-size: 0.9375rem;
+  line-height: 1.85;
+  color: var(--color-paper-78);
+  margin: 0;
+}
+
+.home-sample {
+  margin-top: 2.5rem;
+}
+
+.home-sample .sample-label {
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+  color: var(--color-gold);
+  margin: 0 0 1rem;
+}
+
+.home-sample > p {
+  font-size: 1rem;
+  line-height: 1.9;
+  color: var(--color-paper-78);
+  margin: 0 0 1rem;
+  max-width: 46rem;
+}
+
+.home-sample .ask-direct-result {
+  margin-top: 0;
+  text-align: center;
+}
+
+.home-sample .ask-direct-result .cta-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--color-vermilion-deep);
+}
+
+.faq-list {
+  margin-top: 2rem;
+  display: grid;
+  gap: 2rem;
+}
+
+.faq-item h3 {
+  font-size: 1.125rem;
+  margin: 0 0 0.5rem;
+  color: var(--color-paper);
+}
+
+.faq-item p {
+  font-size: 1rem;
+  line-height: 1.9;
+  color: var(--color-paper-78);
+  margin: 0;
+  max-width: 46rem;
+}
+
+@media (max-width: 640px) {
+  .home-chapters {
+    margin-top: 3rem;
+  }
+
+  .home-chapter {
+    padding-top: 2rem;
+    margin-top: 2.5rem;
+  }
+
+  .how-steps {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ===== 籤頁（/sign/:id，P5 程序化）：深底上的米紙籤卡 + 三種問法判詞 + 相關籤。 */
+
+.sign-page {
+  max-width: 46rem;
+}
+
+.sign-page h1 {
+  color: var(--color-gold-soft);
+}
+
+.sign-card {
+  margin-top: 2rem;
+  padding: 2.5rem 1.75rem 2rem;
+  text-align: center;
+  color: #3a2410;
+  background: url("/ritual/paper.jpg") center / cover;
+  border-radius: 4px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+  position: relative;
+}
+
+.sign-card::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(142, 36, 24, 0.4);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.sign-card .no {
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.3em;
+  color: var(--color-vermilion);
+  position: relative;
+}
+
+.sign-card .grade {
+  font-family: var(--font-cal);
+  font-size: 2.5rem;
+  line-height: 1.3;
+  color: #5d0b14;
+  margin: 0.25rem 0;
+  position: relative;
+}
+
+.sign-card .poem {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.8;
+  margin: 0;
+  white-space: pre-line;
+  color: #41260f;
+  position: relative;
+}
+
+.sign-card .source {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  margin: 0.75rem 0 0;
+  color: rgba(58, 36, 16, 0.55);
+  position: relative;
+}
+
+.sign-card .knot {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+  color: rgba(58, 36, 16, 0.6);
+  position: relative;
+}
+
+/* 結型實拍圖（P8-fix）：圖已真去背（透明底 + 淡接觸陰影），不需 multiply；140px 是卡的視覺主角尺寸。 */
+.sign-card .sign-knot-img {
+  display: block;
+  margin: 0.75rem auto 0;
+  height: 140px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  position: relative;
+}
+
+.sign-verdicts {
+  margin-top: 3rem;
+}
+
+.sign-verdicts h2,
+.sign-related h2 {
+  margin-top: 0;
+}
+
+.sign-situation {
+  border-top: 1px solid var(--color-line);
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.sign-situation .eyebrow {
+  font-size: 0.875rem;
+  letter-spacing: 0.3em;
+  color: var(--color-gold);
+  margin: 0;
+}
+
+.sign-situation h3 {
+  font-size: 1.25rem;
+  margin: 0.5rem 0;
+  color: var(--color-paper);
+}
+
+.sign-situation p {
+  font-size: 1rem;
+  line-height: 1.9;
+  color: var(--color-paper-78);
+  margin: 0 0 0.75rem;
+}
+
+.sign-situation .sign-block-label {
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+  color: var(--color-gold-soft);
+  margin: 1rem 0 0.25rem;
+}
+
+/* 籤頁專屬建議區：與 .sign-situation 同一視覺（上分隔線 + 段落行距），
+   只在三種問法之後出現一次。 */
+.sign-advice {
+  border-top: 1px solid var(--color-line);
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.sign-advice p {
+  font-size: 1rem;
+  line-height: 1.9;
+  color: var(--color-paper-78);
+  margin: 0 0 0.75rem;
+}
+
+.sign-advice .sign-block-label {
+  font-size: 0.875rem;
+  letter-spacing: 0.2em;
+  color: var(--color-gold-soft);
+  margin: 1rem 0 0.25rem;
+}
+
+.sign-advice .sign-block-label:first-child {
+  margin-top: 0;
+}
+
+.sign-nav {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.sign-page .sign-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--color-gold-55);
+  border-radius: 4px;
+  color: var(--color-paper);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sign-page .sign-nav a.primary {
+  background: var(--color-vermilion);
+  border: none;
+  outline: 1px solid rgba(243, 233, 210, 0.55);
+  outline-offset: -5px;
+}
+
+.sign-related {
+  margin-top: 3rem;
+  border-top: 1px solid var(--color-gold-55);
+  padding-top: 2rem;
+}
+
+.sign-related ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sign-page .sign-related li a {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-line);
+  text-decoration: none;
+  color: var(--color-paper);
+  font-size: 1rem;
+}
+
+.sign-page .sign-related li a:hover {
+  color: var(--color-gold-soft);
+}
+
+.sign-related li a .grade {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+/* ===== 儀式頁（自搖籤原型移植，巡演模式已刪） =====
+   全部選擇器掛在 .ritual-page 之下：儀式頁不掛站點頭尾、全幅沉浸，
+   且全頁禁選取/禁拖曳只限儀式頁內（政策頁等仍可選取文字）。 */
+
+.ritual-page {
+  --ink: #12100e;
+  --ink-2: #1c1915;
+  --red: #c0392b;
+  --red-deep: #8e2418;
+  --gold: #c9a227;
+  --gold-soft: #e6cc7a;
+  --paper: #f3e9d2;
+  --paper-62: rgba(243, 233, 210, 0.62);
+  --paper-78: rgba(243, 233, 210, 0.78);
+  --gold-55: rgba(201, 162, 39, 0.55);
+  --r: 4px;
+  --rp: 999px;
+  --t12: 12px;
+  --t14: 14px;
+  --t17: 17px;
+  --t22: 22px;
+  --t34: 34px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: linear(0, 0.24 2.4%, 0.9 9.6%, 1.03 16%, 1.01 22%, 0.995 30%, 1 44%, 1 100%);
+  font-size: var(--t17);
+  line-height: 1.6;
+  background: var(--ink);
+  color: var(--paper);
+  overflow-x: hidden;
+}
+
+.ritual-page,
+.ritual-page * {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.ritual-page img {
+  -webkit-user-drag: none;
+}
+
+.ritual-page .cal {
+  font-family: "Ma Shan Zheng", "Noto Serif TC", serif;
+}
+
+.ritual-page button {
+  font-family: inherit;
+}
+
+.ritual-page button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.ritual-page .wrap {
+  position: relative;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+}
+
+/* 桌面儀式頁兩側（P5）：≥1100px 時是三欄——左欄搖籤四步、右欄籤的說明，
+   中欄仍是 480px 儀式本體。兩欄是安靜的配角，不搶中欄的戲；窄屏隱藏。 */
+.ritual-page .ritual-rail {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .ritual-page .ritual-stage {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 480px) 220px;
+    justify-content: center;
+    gap: 56px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .ritual-page .wrap {
+    margin: 0;
+  }
+
+  .ritual-page .ritual-rail {
+    display: block;
+    padding-top: 120px;
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--paper-62);
+  }
+
+  .ritual-page .ritual-rail .rail-kicker {
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    margin: 0;
+  }
+
+  .ritual-page .ritual-rail h3 {
+    font-family: "Ma Shan Zheng", "Noto Serif TC", serif;
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1.3;
+    color: var(--gold-soft);
+    margin: 8px 0 16px;
+  }
+
+  .ritual-page .ritual-rail ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 16px;
+  }
+
+  .ritual-page .ritual-rail ol li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    border-top: 1px solid rgba(243, 233, 210, 0.14);
+    padding-top: 12px;
+  }
+
+  .ritual-page .ritual-rail ol .num {
+    font-family: "Ma Shan Zheng", serif;
+    font-size: 20px;
+    line-height: 1.4;
+    color: var(--gold);
+    flex: none;
+  }
+
+  .ritual-page .ritual-rail p {
+    margin: 0 0 12px;
+  }
+
+  .ritual-page .ritual-rail a {
+    color: var(--gold-soft);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+.ritual-page .screen {
+  display: none;
+  position: relative;
+  flex-direction: column;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: max(24px, env(safe-area-inset-top)) 24px calc(32px + env(safe-area-inset-bottom));
+}
+
+.ritual-page .screen.active {
+  display: flex;
+  animation: screenIn 0.38s var(--ease-out) both;
+}
+
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ritual-page .steps {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 4;
+}
+
+.ritual-page .steps i {
+  width: 24px;
+  height: 3px;
+  border-radius: var(--rp);
+  background: rgba(243, 233, 210, 0.18);
+}
+
+.ritual-page .steps i.on {
+  background: var(--gold);
+}
+
+/* 場景層保險：圖片本身帶一層暖色底——圖若慢載/失敗，場景也不會塌成死黑 */
+.ritual-page .bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  will-change: transform;
+  background: radial-gradient(120% 90% at 50% 28%, #503018 0%, #2c1b0e 58%, #1b110a 100%);
+}
+
+.ritual-page .scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(18, 16, 14, 0.3) 0%,
+    rgba(18, 16, 14, 0) 34%,
+    rgba(18, 16, 14, 0.06) 58%,
+    rgba(18, 16, 14, 0.88) 100%
+  );
+}
+
+/* ===== 按鈕 ===== */
+/* 主行動是朱紅實心方塊 + 一道細內框線（印章的邊框），不用膠囊。
+   尺寸不變（56px 高），只改形狀。禁用態無內框。 */
+.ritual-page .cta {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  min-height: 56px;
+  padding: 16px 24px;
+  border-radius: var(--r);
+  outline: 1px solid rgba(243, 233, 210, 0.55);
+  outline-offset: -5px;
+  background: var(--red);
+  color: var(--paper);
+  font-size: var(--t17);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition:
+    transform 0.18s var(--ease-out),
+    background 0.15s ease;
+}
+
+.ritual-page .cta:active {
+  transform: scale(0.97);
+  background: var(--red-deep);
+}
+
+.ritual-page .cta:disabled {
+  background: var(--ink-2);
+  color: rgba(243, 233, 210, 0.38);
+  cursor: default;
+  outline: none;
+}
+
+.ritual-page .cta.ghost {
+  background: transparent;
+  border: 1px solid var(--gold-55);
+  color: var(--paper);
+  outline: none;
+}
+
+.ritual-page .cta.ghost:active {
+  background: rgba(201, 162, 39, 0.12);
+}
+
+.ritual-page .cta svg {
+  flex: none;
+}
+
+.ritual-page .btn-row {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+  position: relative;
+  z-index: 4;
+}
+
+.ritual-page .btn-row .cta {
+  margin-top: 0;
+}
+
+/* ===== 首頁：夜廟全幅 + 豎排書法（安靜屏：背景壓暗，戲留給搖籤屏） ===== */
+.ritual-page #scr-home .bg-img {
+  filter: brightness(0.86);
+}
+
+.ritual-page #scr-home .v-title {
+  position: absolute;
+  z-index: 3;
+  right: 24px;
+  top: 96px;
+  writing-mode: vertical-rl;
+  margin: 0;
+  font-family: "Ma Shan Zheng", "Noto Serif TC", serif;
+  font-weight: 400;
+  font-size: clamp(52px, 15vw, 68px);
+  letter-spacing: 0.14em;
+  color: var(--paper);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.65);
+}
+
+.ritual-page #scr-home .v-rule {
+  position: absolute;
+  z-index: 3;
+  right: 104px;
+  top: 104px;
+  width: 2px;
+  height: 176px;
+  background: var(--red);
+}
+
+.ritual-page .home-lede {
+  position: relative;
+  z-index: 3;
+  margin-top: 16px;
+  max-width: 62%;
+}
+
+.ritual-page .home-lede .lede-big {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.55;
+  margin: 0;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.8);
+}
+
+.ritual-page .home-lede .lede-small {
+  font-size: var(--t14);
+  color: var(--paper-78);
+  line-height: 1.8;
+  margin: 16px 0 0;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+}
+
+.ritual-page .home-bottom {
+  position: relative;
+  z-index: 3;
+  margin-top: auto;
+}
+
+.ritual-page .q-label {
+  font-size: var(--t17);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+}
+
+.ritual-page .cat-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.ritual-page .cat-row {
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: none;
+  border-radius: var(--r);
+  background: rgba(18, 16, 14, 0.78);
+  color: var(--paper);
+  transition:
+    background 0.15s ease,
+    transform 0.18s var(--ease-out);
+}
+
+.ritual-page .cat-row:active {
+  transform: scale(0.98);
+}
+
+.ritual-page .cat-row .word {
+  font-family: "Ma Shan Zheng", "Noto Serif TC", serif;
+  font-size: var(--t34);
+  line-height: 1;
+  color: var(--gold-soft);
+  white-space: nowrap;
+}
+
+.ritual-page .cat-row .desc {
+  flex: 1;
+  font-size: var(--t14);
+  line-height: 1.65;
+  color: var(--paper-78);
+}
+
+.ritual-page .cat-row .chev {
+  flex: none;
+  color: rgba(243, 233, 210, 0.45);
+  transition: transform 0.18s var(--ease-out);
+}
+
+.ritual-page .cat-row.sel {
+  background: var(--red);
+}
+
+.ritual-page .cat-row.sel .word {
+  color: var(--paper);
+}
+
+.ritual-page .cat-row.sel .desc {
+  color: rgba(243, 233, 210, 0.88);
+}
+
+.ritual-page .cat-row.sel .chev {
+  transform: translateX(4px);
+  color: var(--paper);
+}
+
+/* ===== 準備頁（安靜屏：只有字與規矩，沒有裝飾） ===== */
+.ritual-page .ritual {
+  position: relative;
+  z-index: 2;
+  margin-top: 8px;
+}
+
+.ritual-page .ritual h2 {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  margin: 0 0 24px;
+}
+
+.ritual-page .ritual ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 24px;
+}
+
+.ritual-page .ritual li {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  font-size: var(--t17);
+  line-height: 1.75;
+}
+
+.ritual-page .ritual li .num {
+  font-family: "Ma Shan Zheng", serif;
+  font-size: var(--t22);
+  line-height: 1.4;
+  color: var(--gold);
+  flex: none;
+}
+
+.ritual-page .ritual li b {
+  color: var(--gold-soft);
+  font-weight: 700;
+}
+
+.ritual-page .ritual .note {
+  margin-top: 32px;
+  font-size: var(--t14);
+  line-height: 1.8;
+  color: var(--paper-62);
+}
+
+/* 搖籤前選問題（P7）：預設問題點一個，或默念就好；不打字。
+   選中整塊填朱紅，與 .cat-row.sel 同款。 */
+.ritual-page .q-picker {
+  margin: 0 0 24px;
+}
+
+.ritual-page .q-picker .q-label {
+  margin: 0 0 4px;
+  font-size: var(--t14);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--gold-soft);
+}
+
+.ritual-page .q-picker .q-hint {
+  margin: 0 0 12px;
+  font-size: var(--t14);
+  line-height: 1.8;
+  color: var(--paper-62);
+}
+
+.ritual-page .q-picker .q-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ritual-page .q-pick {
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--gold-55);
+  border-radius: 4px;
+  background: rgba(18, 16, 14, 0.78);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: var(--t17);
+  line-height: 1.6;
+}
+
+.ritual-page .q-pick.sel {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+/* ===== 搖籤 ===== */
+.ritual-page #scr-shake {
+  --eg: 0;
+  --drv: 0;
+}
+
+.ritual-page #scr-shake .scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(18, 16, 14, 0.3) 0%,
+    rgba(18, 16, 14, 0) 30%,
+    rgba(18, 16, 14, 0) 62%,
+    rgba(18, 16, 14, 0.6) 100%
+  );
+}
+
+.ritual-page .stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 3;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.ritual-page .hint {
+  min-height: 34px;
+  text-align: center;
+  font-size: var(--t22);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--paper);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
+}
+
+.ritual-page .stage.climax .hint {
+  color: var(--gold-soft);
+}
+
+.ritual-page .subhint {
+  text-align: center;
+  font-size: var(--t14);
+  color: var(--paper-78);
+  min-height: 22px;
+  margin-bottom: 8px;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+}
+
+.ritual-page .tube-zone {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.ritual-page .tube-wobble {
+  position: relative;
+  z-index: 2;
+  will-change: transform;
+  transform-origin: 50% 88%;
+  filter: brightness(calc(0.92 + var(--eg) * 0.22 + var(--drv, 0) * 0.07));
+}
+
+/* aspect-ratio 鎖死幾何：圖未載入/載入失敗時盒子也不塌，筒身與主籤的相對位置永遠成立 */
+.ritual-page .tube-img {
+  display: block;
+  height: min(56vh, 560px);
+  width: auto;
+  aspect-ratio: 478 / 1282;
+}
+
+/* 主籤：與筒內籤群同款的無字籤（蜜竹色、平切籤頭、朱紅籤頭箍）。
+   全程不掛任何籤號疊字——搖動、卡住、升起時它都只是一支通用籤，
+   籤號要等掉籤落定後才揭示。寬度對齊籤群的視覺量級，升起位移在 tick 內另以籤高 55% 封頂（外露 ≤ 60%）。 */
+.ritual-page .hero-stick {
+  position: absolute;
+  left: 62.5%;
+  bottom: 69%;
+  width: 5.6%;
+  transform-origin: 50% 100%;
+  will-change: transform;
+  pointer-events: none;
+  opacity: 0; /* 開搖前不露：沉在籤群裡，搖起來才浮現 */
+}
+
+.ritual-page .hero-stick img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 地面承托不再拿另一張供桌照片硬拼進夜景——那會在畫面中段切出一條
+   明顯接縫、把背景看成上下兩截。改只在筒底鋪一團邊緣全羽化的暖暗
+   地面光暈：筒像站在同一幅廟會夜景的石板地上，場景連成一幅。 */
+.ritual-page .tube-zone::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: -26px;
+  width: 135%;
+  height: 132px;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(8, 5, 2, 0.62) 0%,
+    rgba(8, 5, 2, 0.34) 52%,
+    rgba(8, 5, 2, 0) 74%
+  );
+  filter: blur(7px);
+  pointer-events: none;
+}
+
+.ritual-page .tube-shadow {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  width: 196px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.72), transparent 70%);
+  will-change: transform, opacity;
+}
+
+.ritual-page .press-btn {
+  margin-top: 32px;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 4;
+  border: 1px solid var(--gold-55);
+  color: var(--paper);
+  background: rgba(18, 16, 14, 0.82);
+  border-radius: var(--r);
+  padding: 14px 28px;
+  min-height: 52px;
+  font-size: var(--t17);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  white-space: nowrap;
+  transition:
+    transform 0.18s var(--ease-out),
+    background 0.15s ease;
+}
+
+.ritual-page .press-btn.pressing {
+  background: var(--red);
+  transform: scale(0.96);
+}
+
+.ritual-page .press-note {
+  margin: 16px 0 0;
+  font-size: var(--t12);
+  color: var(--paper-62);
+  text-align: center;
+  line-height: 1.8;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
+  position: relative;
+  z-index: 4;
+}
+
+/* 長按/搖籤進度：條形隨 energy 即時走，按住時文字另給約略秒數 */
+.ritual-page .press-progress {
+  width: min(300px, 82%);
+  margin: 20px auto 0;
+  position: relative;
+  z-index: 4;
+}
+
+.ritual-page .pp-track {
+  height: 8px;
+  border-radius: var(--rp);
+  background: rgba(243, 233, 210, 0.16);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.ritual-page .pp-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: var(--rp);
+  background: linear-gradient(90deg, var(--gold) 0%, var(--gold-soft) 100%);
+  transition: width 0.12s linear;
+}
+
+.ritual-page .pp-text {
+  margin-top: 8px;
+  min-height: 20px;
+  text-align: center;
+  font-size: var(--t12);
+  letter-spacing: 0.1em;
+  color: var(--paper-78);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
+}
+
+.ritual-page .falling-stick {
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  width: 26px;
+  z-index: 6;
+  transform: translateX(-50%);
+  display: none;
+  will-change: transform;
+}
+
+.ritual-page .falling-stick img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.55));
+}
+
+.ritual-page .falling-stick .fs-num {
+  position: absolute;
+  top: 26%;
+  left: 50%;
+  transform: translateX(-50%);
+  writing-mode: vertical-rl;
+  font-weight: 900;
+  font-size: var(--t14);
+  letter-spacing: 0.2em;
+  color: var(--red-deep);
+  text-shadow:
+    0 0 6px rgba(243, 233, 210, 0.85),
+    0 0 3px rgba(243, 233, 210, 0.9);
+}
+
+.ritual-page .falling-stick.show {
+  display: block;
+} /* 軌跡由 flyStick 物理模擬逐幀寫入 transform，不用 keyframes */
+
+.ritual-page .land-shadow {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 25px;
+  width: 88px;
+  height: 15px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.65), transparent 70%);
+  opacity: 0;
+}
+
+/* 落影在觸地幀一次到位：不做縮放動畫——落定那一刻起，連影子都不許再動 */
+.ritual-page .land-shadow.show {
+  opacity: 1;
+}
+
+.ritual-page .puff {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 30px;
+  width: 26px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(243, 233, 210, 0.4), transparent 70%);
+  filter: blur(3px);
+  opacity: 0;
+}
+
+.ritual-page .puff.show {
+  animation: puffOut 0.7s ease-out forwards;
+}
+
+@keyframes puffOut {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(0);
+  }
+  25% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9) translateY(-9px);
+  }
+}
+
+/* ===== 掉籤卡（米紙） ===== */
+.ritual-page .stick-card {
+  position: relative;
+  z-index: 3;
+  color: #3a2410;
+  text-align: center;
+  background: url("/ritual/paper.jpg") center / cover;
+  border-radius: var(--r);
+  padding: 24px 24px 20px;
+  margin-top: 8px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+}
+
+.ritual-page .stick-card::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(142, 36, 24, 0.4);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.ritual-page .stick-card .no {
+  font-weight: 900;
+  font-size: var(--t14);
+  letter-spacing: 0.3em;
+  color: var(--red-deep);
+}
+
+.ritual-page .stick-card .grade {
+  font-family: "Ma Shan Zheng", serif;
+  font-size: var(--t34);
+  line-height: 1.3;
+  margin: 4px 0 8px;
+  color: #5d0b14;
+}
+
+.ritual-page .stick-card .poem {
+  font-size: var(--t22);
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.ritual-page .stick-card .tag {
+  margin-top: 8px;
+  font-size: var(--t12);
+  color: rgba(58, 36, 16, 0.55);
+  letter-spacing: 0.12em;
+}
+
+/* ===== 擲筊 ===== */
+.ritual-page #scr-stick {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* 擲筊屏與首頁/搖籤屏共用同一張暖金廟會背景；scrim 加重一檔保文字可讀 */
+.ritual-page #scr-stick .scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(18, 16, 14, 0.52) 0%,
+    rgba(18, 16, 14, 0.34) 42%,
+    rgba(18, 16, 14, 0.55) 100%
+  );
+}
+
+.ritual-page #scr-stick .stick-card {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ritual-page .jiao-zone {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  min-width: 0;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.ritual-page .jiao-title {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.ritual-page .jiao-sub {
+  color: var(--paper-62);
+  font-size: var(--t14);
+  margin: 8px auto 0;
+  line-height: 1.8;
+  max-width: 340px;
+  overflow-wrap: anywhere;
+}
+
+/* 擲筊前就講清三種結果（與 finishThrow 的判定/文案同一套定義） */
+.ritual-page .jiao-legend {
+  margin: 16px auto 0;
+  max-width: 340px;
+  text-align: left;
+  font-size: var(--t12);
+  line-height: 2;
+  color: var(--paper-62);
+}
+
+.ritual-page #scr-stick .jiao-legend b {
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  margin-right: 10px;
+}
+
+.ritual-page .mini-link {
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: block;
+  margin: 14px auto 0;
+  color: var(--paper-62);
+  font-size: var(--t14);
+  letter-spacing: 0.06em;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  position: relative;
+  z-index: 4;
+  min-height: 32px;
+}
+
+.ritual-page .jiao-arena {
+  position: relative;
+  width: calc(100% + 40px);
+  margin: 24px -20px 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* 不再另鋪一張供桌照片——那會在廟會夜景中段硬切出一條木板帶，
+   背景看著像兩張圖疊起來。競技場本身透明，杯子直接落在這一屏
+   同一幅夜景裡；只在杯底鋪一團邊緣全羽化的暖暗地面光暈承托
+   （與搖籤頁筒底同一手法），場景連成一幅、沒有接縫。 */
+.ritual-page .jiao-arena::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: -34px;
+  width: 132%;
+  height: 152px;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(10, 6, 3, 0.66) 0%,
+    rgba(10, 6, 3, 0.36) 52%,
+    rgba(10, 6, 3, 0) 74%
+  );
+  filter: blur(7px);
+  pointer-events: none;
+}
+
+.ritual-page .jiao-arena.land {
+  animation: arenaLand 0.28s var(--ease-out);
+}
+
+@keyframes arenaLand {
+  0% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.ritual-page .jiao-cups {
+  position: relative;
+  z-index: 2;
+  height: 324px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 16px 32px;
+  will-change: transform;
+  perspective: 900px;
+}
+
+.ritual-page .jiao-cup {
+  position: relative;
+  width: min(36vw, 156px);
+  aspect-ratio: 3 / 2;
+  flex: none;
+  transform-origin: 50% 100%;
+}
+
+/* 起拋前把手勢跟隨的下沉量放掉時走過渡滑回，不許一幀跳回原位 */
+.ritual-page .jiao-cup.releasing {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ritual-page .cup-inner {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 62%;
+  will-change: transform;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+}
+
+.ritual-page .cup-inner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.5));
+}
+
+/* 杯面標記（跟著杯面一起翻）：兩面用同一套視覺語言——同一道金色
+   嵌線，只是形狀不同：平面＝金色直線、凸面＝金色弧線。不再一白
+   一金讓人猜；對應關係另有小字寫在杯子下方（.jiao-mark-note）。 */
+.ritual-page .cup-mark {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 56%;
+  height: 24%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.ritual-page .cup-mark.flat::after {
+  content: "";
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 50%;
+  height: 5px;
+  margin-top: -2px;
+  border-radius: 3px;
+  background: rgba(255, 205, 102, 0.95);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.ritual-page .cup-mark.convex {
+  height: 36%;
+  border-radius: 50%;
+  border-top: 6px solid rgba(255, 205, 102, 0.95);
+  transform: translate(-50%, -50%) rotate(-7deg);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+/* 杯下小字：第一次玩的人一眼看懂金線的直/弧各是哪一面 */
+.ritual-page .jiao-mark-note {
+  margin-top: 10px;
+  text-align: center;
+  font-size: var(--t12);
+  letter-spacing: 0.08em;
+  color: var(--paper-62);
+  position: relative;
+  z-index: 3;
+}
+
+.ritual-page .jiao-mark-note .mk {
+  color: var(--gold-soft);
+  font-weight: 900;
+}
+
+.ritual-page .cup-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  width: 78%;
+  height: 14px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, 0.68), transparent 70%);
+}
+
+.ritual-page .cup-dust {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 30px;
+  height: 12px;
+  margin-left: -15px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(243, 233, 210, 0.42), transparent 70%);
+  filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ritual-page .cup-dust.show {
+  animation: puffOut 0.7s ease-out forwards;
+}
+
+.ritual-page .sensor-note {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: var(--t12);
+  color: var(--paper-62);
+  line-height: 1.7;
+  position: relative;
+  z-index: 3;
+}
+
+.ritual-page .sensor-btn {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--gold);
+  background: transparent;
+  color: var(--gold-soft);
+  border-radius: var(--r);
+  padding: 8px 16px;
+  font-size: var(--t14);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  min-height: 40px;
+}
+
+.ritual-page .jiao-result {
+  min-height: 66px;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 16px;
+  position: relative;
+  z-index: 3;
+  overflow-wrap: anywhere;
+}
+
+.ritual-page .jiao-result .r-name {
+  font-family: "Ma Shan Zheng", serif;
+  font-size: var(--t34);
+  letter-spacing: 0.18em;
+  line-height: 1.3;
+}
+
+/* 結果文案一律淡入上浮，且只在兩杯完全落穩後才由 finishThrow 寫入 */
+.ritual-page .jiao-result .r-name,
+.ritual-page .jiao-result .r-desc {
+  animation: resultIn 0.5s var(--ease-out) both;
+}
+
+.ritual-page .jiao-result .r-desc {
+  animation-delay: 0.09s;
+}
+
+@keyframes resultIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ritual-page .jiao-result .r-desc {
+  color: var(--paper-62);
+  font-size: var(--t14);
+  margin: 4px auto 0;
+  max-width: 340px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.ritual-page #scr-stick .cta {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.ritual-page .r-sheng {
+  color: var(--gold-soft);
+}
+
+.ritual-page .r-xiao {
+  color: #e8a0a8;
+}
+
+.ritual-page .r-yin {
+  color: rgba(243, 233, 210, 0.55);
+}
+
+/* ===== 判詞卡 ===== */
+.ritual-page .verdict-card {
+  position: relative;
+  z-index: 3;
+  margin-top: 8px;
+  color: #41260f;
+  text-align: center;
+  background: url("/ritual/paper.jpg") center / cover;
+  border-radius: var(--r);
+  padding: 40px 24px 120px;
+  overflow: hidden;
+  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.6);
+}
+
+.ritual-page .verdict-card .vc-frame {
+  position: absolute;
+  inset: 8px;
+  border: 1.5px solid rgba(142, 36, 24, 0.45);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.ritual-page .verdict-card .vc-frame::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(142, 36, 24, 0.28);
+  border-radius: 2px;
+}
+
+.ritual-page .vc-cat {
+  font-size: var(--t12);
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  color: rgba(65, 38, 15, 0.6);
+  position: relative;
+}
+
+/* 搖籤前選的問題（P7）：判詞卡上只顯示，不改判詞正文。 */
+.ritual-page .vc-question {
+  margin: 8px 0 0;
+  font-size: var(--t14);
+  line-height: 1.8;
+  color: rgba(65, 38, 15, 0.75);
+  position: relative;
+}
+
+.ritual-page .vc-no {
+  font-weight: 700;
+  font-size: var(--t17);
+  letter-spacing: 0.26em;
+  color: var(--red-deep);
+  margin-top: 8px;
+  position: relative;
+}
+
+.ritual-page .vc-grade {
+  font-family: "Ma Shan Zheng", serif;
+  font-size: 40px;
+  line-height: 1.3;
+  color: #5d0b14;
+  position: relative;
+}
+
+.ritual-page .vc-divider {
+  width: 56px;
+  height: 2px;
+  margin: 8px auto 0;
+  background: var(--red);
+  position: relative;
+}
+
+.ritual-page .vc-poem {
+  font-size: var(--t22);
+  font-weight: 700;
+  line-height: 1.7;
+  color: #41260f;
+  margin: 16px 0 0;
+  position: relative;
+  white-space: pre-line;
+}
+
+.ritual-page .vc-knot {
+  margin: 24px auto 0;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* 結型實拍圖（P8-fix）：圖已真去背，不用 multiply；180px 讓結成為
+   判詞卡的視覺主角，寬度自適應、置中，窄屏由 max-width 兜底。 */
+.ritual-page .vc-knot img {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.ritual-page .vc-knot-name {
+  font-weight: 900;
+  font-size: var(--t22);
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--red-deep);
+  position: relative;
+}
+
+.ritual-page .vc-verdict {
+  font-size: var(--t17);
+  line-height: 2;
+  font-weight: 700;
+  color: #4d2c10;
+  margin: 16px 8px 0;
+  position: relative;
+}
+
+/* 判詞卡內的結構化答案：結論之下是「三天內可以做」與「七日練習」，
+   左對齊 + 小標題，與居中的詩文區分開；再下是免費到此為止的提示行。
+   深度解讀鎖定區仍在卡外，不動。 */
+.ritual-page .vc-actions,
+.ritual-page .vc-practice {
+  text-align: left;
+  margin: 24px 8px 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(142, 36, 24, 0.25);
+  position: relative;
+}
+
+.ritual-page .vc-actions h4,
+.ritual-page .vc-practice h4 {
+  margin: 0 0 8px;
+  font-size: var(--t14);
+  letter-spacing: 0.2em;
+  color: var(--red-deep);
+}
+
+.ritual-page .vc-actions p,
+.ritual-page .vc-practice p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.9;
+  color: #4d2c10;
+}
+
+.ritual-page .vc-free-done {
+  text-align: left;
+  margin: 24px 8px 0;
+  font-size: var(--t14);
+  line-height: 1.9;
+  color: rgba(65, 38, 15, 0.65);
+  position: relative;
+}
+
+.ritual-page .seal {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  width: 62px;
+  height: 94px;
+  z-index: 2;
+  border: 3px solid rgba(192, 57, 43, 0.88);
+  border-radius: 9px 12px 10px 13px / 12px 9px 13px 10px;
+  background: rgba(192, 57, 43, 0.07);
+  color: var(--red);
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  font-size: var(--t17);
+  letter-spacing: 0.16em;
+  transform: rotate(-8deg);
+}
+
+.ritual-page .seal .seal-in {
+  filter: url(#ink-rough);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.ritual-page .seal.stamp {
+  animation: stampin 0.26s var(--ease-out) both 0.2s;
+}
+
+@keyframes stampin {
+  from {
+    transform: rotate(-8deg) scale(1.7);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(-8deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 深度解讀（鎖定態，P4 才接支付）：照抄 kaucim 付費牆結構——五項解鎖清單 + 信任話術 */
+.ritual-page .deep-lock {
+  position: relative;
+  z-index: 3;
+  margin-top: 24px;
+  border: 1px solid var(--gold-55);
+  border-radius: var(--r);
+  background: rgba(18, 16, 14, 0.82);
+  padding: 24px;
+  text-align: left;
+}
+
+.ritual-page .deep-lock h3 {
+  margin: 0;
+  font-size: var(--t22);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--gold-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.ritual-page .deep-lock .soon-tag {
+  flex: none;
+  font-size: var(--t12);
+  letter-spacing: 0.1em;
+  color: var(--paper-62);
+  border: 1px solid var(--gold-55);
+  border-radius: var(--r);
+  padding: 4px 12px;
+}
+
+.ritual-page .deep-lock .teaser {
+  margin: 16px 0 0;
+  font-size: var(--t14);
+  line-height: 1.9;
+  color: var(--paper-78);
+}
+
+.ritual-page #scr-verdict .deep-lock .teaser b {
+  color: var(--gold-soft);
+}
+
+.ritual-page .deep-lock ul {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.ritual-page .deep-lock li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: var(--t14);
+  line-height: 1.8;
+  color: var(--paper);
+}
+
+.ritual-page .deep-lock li::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-top: 9px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+.ritual-page .deep-lock .trust {
+  margin: 16px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid rgba(243, 233, 210, 0.14);
+  display: grid;
+  gap: 8px;
+  font-size: var(--t14);
+  line-height: 1.8;
+  color: var(--paper-62);
+}
+
+.ritual-page #scr-verdict .deep-lock .cta {
+  margin-top: 20px;
+}
+
+.ritual-page .deep-lock .cta-note {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: var(--t12);
+  color: var(--paper-62);
+  line-height: 1.8;
+}
+
+.ritual-page .locale-note {
+  position: relative;
+  z-index: 3;
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: var(--t12);
+  line-height: 1.8;
+  color: var(--paper-62);
+}
+
+.ritual-page .toast {
+  position: fixed;
+  left: 50%;
+  /* 懸在底部按鈕行之上：兩顆 56px 按鈕 + 間距 + 邊距約 176px，192px
+     才一定蓋不到任何可點按鈕。只出現 3 秒，浮在內容上可以接受。 */
+  bottom: calc(192px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 20px);
+  background: var(--ink-2);
+  border: 1px solid var(--gold);
+  color: var(--paper);
+  padding: 12px 24px;
+  border-radius: var(--r);
+  font-size: var(--t14);
+  z-index: 50;
+  opacity: 0;
+  /* 隱藏時不攔截點擊（否則透明的 toast 會擋住底下的按鈕）；只有
+     顯示時才可點、點按立即消失。 */
+  pointer-events: none;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s var(--ease-out);
+  white-space: nowrap;
+  max-width: calc(100vw - 48px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ritual-page .toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ritual-page .screen.active {
+    animation: none;
+  }
+  .ritual-page .seal.stamp,
+  .ritual-page .stage.climax .hint,
+  .ritual-page .jiao-arena.land {
+    animation: none;
+  }
+  .ritual-page .jiao-result .r-name,
+  .ritual-page .jiao-result .r-desc {
+    animation: none;
+  }
+  .ritual-page .cta,
+  .ritual-page .cat-row,
+  .ritual-page .press-btn {
+    transition: none;
+  }
 }

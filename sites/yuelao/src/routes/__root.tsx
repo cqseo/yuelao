@@ -1,10 +1,10 @@
-import { createRootRoute, HeadContent, Link, Outlet, Scripts } from '@tanstack/react-router';
+import { createRootRoute, HeadContent, Link, Outlet, Scripts, useLocation } from '@tanstack/react-router';
 import { analyticsScripts } from '@yuelao/core/analytics';
 import { captureAttribution } from '@yuelao/core/react/attribution';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { m } from '~/paraglide/messages.js';
-import { getLocale } from '~/paraglide/runtime.js';
+import { getLocale, localizeHref, setLocale } from '~/paraglide/runtime.js';
 import { SUPPORT_EMAIL } from '~/site/legal';
 import appCss from '~/site/styles.css?url';
 import site from '../../site.config';
@@ -24,7 +24,8 @@ export const Route = createRootRoute({
   notFoundComponent: NotFound,
 });
 
-// 404: React 19 hoists title and meta into head. Lists the main entry points.
+// 404: React 19 hoists title and meta into head. Lists the main entry points,
+// including llms.txt (the AI summary entry) as the plan requires.
 function NotFound() {
   return (
     <section className="legal">
@@ -35,6 +36,15 @@ function NotFound() {
       <ul>
         <li>
           <Link to="/">{m.common_not_found_home()}</Link>
+        </li>
+        <li>
+          <Link to={localizeHref('/ritual')}>{m.common_not_found_ritual()}</Link>
+        </li>
+        <li>
+          <Link to={localizeHref('/sign/1')}>{m.common_not_found_signs()}</Link>
+        </li>
+        <li>
+          <a href={localizeHref('/llms.txt')}>{m.common_not_found_llms()}</a>
         </li>
       </ul>
     </section>
@@ -60,15 +70,54 @@ function Layout() {
     captureAttribution();
   }, []);
 
+  const location = useLocation();
+  // 儀式頁全幅沉浸、不掛站點頭尾：location.pathname 是去本地化後的
+  // 路徑（/ritual）。
+  if (location.pathname === '/ritual') {
+    return <Outlet />;
+  }
+
+  const locale = getLocale();
+
   return (
     <div className="page">
       <header className="site-header">
         <Link to="/" className="brand">
           {site.name}
         </Link>
-        <nav>
-          <Link to="/privacy">{m.common_footer_privacy()}</Link>
-          <Link to="/terms">{m.common_footer_terms()}</Link>
+        {/* 主導航（P8）：只留已上線的問事總目。姻緣簿、香燈簿、我的
+            未建，不在頂欄佔位，等頁面建好再加回來。 */}
+        <nav className="site-nav" aria-label={m.common_nav_label()}>
+          <Link to="/" aria-current={location.pathname === '/' ? 'true' : undefined}>
+            {m.common_nav_home()}
+          </Link>
+        </nav>
+        <nav className="site-meta">
+          <Link className="nav-legal" to="/privacy">
+            {m.common_footer_privacy()}
+          </Link>
+          <Link className="nav-legal" to="/terms">
+            {m.common_footer_terms()}
+          </Link>
+          {/* 繁/簡切換（P7，kaucim 式）：同一路徑、不跳頁——setLocale 寫
+              PARAGLIDE_LOCALE cookie 再整頁重載，伺服器讀 cookie 做 SSR，
+              網址不變。 */}
+          <span className="locale-switch">
+            <button
+              type="button"
+              onClick={() => setLocale('zh-Hant')}
+              aria-current={locale === 'zh-Hant' ? 'true' : undefined}
+            >
+              繁體
+            </button>
+            <button
+              type="button"
+              onClick={() => setLocale('zh-Hans')}
+              aria-current={locale === 'zh-Hans' ? 'true' : undefined}
+            >
+              簡體
+            </button>
+          </span>
         </nav>
       </header>
       <main>
@@ -81,6 +130,7 @@ function Layout() {
           <Link to="/terms">{m.common_footer_terms()}</Link>
           <Link to="/refunds">{m.common_footer_refunds()}</Link>
           <Link to="/dmca">{m.common_footer_dmca()}</Link>
+          <a href={localizeHref('/llms.txt')}>{m.common_footer_llms()}</a>
           <a href={`mailto:${SUPPORT_EMAIL}`}>{m.common_footer_contact()}</a>
         </nav>
       </footer>

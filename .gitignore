@@ -3,6 +3,7 @@ dist
 .preview
 .wrangler
 .dev.vars
+tools/.font-cache
 src/paraglide
 worker-configuration.d.ts
 routeTree.gen.ts

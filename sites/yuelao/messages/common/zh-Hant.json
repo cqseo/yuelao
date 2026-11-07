@@ -3,6 +3,7 @@
   "common_close": "關閉",
   "common_footer_contact": "聯絡我們",
   "common_footer_dmca": "DMCA",
+  "common_footer_llms": "llms.txt",
   "common_footer_notice": "© {year} {name}",
   "common_footer_privacy": "隱私權",
   "common_footer_refunds": "退款政策",
@@ -10,10 +11,14 @@
   "common_legal_policy_date": "2026 年 11 月 5 日",
   "common_legal_questions": "有問題請來信",
   "common_legal_updated": "最後更新：{date}",
-  "common_nav_book": "姻緣簿",
+  "common_nav_home": "問事總目",
+  "common_nav_label": "主導航",
   "common_nav_pricing": "定價",
   "common_not_found_heading": "頁面不存在",
   "common_not_found_home": "回首頁",
   "common_not_found_intro": "連結可能過期或拼錯了，試試這些：",
+  "common_not_found_llms": "給 AI 的網站摘要（llms.txt）",
+  "common_not_found_ritual": "去搖一支籤",
+  "common_not_found_signs": "從第一籤看起",
   "common_not_found_title": "頁面不存在 — {name}"
 }

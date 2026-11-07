@@ -44,9 +44,8 @@ Drizzle + Postgres 在 Workers 裡沒有官方支持的 TCP 驅動；Supabase �
 4. 金錢表不開放 client 寫；service_role 只在 Worker 服務端用，絕不進瀏覽器 bundle。
 5. 訪客同步：先 OTP 登錄拿到 JWT，再按 `user_id = auth.uid()` 批量寫。
 
-## 簡繁路由（P0 狀態）
+## 簡繁路由（P7 狀態：同路徑切換，抄 kaucim）
 
-推薦方案：同一域名，繁體是默認站，簡體用 `/hk/` 路徑前綴；語言切換只換前綴，內容、籤號、訂單全部同一套數據。
+同一域名、單棵 URL 樹：繁/簡是同一地址下的字形切換，`PARAGLIDE_LOCALE` cookie 是唯一信號（伺服器讀 cookie 做 SSR，客戶端讀同一個 cookie），網址不帶語言。舊 `/hk/*` 一律 301 到去掉前綴的同一路徑。內容、籤號、訂單全部同一套數據；sitemap、canonical、llms.txt 都是單棵樹，沒有指向簡體的 hreflang。
 
-- P0 已做：Paraglide 配 `zh-Hant`（預設）+ `zh-Hans` 兩套文案；`server.ts` 的 locale 中間件生產環境也跑（修掉了模板「生產只出英文」的行為）。
-- P1 待做：`/hk/` 前綴路由（TanStack Start 路由組或中間件重寫）+ canonical/sitemap 按語言分流。
+- P7 已做：Paraglide 策略 `['cookie', 'baseLocale']`（urlPatterns 是 identity 映射，localizeUrl 不加前綴）；頂欄切換是 setLocale 按鈕（寫 cookie 再整頁重載）；`/hk/*` 301 在 `server.ts`。

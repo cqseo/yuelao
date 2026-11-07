@@ -43,6 +43,16 @@ export function priceForLocale(product: Product, locale: Locale): Price {
   return product.prices[locale] ?? product.prices['zh-Hant'];
 }
 
+/** Display price from the config — never hardcode a price string in a page.
+    HKD 1800 -> "HK$18" (zh-Hans), TWD 7500 -> "NT$75" (zh-Hant).
+    (Intl currency formatting renders TWD as "$" under zh-Hant, so the
+    symbol is mapped explicitly — the price must read NT$75, not $75.) */
+const CURRENCY_SYMBOL: Record<string, string> = { TWD: 'NT$', HKD: 'HK$' };
+export function formatPrice(price: Price, locale: Locale): string {
+  const symbol = CURRENCY_SYMBOL[price.currency] ?? `${price.currency} `;
+  return `${symbol}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(price.amount / 100)}`;
+}
+
 export function checkoutProduct(product: Product, locale: Locale): CheckoutProduct {
   if (product.kind === 'subscription') {
     return {

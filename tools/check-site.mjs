@@ -53,7 +53,10 @@ function checkLegal(dir) {
   const config = fs.readFileSync(path.join(dir, 'site.config.ts'), 'utf8');
   if (config.includes('support@example.com'))
     warnings.push('site.config.ts supportEmail is still a placeholder');
-  if (config.includes('example.com')) warnings.push('site.config.ts url is still example.com');
+  // Only the url field counts here: support@example.com also contains
+  // "example.com" and is a separate, intentional placeholder (P7).
+  const urlMatch = config.match(/url:\s*'([^']+)'/);
+  if (urlMatch?.[1].includes('example.com')) warnings.push('site.config.ts url is still example.com');
   return { problems, warnings };
 }
 

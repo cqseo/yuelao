@@ -3,14 +3,72 @@ import { proxyRybbit } from '@yuelao/core/analytics';
 import { paraglideMiddleware } from '~/paraglide/server.js';
 
 // Worker entry: pages and API go to TanStack Start.
+//
+// Locale (P7, kaucim model): Traditional/Simplified is a same-path script
+// toggle. The PARAGLIDE_LOCALE cookie is the single source of truth — the
+// paraglide middleware reads it for SSR and the client reads the same
+// cookie, so the first render already matches (no hydration mismatch).
+// The URL never carries the locale.
+//
+// Security headers are set here on every Worker response (HTML, sitemap,
+// llms.txt, API). Static files under /assets/* are served by the platform
+// before the Worker runs, so their cache headers live in public/_headers.
+
+// CSP: TanStack Start's streaming/hydration uses an inline <script> and
+// React renders inline style attributes, so script/style need
+// 'unsafe-inline' — a nonce-based policy is not available here. Everything
+// else is 'self'-only; the app loads no third-party scripts, fonts or
+// images (analytics, when enabled, is proxied through our own /stats/).
+// DeviceMotion (shake) needs no CSP permission; do NOT add a
+// Permissions-Policy that disables accelerometer/gyroscope.
+const SECURITY_HEADERS: Record<string, string> = {
+  'content-security-policy':
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'x-frame-options': 'DENY',
+  'strict-transport-security': 'max-age=31536000; includeSubDomains',
+};
+
+function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(name, value);
+  }
+  // HTML stays revalidating (no long cache); sitemap/llms/robots set their
+  // own max-age=3600 in core/seo.ts and keep it.
+  if (!headers.has('cache-control') && (headers.get('content-type') ?? '').includes('text/html')) {
+    headers.set('cache-control', 'public, max-age=0, must-revalidate');
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    // Old /hk/* prefix (P1–P6) is retired: 301 to the same path without it.
+    // /hk → /, /hk/ritual → /ritual, /hk/sign/6 → /sign/6. Query kept.
+    if (url.pathname === '/hk' || url.pathname.startsWith('/hk/')) {
+      const target = url.pathname === '/hk' ? '/' : url.pathname.slice(3);
+      const dest = new URL(target + url.search, url.origin);
+      return withSecurityHeaders(Response.redirect(dest, 301));
+    }
     // Rybbit analytics goes through this site's /stats/ and is proxied upstream here.
     const stats = await proxyRybbit(request, env.RYBBIT_UPSTREAM);
-    if (stats) return stats;
-    // Locale: cookie first, zh-Hant default. Unlike the shipwords template, production
-    // runs the middleware too — the site ships Traditional Chinese, not English.
-    // TODO(P1): /hk/ path-prefix routing for Simplified (Hong Kong).
-    return paraglideMiddleware(request, () => handler.fetch(request));
+    if (stats) return withSecurityHeaders(stats);
+    // Locale: the cookie strategy reads PARAGLIDE_LOCALE first, then the
+    // zh-Hant base locale. Production runs the middleware too — the site
+    // ships Traditional Chinese, not English.
+    // Pass the ORIGINAL request to the handler: TanStack Router handles URL
+    // localization itself via the rewrite pair in src/router.tsx
+    // (deLocalizeUrl on input, localizeUrl on output). Handing it the
+    // middleware's already-delocalized request would double-delocalize and
+    // redirect-loop — see the paraglideMiddleware JSDoc.
+    const response = await paraglideMiddleware(request, () => handler.fetch(request));
+    return withSecurityHeaders(response);
   },
 } satisfies ExportedHandler<Env>;

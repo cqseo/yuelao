@@ -1,0 +1,9 @@
+# Workers Static Assets headers (public/ is copied into the client build
+# output, which the Worker serves as static assets).
+# /assets/* are Vite outputs with content hashes in the filename, so they
+# are safe to cache for a year. HTML is served by the Worker (see
+# src/server.ts) and stays revalidating; unhashed /fonts/* and /ritual/*
+# keep the platform default.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff

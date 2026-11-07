@@ -1,18 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { sitemapXml } from '@yuelao/core/seo';
+import { sitemapIndexXml } from '@yuelao/core/seo';
 import site from '../../site.config';
 
-// Register new indexable pages here. /sign/1…100 and 擲筊長尾頁 land in P5.
-export const PAGES = ['/', '/privacy', '/terms', '/refunds', '/dmca'];
-
+// Sitemap index: per-section sitemaps live at /sitemap-pages.xml (core pages)
+// and /sitemap-signs.xml (100 sticks x 2 locales). robots.txt points here.
 export const Route = createFileRoute('/sitemap.xml')({
   server: {
     handlers: {
-      GET: () =>
-        sitemapXml(
-          site,
-          PAGES.map((path) => ({ path })),
-        ),
+      GET: () => sitemapIndexXml(site, ['/sitemap-pages.xml', '/sitemap-signs.xml']),
     },
   },
 });

@@ -26,7 +26,7 @@
 ## 3. 語言
 
 - 繁體中文是主站語言，簡體是第二語言；`messages/` 只有 `zh-Hant` / `zh-Hans` 兩套。
-- 簡體版走 `/hk/` 路徑前綴（P1 落地）；P0 只做中間件分流（cookie + 預設語言），前綴路由待設計。
+- 繁/簡是同路徑切換（P7，抄 kaucim）：頂欄按鈕寫 `PARAGLIDE_LOCALE` cookie 再整頁重載，伺服器讀 cookie 做 SSR，網址不帶語言。舊 `/hk/*` 一律 301 到去掉前綴的同一路徑。sitemap、canonical、llms.txt 都是單棵樹，沒有指向簡體的 hreflang（簡體沒有獨立網址）。
 - 不要用英文文案頂替中文；不要把簡體文案機器轉換後不經人審就上線。
 
 ## 4. 驗證

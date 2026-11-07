@@ -1,0 +1,12 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "sign_back_home": "回問事總目",
+  "sign_meta_description": "{no}{grade}：{line}，來看籤詩和三種問法的判詞。",
+  "sign_meta_title": "{no} {grade} — 月老靈籤解籤",
+  "sign_next": "下一籤",
+  "sign_prev": "上一籤",
+  "sign_related_title": "前後籤 · 同籤等",
+  "sign_ritual_cta": "拿這支籤去問月老",
+  "sign_source": "籤詩出處：{source}",
+  "sign_verdicts_title": "三種問法的判詞"
+}

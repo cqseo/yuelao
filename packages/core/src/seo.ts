@@ -71,6 +71,20 @@ export function sitemapXml(site: SiteConfig, entries: SitemapEntry[]): Response 
   return new Response(body, { headers: textHeaders('application/xml') });
 }
 
+/** Sitemap index: /sitemap.xml lists the per-section sitemaps. */
+export function sitemapIndexXml(site: SiteConfig, paths: string[]): Response {
+  const entries = paths.map(
+    (path) => `  <sitemap><loc>${escapeXml(absoluteUrl(site, path))}</loc></sitemap>`,
+  );
+  const body = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...entries,
+    '</sitemapindex>',
+  ].join('\n');
+  return new Response(body, { headers: textHeaders('application/xml') });
+}
+
 /**
  * robots.txt. `extra` holds additional verbatim blocks, e.g. AI-crawler rules:
  * allow AI search crawlers (OAI-SearchBot, PerplexityBot), disallow training

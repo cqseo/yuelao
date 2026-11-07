@@ -23,12 +23,32 @@ export default defineConfig(({ command }) => ({
     // i18n via Paraglide: zh-Hant is the base locale, zh-Hans ships too.
     // Unlike the shipwords template, production uses the full project (not an en-only
     // one) and the server runs the locale middleware in production as well.
-    // TODO(P1): /hk/ path-prefix routing for Simplified (Hong Kong).
-    paraglideVitePlugin(
-      command === 'serve'
-        ? { project: './project.inlang', outdir: './src/paraglide', strategy: ['cookie', 'baseLocale'] }
-        : { project: './project.inlang', outdir: PARAGLIDE_BUILD, strategy: ['cookie', 'baseLocale'] },
-    ),
+    // P7: same-path 繁/簡 toggle (kaucim model) — strategy, urlPatterns
+    // and routeStrategies mirror project.inlang/paraglide.config.mjs — keep
+    // the two in sync. Strategy is ['cookie', 'baseLocale'] on purpose: the
+    // PARAGLIDE_LOCALE cookie is the single source of truth (see the config
+    // file's comment); urlPatterns is an identity mapping so localizeUrl()
+    // never prefixes a locale into the URL.
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: command === 'serve' ? './src/paraglide' : PARAGLIDE_BUILD,
+      strategy: ['cookie', 'baseLocale'],
+      urlPatterns: [
+        {
+          // Identity: base and localized shapes are the same path.
+          pattern: '/:path(.*)?',
+          localized: [['zh-Hans', '/:path(.*)?']],
+        },
+      ],
+      routeStrategies: [
+        { match: '/api/*', exclude: true },
+        { match: '/llms.txt', exclude: true },
+        { match: '/robots.txt', exclude: true },
+        { match: '/sitemap.xml', exclude: true },
+        { match: '/sitemap-pages.xml', exclude: true },
+        { match: '/sitemap-signs.xml', exclude: true },
+      ],
+    }),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tailwindcss(),
     tanstackStart(),
