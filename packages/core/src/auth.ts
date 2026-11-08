@@ -1,3 +1,4 @@
+import { sessionTokens } from './auth-session';
 import type { CoreEnv } from './env';
 import { createAnonClient } from './supabase';
 
@@ -12,7 +13,7 @@ export interface SessionUser {
  */
 export async function getUserFromRequest(request: Request, env: CoreEnv): Promise<SessionUser | null> {
   const header = request.headers.get('authorization');
-  const token = header?.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = (header?.startsWith('Bearer ') ? header.slice(7) : null) ?? sessionTokens(request).access;
   if (!token) return null;
   const supabase = createAnonClient(env);
   if (!supabase) return null;

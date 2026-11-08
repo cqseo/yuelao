@@ -1,10 +1,14 @@
 import { env as workerEnv } from 'cloudflare:workers';
+import { accountSnapshot } from './account';
 import { getUserFromRequest, type SessionUser } from './auth';
+import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCode } from './auth-handlers';
+import { sameOriginPost } from './auth-session';
 import { createTestCheckout } from './billing/checkout';
 import { settleStripeWebhook } from './billing/settle';
 import { StripeProvider } from './billing/stripe';
 import type { CoreEnv } from './env';
 import { errorResponse } from './http';
+import { paidReadingResponse } from './reading';
 import type { SiteConfig } from './site';
 import { createAnonClient, createServiceClient } from './supabase';
 
@@ -45,8 +49,32 @@ export function createCore(site: SiteConfig) {
       return context().supabaseService;
     },
     getUser: (request: Request): Promise<SessionUser | null> => getUserFromRequest(request, context().env),
+    auth: {
+      send: (request: Request) => sendEmailCode(request, context().supabaseAnon),
+      verify: (request: Request) => verifyEmailCode(request, context().supabaseAnon),
+      refresh: (request: Request) => refreshLogin(request, context().supabaseAnon),
+      logout: (request: Request) => logoutUser(request, context().supabaseService),
+    },
+    account: {
+      reading: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return paidReadingResponse(request, ctx.supabaseService, user);
+      },
+      snapshot: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        const enabled =
+          ctx.env.BILLING_ENABLE_TEST_CHECKOUT === 'true' &&
+          ctx.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') === true &&
+          Boolean(ctx.env.STRIPE_WEBHOOK_SECRET) &&
+          Boolean(ctx.supabaseService);
+        return accountSnapshot(ctx.supabaseService, user, enabled);
+      },
+    },
     billing: {
       checkout: async (request: Request) => {
+        if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
         const ctx = context();
         if (ctx.env.BILLING_ENABLE_TEST_CHECKOUT !== 'true') return errorResponse(503, 'checkout_disabled');
         // Never launch a live charge through an unreviewed test-only checkout path.
