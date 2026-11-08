@@ -1,8 +1,11 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { getUserFromRequest, type SessionUser } from './auth';
+import type { CheckoutBody } from './billing/checkout';
+import { createCheckoutSession } from './billing/checkout';
 import { settleStripeWebhook } from './billing/settle';
 import { StripeProvider } from './billing/stripe';
 import type { CoreEnv } from './env';
+import { errorResponse, readJson } from './http';
 import type { SiteConfig } from './site';
 import { createAnonClient, createServiceClient } from './supabase';
 
@@ -28,6 +31,17 @@ export function createCore(site: SiteConfig) {
     };
   }
 
+  // webhookSecret is unused by createCheckout; only parseWebhook (the webhook route) reads it.
+  // Pass requireWebhookSecret: true from that route so a misconfigured secret fails loudly there,
+  // not here.
+  function stripeProvider(env: CoreEnv, requireWebhookSecret: boolean) {
+    return new StripeProvider({
+      secretKey: required(env, 'STRIPE_SECRET_KEY'),
+      webhookSecret: requireWebhookSecret ? required(env, 'STRIPE_WEBHOOK_SECRET') : (env.STRIPE_WEBHOOK_SECRET ?? ''),
+      automaticTax: site.billing.automaticTax,
+    });
+  }
+
   return {
     site,
     get env() {
@@ -46,16 +60,31 @@ export function createCore(site: SiteConfig) {
     billing: {
       webhook: (request: Request) => {
         const ctx = context();
-        const provider = new StripeProvider({
-          secretKey: required(ctx.env, 'STRIPE_SECRET_KEY'),
-          webhookSecret: required(ctx.env, 'STRIPE_WEBHOOK_SECRET'),
-          automaticTax: site.billing.automaticTax,
-        });
         return settleStripeWebhook({
           site,
-          provider,
+          provider: stripeProvider(ctx.env, true),
           supabase: ctx.supabaseService,
           request,
+        });
+      },
+      checkout: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        if (!user) return errorResponse(401, 'unauthenticated');
+        if (!ctx.supabaseService) {
+          return errorResponse(503, 'supabase_not_configured', 'Supabase is not configured for this worker');
+        }
+        const body = await readJson<CheckoutBody>(request);
+        if (!body || typeof body.productId !== 'string' || typeof body.locale !== 'string') {
+          return errorResponse(400, 'invalid_body');
+        }
+        return createCheckoutSession({
+          site,
+          provider: stripeProvider(ctx.env, false),
+          supabase: ctx.supabaseService,
+          user,
+          baseURL: ctx.baseURL,
+          body,
         });
       },
     },
