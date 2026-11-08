@@ -33,9 +33,8 @@ export function TestRunner({ test }: { test: TestDefinition }) {
       setPosition((i) => i + 1);
       return;
     }
-    const assessment = evaluateQuiz(test, answers);
-    // Only anonymous quiz ID and editorial band; never collect answers or personal details.
-    track('test_completed', { quiz_id: test.slug, band: assessment.band });
+    // Track completion only; never collect answers, inferred results, or personal details.
+    track('test_completed', { quiz_id: test.slug });
     setComplete(true);
   };
 
@@ -47,7 +46,7 @@ export function TestRunner({ test }: { test: TestDefinition }) {
   };
 
   const share = async () => {
-    const url = window.location.href;
+    const url = new URL(window.location.pathname, window.location.origin).toString();
     const text = copy('這份免費的情感自查也許能幫你整理想法。', '这份免费的情感自查也许能帮你整理想法。');
     // Share the quiz invitation, never private results or the user's answers.
     try {
