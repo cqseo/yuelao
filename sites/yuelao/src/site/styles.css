@@ -120,6 +120,23 @@ a {
   .site-meta .nav-legal {
     display: none;
   }
+
+  /* Small screens: wrap footer links as whole words, not individual characters. */
+  .site-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .site-footer nav {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.9rem;
+  }
+
+  .site-footer nav a {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
 }
 
 .site-footer {
