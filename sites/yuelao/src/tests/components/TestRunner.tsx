@@ -109,7 +109,7 @@ export function TestRunner({ test }: { test: TestDefinition }) {
             <span style={{ width: `${((position + 1) / total) * 100}%` }} />
           </div>
           <fieldset className="quiz-question" key={position}>
-            <legend><span className="quiz-question-index">0{position + 1}</span>{inLocale(test.questions[position], locale)}</legend>
+            <legend><span className="quiz-question-index">0{position + 1}</span>{inLocale(test.questions[position]!, locale)}</legend>
             <div className="quiz-options">
               {([
                 copy('很少或沒有', '很少或没有'),
