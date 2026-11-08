@@ -5,7 +5,9 @@ import site from '../../site.config';
 // Core pages, one URL tree (P7: no locale prefixes — the 繁/簡 toggle is a
 // same-path cookie switch). Register new indexable pages here.
 // /sign/1…100 live in /sitemap-signs.xml.
-export const PAGES = ['/', '/ritual', '/privacy', '/terms', '/refunds', '/dmca'];
+import { TESTS } from '~/tests/catalog';
+
+export const PAGES = ['/', '/ritual', '/tests', ...TESTS.map((t) => `/tests/${t.slug}`), '/privacy', '/terms', '/refunds', '/dmca'];
 
 const ALL_PAGES = PAGES;
 
