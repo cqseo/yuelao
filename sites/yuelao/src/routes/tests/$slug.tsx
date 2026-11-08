@@ -18,14 +18,16 @@ export const Route = createFileRoute('/tests/$slug')({
       title: `${inLocale(test.title, locale)} | ${site.name}`,
       description: inLocale(test.summary, locale),
       path: localizeHref(`/tests/${test.slug}`, { locale }),
-      jsonLd: [{
-        '@type': 'WebApplication',
-        name: inLocale(test.title, locale),
-        description: inLocale(test.summary, locale),
-        applicationCategory: 'LifestyleApplication',
-        operatingSystem: 'Web',
-        isAccessibleForFree: true,
-      }],
+      jsonLd: [
+        {
+          '@type': 'WebApplication',
+          name: inLocale(test.title, locale),
+          description: inLocale(test.summary, locale),
+          applicationCategory: 'LifestyleApplication',
+          operatingSystem: 'Web',
+          isAccessibleForFree: true,
+        },
+      ],
     });
   },
   component: TestPage,
@@ -45,7 +47,9 @@ function TestPage() {
         <span>{inLocale(test.category, locale)}</span>
       </nav>
       <header className="test-intro">
-        <p className="tests-eyebrow">{inLocale(test.category, locale)} · {zh ? '免费' : '免費'}</p>
+        <p className="tests-eyebrow">
+          {inLocale(test.category, locale)} · {zh ? '免费' : '免費'}
+        </p>
         <h1>{inLocale(test.title, locale)}</h1>
         <p>{inLocale(test.summary, locale)}</p>
         <div className="test-intro-notes">
@@ -58,12 +62,16 @@ function TestPage() {
       <section className="test-explainer">
         <h2>{zh ? '测试结果应该怎样理解？' : '測驗結果應該怎樣理解？'}</h2>
         <p>{inLocale(test.caution, locale)}</p>
-        <p>{zh
-          ? '结果只根据你对这 8 个问题的选择进行归纳。它不会读取对方的真实想法、私人行为或未来决定，也不是经过验证的心理诊断。'
-          : '結果只根據你對這 8 個問題的選擇進行歸納。它不會讀取對方的真實想法、私人行為或未來決定，也不是經過驗證的心理診斷。'}</p>
-        <p>{zh
-          ? '如果这段关系中有威胁、暴力、跟踪或强迫控制的情况，请优先寻求现实中的支持，不必等待测试结果。'
-          : '如果這段關係中有威脅、暴力、跟蹤或強迫控制的情況，請優先尋求現實中的支持，不必等待測驗結果。'}</p>
+        <p>
+          {zh
+            ? '结果只根据你对这 8 个问题的选择进行归纳。它不会读取对方的真实想法、私人行为或未来决定，也不是经过验证的心理诊断。'
+            : '結果只根據你對這 8 個問題的選擇進行歸納。它不會讀取對方的真實想法、私人行為或未來決定，也不是經過驗證的心理診斷。'}
+        </p>
+        <p>
+          {zh
+            ? '如果这段关系中有威胁、暴力、跟踪或强迫控制的情况，请优先寻求现实中的支持，不必等待测试结果。'
+            : '如果這段關係中有威脅、暴力、跟蹤或強迫控制的情況，請優先尋求現實中的支持，不必等待測驗結果。'}
+        </p>
       </section>
     </article>
   );
