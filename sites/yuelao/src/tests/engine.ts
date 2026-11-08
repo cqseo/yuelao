@@ -6,8 +6,10 @@ export type QuizResult = { band: Band; concerns: number; answered: number };
 // Editorial reflection bands, NOT probabilities, diagnosis, or psychometric scores.
 // Each question has frequency answers: rarely (0), sometimes (1), often (2).
 export function evaluateQuiz(test: TestDefinition, answers: Array<Answer | null>): QuizResult {
-  if (answers.length !== test.questions.length ||
-      answers.some((answer) => answer !== 0 && answer !== 1 && answer !== 2)) {
+  if (
+    answers.length !== test.questions.length ||
+    answers.some((answer) => answer !== 0 && answer !== 1 && answer !== 2)
+  ) {
     throw new Error('Quiz requires every question to be answered');
   }
   const values = answers as Answer[];
