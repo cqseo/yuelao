@@ -6,7 +6,7 @@ import type { CheckoutProduct } from '../site';
 export interface CheckoutRequest {
   orderId: string;
   siteId: string;
-  /** Price already resolved for the visitor's locale (see checkoutProduct in site.ts). */
+  /** Resolved product + price to charge (see checkoutProduct in site.ts). */
   product: CheckoutProduct;
   userId: string;
   customerRef: string;

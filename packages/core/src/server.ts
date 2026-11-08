@@ -37,7 +37,9 @@ export function createCore(site: SiteConfig) {
   function stripeProvider(env: CoreEnv, requireWebhookSecret: boolean) {
     return new StripeProvider({
       secretKey: required(env, 'STRIPE_SECRET_KEY'),
-      webhookSecret: requireWebhookSecret ? required(env, 'STRIPE_WEBHOOK_SECRET') : (env.STRIPE_WEBHOOK_SECRET ?? ''),
+      webhookSecret: requireWebhookSecret
+        ? required(env, 'STRIPE_WEBHOOK_SECRET')
+        : (env.STRIPE_WEBHOOK_SECRET ?? ''),
       automaticTax: site.billing.automaticTax,
     });
   }

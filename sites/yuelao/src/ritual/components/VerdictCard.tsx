@@ -1,17 +1,16 @@
 // 步驟 5：判詞卡。由 React 渲染（引擎只在聖筊後呼叫 onVerdict，不碰卡片 DOM）。
-// 免費判詞全文 + 一句 teaser；「深度解讀」為鎖定態（五項解鎖清單 + 信任
-// 話術，照抄 kaucim 付費牆結構），P4 才接支付。分享走 navigator.share
+// 免費判詞全文 + 一句 teaser；「深度解讀」真能買（見 DeepLock.tsx），結帳走
+// /api/checkout（packages/core/src/billing/checkout.ts）。分享走 navigator.share
 // 優先、剪貼板兜底（在 Ritual.tsx）。
 
-import { findProduct, formatPrice, priceForLocale } from '@yuelao/core/site';
 import { m } from '~/paraglide/messages.js';
 import { getLocale } from '~/paraglide/runtime.js';
-import site from '../../../site.config';
 import { knotImage } from '../knots';
 import type { RitualCat } from '../physics';
 import { adviceFor } from '../stick-advice';
 import type { Stick } from '../sticks';
 import { showLocaleNote } from '../sticks-locale';
+import { DeepLock } from './DeepLock';
 
 export interface Verdict {
   stick: Stick;
@@ -61,10 +60,6 @@ export function VerdictCard({
   const advice = adviceFor(v.stick.id, locale);
   const poemLines = v.stick.poem.split('\n');
   const teaserLine = poemLines[1] ?? poemLines[0] ?? '';
-  // 鎖定區價錢取自 site.config（P9：單次深度解讀 HK$18 / NT$75），按鈕仍
-  // disabled（未接支付，P4）。不得在這裡寫死價錢。
-  const unlockProduct = findProduct(site, 'unlock_1');
-  const unlockPrice = unlockProduct ? formatPrice(priceForLocale(unlockProduct, locale), locale) : '';
   return (
     <section className="screen" id="scr-verdict">
       <div className="verdict-card" id="verdict-card">
@@ -110,33 +105,7 @@ export function VerdictCard({
         </div>
       </div>
       {showLocaleNote(getLocale()) && <p className="locale-note">{m.ritual_locale_note()}</p>}
-      <div className="deep-lock">
-        <h3>
-          {m.ritual_deep_title()}
-          <span className="soon-tag">{m.ritual_deep_soon()}</span>
-        </h3>
-        <p className="teaser">
-          {m.ritual_deep_teaser_lead()}
-          <br />
-          {m.ritual_deep_teaser_line({ line: teaserLine })}
-        </p>
-        <ul>
-          <li>{m.ritual_deep_item_1()}</li>
-          <li>{m.ritual_deep_item_2()}</li>
-          <li>{m.ritual_deep_item_3()}</li>
-          <li>{m.ritual_deep_item_4()}</li>
-          <li>{m.ritual_deep_item_5()}</li>
-        </ul>
-        <div className="trust">
-          <div>{m.ritual_deep_trust_1()}</div>
-          <div>{m.ritual_deep_trust_2()}</div>
-          <div>{m.ritual_deep_trust_3()}</div>
-        </div>
-        <button className="cta" type="button" disabled>
-          {m.ritual_deep_cta({ price: unlockPrice })}
-        </button>
-        <p className="cta-note">{m.ritual_deep_cta_note()}</p>
-      </div>
+      <DeepLock stick={v.stick} cat={v.cat} teaserLine={teaserLine} />
       <div className="btn-row" style={{ marginTop: 24 }}>
         <button className="cta" id="share-btn" type="button" onClick={onShare}>
           <svg

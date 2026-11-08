@@ -2522,6 +2522,134 @@ a.ask-entry:hover {
   line-height: 1.8;
 }
 
+/* P9：方案選擇（單次 / 問事包），抄 .q-pick 的選中邏輯——整塊填朱紅，
+   不加陰影、不用膠囊。三個一排，窄屏仍是三欄（字會縮，不要換成兩欄）。 */
+.ritual-page .deep-lock .tier-row {
+  margin: 20px 0 0;
+  padding: 0;
+  border: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ritual-page .deep-lock .tier-label {
+  display: block;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 0;
+  grid-column: 1 / -1;
+  font-size: var(--t12);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--gold-soft);
+}
+
+.ritual-page .tier-pick {
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
+  padding: 10px 6px;
+  border: 1px solid var(--gold-55);
+  border-radius: var(--r);
+  background: rgba(18, 16, 14, 0.78);
+  color: var(--paper);
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ritual-page .tier-pick:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ritual-page .tier-pick .tier-name {
+  font-size: var(--t14);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ritual-page .tier-pick .tier-price {
+  font-size: var(--t12);
+  color: var(--paper-62);
+}
+
+.ritual-page .tier-pick.sel {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+.ritual-page .tier-pick.sel .tier-price {
+  color: rgba(243, 233, 210, 0.88);
+}
+
+/* P9：email 一次性驗證碼登入，就地展開在鎖定區內——不是另開一頁、不是彈窗，
+   不打斷「搖籤 → 解鎖」這一條路。輸入框只有底線，不描邊框撐版面。 */
+.ritual-page .deep-lock .auth-step {
+  margin-top: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.ritual-page .auth-label {
+  font-size: var(--t14);
+  color: var(--paper-78);
+}
+
+.ritual-page .auth-sent {
+  margin: 0;
+  font-size: var(--t14);
+  line-height: 1.8;
+  color: var(--paper-78);
+}
+
+.ritual-page .auth-input {
+  appearance: none;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 4px;
+  border: none;
+  border-bottom: 1px solid var(--gold-55);
+  border-radius: 0;
+  background: transparent;
+  color: var(--paper);
+  font-family: inherit;
+  font-size: var(--t17);
+  letter-spacing: 0.02em;
+}
+
+.ritual-page .auth-input::placeholder {
+  color: rgba(243, 233, 210, 0.38);
+}
+
+.ritual-page .auth-input:focus {
+  outline: none;
+  border-bottom-color: var(--gold);
+}
+
+.ritual-page .auth-cancel {
+  appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  font-family: inherit;
+  font-size: var(--t12);
+  color: var(--paper-62);
+  text-decoration: underline;
+  justify-self: center;
+}
+
+.ritual-page .auth-error {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: var(--t14);
+  color: var(--gold-soft);
+}
+
 .ritual-page .locale-note {
   position: relative;
   z-index: 3;
