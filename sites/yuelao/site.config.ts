@@ -1,6 +1,7 @@
 import { defineSite } from '@yuelao/core/site';
 
-// All config for this site. Prices are in the smallest currency unit (TWD/HKD cents).
+// All config for this site. Prices use minor currency units.
+// Checkout chooses HKD/TWD explicitly, independent of Traditional/Simplified locale.
 // TODO(launch): brand name is a placeholder — see BUILD_PLAN §9.
 //   url is the live preview address (yuelao.cqseo.workers.dev); it becomes the
 //   brand domain when that decision lands — one change here updates canonical,

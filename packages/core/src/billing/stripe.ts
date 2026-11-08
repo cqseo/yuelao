@@ -204,7 +204,8 @@ export class StripeProvider implements PaymentProvider {
         ],
         metadata,
         ...(subscription ? { subscription_data: { metadata } } : { payment_intent_data: { metadata } }),
-        allow_promotion_codes: true,
+        // Coupons are disabled until order settlement verifies actual discounted totals.
+        allow_promotion_codes: false,
         ...(this.options.automaticTax
           ? { automatic_tax: { enabled: true }, customer_update: { address: 'auto' as const } }
           : {}),

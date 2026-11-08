@@ -66,6 +66,7 @@ export async function settleStripeWebhook({ provider, supabase, request }: Settl
     const { error: revokeError } = await supabase.rpc('revoke_for_refund', {
       p_payment_ref: fact.paymentRef,
       p_refund_amount: fact.amountRefunded,
+      p_dispute: fact.dispute,
     });
     if (revokeError) {
       console.error(

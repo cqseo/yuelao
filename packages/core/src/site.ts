@@ -11,7 +11,7 @@ export interface Price {
 interface ProductBase {
   id: string;
   name: string;
-  /** Price per locale; checkout picks by the visitor's locale. */
+  /** Legacy locale-keyed price storage. Checkout uses the selected currency, not text locale. */
   prices: Record<Locale, Price>;
   /** Product IDs for providers that need pre-created products. Stripe uses inline prices and needs none. */
   refs?: Record<string, string>;
@@ -64,6 +64,18 @@ export function checkoutProduct(product: Product, locale: Locale): CheckoutProdu
     };
   }
   return { id: product.id, kind: product.kind, name: product.name, price: priceForLocale(product, locale) };
+}
+
+/** Explicit checkout currency: script/locale never chooses the payment currency.
+ * A Hong Kong customer may prefer Traditional Chinese, and a Taiwan customer
+ * may choose Simplified. Prices are still defined once in the existing config. */
+export function checkoutProductForCurrency(product: Product, currency: string): CheckoutProduct | null {
+  const price = Object.values(product.prices).find((candidate) => candidate.currency === currency);
+  if (!price) return null;
+  if (product.kind === 'subscription') {
+    return { id: product.id, kind: product.kind, name: product.name, price, interval: product.interval };
+  }
+  return { id: product.id, kind: product.kind, name: product.name, price };
 }
 
 export interface SiteConfig {

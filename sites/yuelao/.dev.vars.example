@@ -10,3 +10,6 @@ EMAIL_FROM=noreply@example.com
 # to forward webhooks, and it writes whsec back to .dev.vars.
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
+# Test checkout requires Supabase + sk_test_* + verified JWT + webhook signing.
+# Keep false unless manually running the Stripe sandbox.
+BILLING_ENABLE_TEST_CHECKOUT=false

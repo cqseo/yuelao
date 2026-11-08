@@ -15,6 +15,8 @@ export interface CoreEnv {
   /** Configure the set matching billing.provider in site.config.ts. */
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  /** Test checkouts are disabled unless explicitly set to "true". */
+  BILLING_ENABLE_TEST_CHECKOUT?: string;
 
   /** Rybbit collector endpoint (e.g. https://events.example.com/api); the site's /stats/* is proxied here. */
   RYBBIT_UPSTREAM?: string;
