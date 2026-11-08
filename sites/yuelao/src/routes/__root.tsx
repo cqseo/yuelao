@@ -91,6 +91,9 @@ function Layout() {
           <Link to="/" aria-current={location.pathname === '/' ? 'true' : undefined}>
             {m.common_nav_home()}
           </Link>
+          <Link to={localizeHref('/tests')} aria-current={location.pathname.startsWith('/tests') ? 'true' : undefined}>
+            {locale === 'zh-Hans' ? '情感测试' : '情感測驗'}
+          </Link>
         </nav>
         <nav className="site-meta">
           <Link className="nav-legal" to="/privacy">
