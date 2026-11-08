@@ -220,6 +220,22 @@ function HomePage() {
         </div>
       </div>
 
+      <section className="home-test-entry" aria-labelledby="home-tests-heading">
+        <div>
+          <p className="tests-eyebrow">{getLocale() === 'zh-Hans' ? '月老 · 情感研究所' : '月老 · 情感研究所'}</p>
+          <h2 id="home-tests-heading">{getLocale() === 'zh-Hans' ? '有些心事，先做个小测试' : '有些心事，先做個小測驗'}</h2>
+          <p>{getLocale() === 'zh-Hans'
+            ? '8 个问题，免费整理关系中的信任、暧昧与界限；不必注册。'
+            : '8 個問題，免費整理關係中的信任、曖昧與界線；不必註冊。'}</p>
+        </div>
+        <div className="home-test-links">
+          <Link to={localizeHref('/tests/red-flags')}>{getLocale() === 'zh-Hans' ? '渣男渣女行为自查' : '渣男渣女行為自查'}</Link>
+          <Link to={localizeHref('/tests/cheating-signs')}>{getLocale() === 'zh-Hans' ? '出轨信号自查' : '出軌信號自查'}</Link>
+          <Link to={localizeHref('/tests/crush')}>{getLocale() === 'zh-Hans' ? '暧昧关系测试' : '曖昧關係測驗'}</Link>
+          <Link to={localizeHref('/tests')}>{getLocale() === 'zh-Hans' ? '全部免费测试 →' : '全部免費測驗 →'}</Link>
+        </div>
+      </section>
+
       {directOpen && (
         <section className="ask-direct" aria-label={m.home_direct_title()}>
           <h2>{m.home_direct_title()}</h2>
