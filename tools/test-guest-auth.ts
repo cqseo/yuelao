@@ -93,11 +93,20 @@ const client = {
       update: (value: { email: string }) => {
         assert.equal(value.email, email);
         return {
-          eq: async (column: string, id: string) => {
+          eq: (column: string, id: string) => {
             assert.equal(column, 'id');
             assert.equal(id, userId);
-            profileUpdates++;
-            return { error: null };
+            return {
+              select: (selected: string) => {
+                assert.equal(selected, 'id');
+                return {
+                  maybeSingle: async () => {
+                    profileUpdates++;
+                    return { data: { id: userId }, error: null };
+                  },
+                };
+              },
+            };
           },
         };
       },
