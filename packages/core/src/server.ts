@@ -9,6 +9,7 @@ import { settleStripeWebhook } from './billing/settle';
 import { isStripeTestApiKey, StripeProvider } from './billing/stripe';
 import { companionChatRequest, companionStatus } from './companion-chat';
 import type { CoreEnv } from './env';
+import { createGuest, guestStatus, sendGuestEmailLink, verifyGuestEmailLink } from './guest-auth';
 import { errorResponse } from './http';
 import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
@@ -58,6 +59,32 @@ export function createCore(site: SiteConfig) {
       verify: (request: Request) => verifyEmailCode(request, context().supabaseAnon),
       refresh: (request: Request) => refreshLogin(request, context().supabaseAnon),
       logout: (request: Request) => logoutUser(request, context().supabaseService),
+      guestStatus: (request: Request) => {
+        const ctx = context();
+        return guestStatus(request, ctx.supabaseAnon, ctx.env.GUEST_AUTH_ENABLED === 'true');
+      },
+      createGuest: (request: Request) => {
+        const ctx = context();
+        return createGuest(
+          request,
+          ctx.supabaseAnon,
+          ctx.env.GUEST_AUTH_ENABLED === 'true',
+          ctx.env.TURNSTILE_SECRET_KEY,
+        );
+      },
+      linkGuestEmail: (request: Request) => {
+        const ctx = context();
+        return sendGuestEmailLink(
+          request,
+          ctx.supabaseAnon,
+          ctx.env.GUEST_AUTH_ENABLED === 'true',
+          ctx.env.TURNSTILE_SECRET_KEY,
+        );
+      },
+      verifyGuestEmail: (request: Request) => {
+        const ctx = context();
+        return verifyGuestEmailLink(request, ctx.supabaseAnon, ctx.env.GUEST_AUTH_ENABLED === 'true');
+      },
     },
     companion: {
       status: async (request: Request) => {
