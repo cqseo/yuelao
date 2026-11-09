@@ -7,6 +7,22 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "upload_source_maps": true,
+  // Staging creates a separate Worker, with no live DB, API keys or payment secrets.
+  "env": {
+    "staging": {
+      "name": "yuelao-v2-staging-20261109",
+      "workers_dev": true,
+      "vars": {
+        "SITE_STAGING": "true",
+        "EMAIL_FROM": "noreply@example.invalid",
+        "SUPABASE_URL": "",
+        "SUPABASE_ANON_KEY": "",
+        "BILLING_ENABLE_TEST_CHECKOUT": "false",
+        "AI_ENABLE_TEST_GENERATION": "false",
+        "RYBBIT_UPSTREAM": ""
+      }
+    }
+  },
   "vars": {
     "EMAIL_FROM": "noreply@example.com",
     "SUPABASE_URL": "",

@@ -58,6 +58,11 @@ function Document({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        {import.meta.env.VITE_SITE_STAGING === 'true' && (
+          <div className="staging-notice" role="status">
+            <strong>月老 2.0 · 預覽環境</strong>　僅供介面驗收，登入、AI 與付款均未啟用。
+          </div>
+        )}
         {children}
         <Scripts />
       </body>

@@ -30,10 +30,14 @@ const SECURITY_HEADERS: Record<string, string> = {
   'strict-transport-security': 'max-age=31536000; includeSubDomains',
 };
 
-function withSecurityHeaders(response: Response): Response {
+function withSecurityHeaders(response: Response, staging = false): Response {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     headers.set(name, value);
+  }
+  if (staging) {
+    headers.set('x-robots-tag', 'noindex, nofollow, noarchive');
+    headers.set('cache-control', 'no-store');
   }
   // HTML stays revalidating (no long cache); sitemap/llms/robots set their
   // own max-age=3600 in core/seo.ts and keep it.
@@ -50,16 +54,25 @@ function withSecurityHeaders(response: Response): Response {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const staging = env.SITE_STAGING === 'true';
+    if (staging && url.pathname === '/robots.txt') {
+      return withSecurityHeaders(
+        new Response('User-agent: *\nDisallow: /\n', {
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+        }),
+        true,
+      );
+    }
     // Old /hk/* prefix (P1–P6) is retired: 301 to the same path without it.
     // /hk → /, /hk/ritual → /ritual, /hk/sign/6 → /sign/6. Query kept.
     if (url.pathname === '/hk' || url.pathname.startsWith('/hk/')) {
       const target = url.pathname === '/hk' ? '/' : url.pathname.slice(3);
       const dest = new URL(target + url.search, url.origin);
-      return withSecurityHeaders(Response.redirect(dest, 301));
+      return withSecurityHeaders(Response.redirect(dest, 301), staging);
     }
     // Rybbit analytics goes through this site's /stats/ and is proxied upstream here.
     const stats = await proxyRybbit(request, env.RYBBIT_UPSTREAM);
-    if (stats) return withSecurityHeaders(stats);
+    if (stats) return withSecurityHeaders(stats, staging);
     // Locale: the cookie strategy reads PARAGLIDE_LOCALE first, then the
     // zh-Hant base locale. Production runs the middleware too — the site
     // ships Traditional Chinese, not English.
@@ -69,6 +82,6 @@ export default {
     // middleware's already-delocalized request would double-delocalize and
     // redirect-loop — see the paraglideMiddleware JSDoc.
     const response = await paraglideMiddleware(request, () => handler.fetch(request));
-    return withSecurityHeaders(response);
+    return withSecurityHeaders(response, staging);
   },
 } satisfies ExportedHandler<Env>;

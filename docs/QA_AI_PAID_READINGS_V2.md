@@ -4,6 +4,7 @@
 **僅開發分支和離線測試。尚未部署正式 Supabase/Worker、未向 OpenAI 發送真實請求，也未進行 Stripe 真實測試交易。**
 
 ## 已做
+
 1. DB migration `20261109000001_paid_ai_readings.sql`：每一條 `unlocks.id` 對應至多一篇私密 AI 生成報告，僅有 service_role 可呼叫內部 RPC。問事問題本身不保存。
 2. Claim/finish/fail/get 四個 privileged RPC：依登入 user_id + 已解鎖籤文核對，鎖定並發生成、110 秒租約、成功存檔、超時／失敗可重試；若權益被退款撤銷，生成結果不可再存取。
 3. 修復 `consume_pack_use`：同一 user + stick + category + locale 重複兌換時不重複扣次數；即使並發不同 pack 也會回滾額外扣款；已撤銷的同種解鎖禁止以套餐繞過撤銷。
@@ -15,13 +16,15 @@
 9. 測試 Checkout 加入 `paid_ai_delivery_ready()` 預檢，DB migration 未套用或 AI 尚未配置則 503 拒絕付款。AI 測試預設 `AI_ENABLE_TEST_GENERATION=false`；不提供任何 live key 輸入入口。
 
 ## 測試
+
 - `tools/test-ai-paid-readings.sql`：無權益拒絕、雙重 claim 排他、錯誤 claim 不能存、成功內容只能本人查閱、退款後禁止查詢、套餐重複兌換不扣雙倍、匿名／一般登入角色不可直呼 RPC。
 - `tools/test-ai-pack-refund.sql`：模擬購包→兌換→生成→退款；退款前可查看，退款後簽文、正文、剩餘用次均被禁止。
 - `tools/test-ai-reading.ts`：測試選項檢查與 opt-in、測試功能預設關閉、模型請求包含原籤詩與自願問題並設 `store:false`、成功生成存檔、重複 claim 不重複生成、失敗釋放租約。
 - Node 24 `pnpm check` + `pnpm lint`、本地預覽和手機版視覺驗收應通過才可合併。本文件記錄最後通過狀態，不代表真實商業流程已完整驗收。
 
 ## 明確未完成 / 上線門檻
-- 須使用**具權限的 staging Supabase**套用 migration，並與 matching Worker 同步部署。*不能只更新 Worker 或只套用 DB function*。
+
+- 須使用**具權限的 staging Supabase**套用 migration，並與 matching Worker 同步部署。_不能只更新 Worker 或只套用 DB function_。
 - 取得合法的 OpenAI API 密鑰，設定 `OPENAI_API_KEY`、`OPENAI_MODEL`（由工程師確認可用 model）；使用小額 staging 成本上限。禁止把密鑰放進 GitHub、Cloudflare 公開變數或對話。
 - 配置 Supabase 郵箱六位 OTP 模板（含 `{{ .Token }}`）、SMTP、CAPTCHA/Turnstile、WAF / IP rate limits，才可公開登入；登入須完成真實信件驗證測試。
 - 進行端對端 Stripe Test Mode 測試：登入→購買/套餐→ webhook → 簽文權益→AI 生成→帳戶重新讀取→退款/拒付撤銷及併發情境。**目前沒有驗證真實付款或 OpenAI 真實產出。**
@@ -31,4 +34,5 @@
 - `store:false` 只是不儲存模型回應的 **API 應用狀態**，並不代表提供方完全沒有安全日誌。具體詳見 OpenAI API 的 data controls。
 
 ## 上線順序
+
 先完成/驗收/合併 PR #3（測驗中心）→ PR #4（Stripe sandbox）→ PR #5（登入帳戶）→ 本 PR（AI 深度解讀）。全鏈路於獨立 staging 預演後，才考慮 Live 付款。

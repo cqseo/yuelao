@@ -3431,3 +3431,22 @@ a.ask-entry:hover {
   padding: clamp(1rem, 3vw, 1.5rem);
   margin: 1.2rem 0;
 }
+
+/* Only displayed when VITE_SITE_STAGING=true during the preview build. */
+.staging-notice {
+  position: relative;
+  z-index: 10000;
+  width: 100%;
+  background: #472015;
+  color: #fff7db;
+  border-bottom: 1px solid #d2b67b;
+  padding: 0.65rem 1rem;
+  text-align: center;
+  font-family: var(--font-serif-tc);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.7;
+}
+.staging-notice strong {
+  color: #f9df9a;
+}
