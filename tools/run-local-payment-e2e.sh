@@ -54,19 +54,13 @@ apply_migration() {
     < "supabase/migrations/$file" >/dev/null
   echo "  applied $file"
 }
-apply_migration 20261105000001_profiles_sticks.sql
-apply_migration 20261105000002_draws_journal_jiao.sql
-apply_migration 20261105000003_billing.sql
-apply_migration 20261105000004_rpc.sql
-# Existing locale migrations need sticks seeded before their FK inserts.
-# This order is only for local QA; it is not a normal Supabase db reset order.
-apply_migration 20261106000002_stick_source_p9.sql
+# Mimic Supabase db reset EXACTLY: all migrations in chronological order,
+# followed by seed.sql. No special manual reordering.
+for migration in supabase/migrations/*.sql; do
+  apply_migration "$(basename "$migration")"
+done
 docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < supabase/seed.sql >/dev/null
-echo "  seeded 100 fortune sticks"
-apply_migration 20261106000001_stick_locales_zh_hans.sql
-apply_migration 20261106000003_stick_locales_zh_hans_p9.sql
-apply_migration 20261108143942_harden_stripe_entitlements.sql
-apply_migration 20261109000001_paid_ai_readings.sql
+echo "  seeded 100 canonical fortune sticks after all migrations"
 
 export LOCAL_QA_DATABASE_URL="postgresql://postgres:$password@127.0.0.1:$port/postgres"
 node_modules/.bin/tsx tools/test-local-payment-e2e.mjs
