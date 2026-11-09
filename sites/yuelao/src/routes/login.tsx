@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
+import { EmailTurnstile } from '~/components/EmailTurnstile';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
+
+const captchaSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? '';
 
 export const Route = createFileRoute('/login')({
   head: () => ({
@@ -14,6 +17,8 @@ function Login() {
   const text = (hant: string, hans: string) => (zh ? hans : hant);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -50,12 +55,12 @@ function Login() {
   }
 
   async function send() {
-    if (busy) return;
+    if (busy || !captchaToken) return;
     setBusy(true);
     setError('');
     setNotice('');
     try {
-      const res = await callAuth('send', { email: email.trim() });
+      const res = await callAuth('send', { email: email.trim(), captchaToken });
       if (res.ok) {
         setStep('code');
         setNotice(
@@ -74,6 +79,8 @@ function Login() {
     } catch {
       setError(text('連線失敗，請稍後再試。', '连接失败，请稍后再试。'));
     } finally {
+      setCaptchaToken('');
+      setCaptchaReset((value) => value + 1);
       setBusy(false);
     }
   }
@@ -131,7 +138,14 @@ function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <button type="submit" disabled={busy}>
+            {captchaSiteKey ? (
+              <EmailTurnstile siteKey={captchaSiteKey} resetSignal={captchaReset} onToken={setCaptchaToken} />
+            ) : (
+              <p role="status" className="auth-notice">
+                {text('安全驗證尚未配置，暫時無法寄送驗證碼。', '安全验证尚未配置，暂时无法发送验证码。')}
+              </p>
+            )}
+            <button type="submit" disabled={busy || !captchaToken}>
               {busy ? text('寄送中…', '发送中…') : text('取得驗證碼', '获取验证码')}
             </button>
           </form>
