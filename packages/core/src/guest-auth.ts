@@ -69,6 +69,17 @@ async function challenge(
   }
 }
 
+async function ensureGuestProfile(client: SupabaseClient, user: User): Promise<boolean> {
+  if (user.is_anonymous !== true) return true;
+  // Requires guest_profile_email_nullable migration and the user's own RLS.
+  // Idempotent, so a recovered session can repair an interrupted first visit.
+  const { error } = await client.from('profiles').upsert(
+    { id: user.id, locale: 'zh-Hant' },
+    { onConflict: 'id', ignoreDuplicates: true },
+  );
+  return !error;
+}
+
 async function attached(
   request: Request,
   client: SupabaseClient,
@@ -114,18 +125,27 @@ export async function createGuest(
   if (!enabled || !client) return errorResponse(503, 'guest_signup_disabled');
   const { access, refresh } = sessionTokens(request);
   if (access || refresh) {
-    if (access) {
-      const found = await client.auth.getUser(access);
-      if (!found.error && found.data.user) {
-        return json({ created: false, ...identity(found.data.user) });
-      }
+    // Restore a validated session before attempting profile operations.
+    const existing = await attached(request, client);
+    if (existing) {
+      const valid = await ensureGuestProfile(client, existing.user);
+      return sessionResponse(
+        request,
+        valid
+          ? json({ created: false, ...identity(existing.user) })
+          : errorResponse(503, 'guest_profile_unavailable'),
+        existing.session,
+      );
     }
     if (refresh) {
       const refreshed = await client.auth.refreshSession({ refresh_token: refresh });
       if (!refreshed.error && refreshed.data.session && refreshed.data.user) {
+        const valid = await ensureGuestProfile(client, refreshed.data.user);
         return sessionResponse(
           request,
-          json({ created: false, ...identity(refreshed.data.user) }),
+          valid
+            ? json({ created: false, ...identity(refreshed.data.user) })
+            : errorResponse(503, 'guest_profile_unavailable'),
           refreshed.data.session,
         );
       }
@@ -140,9 +160,12 @@ export async function createGuest(
   if (error || !data.user || !data.session || data.user.is_anonymous !== true) {
     return errorResponse(503, 'guest_signup_unavailable');
   }
+  const profileReady = await ensureGuestProfile(client, data.user);
   return sessionResponse(
     request,
-    json({ created: true, ...identity(data.user) }, { status: 201 }),
+    profileReady
+      ? json({ created: true, ...identity(data.user) }, { status: 201 })
+      : errorResponse(503, 'guest_profile_unavailable'),
     data.session,
   );
 }
@@ -206,9 +229,21 @@ export async function verifyGuestEmailLink(
   }
   const updatedSession = data.session ?? (await client.auth.getSession()).data.session;
   if (!updatedSession) return errorResponse(503, 'session_refresh_required');
+  // Updating the profile is best-effort: identity linking has already succeeded,
+  // and must never be rolled back or presented as a failed OTP after success.
+  const { error: profileError } = await client
+    .from('profiles')
+    .update({ email: data.user.email })
+    .eq('id', data.user.id);
   return sessionResponse(
     request,
-    json({ linked: true, kind: 'member', displayId: displayId(data.user.id), email: data.user.email }),
+    json({
+      linked: true,
+      kind: 'member',
+      displayId: displayId(data.user.id),
+      email: data.user.email,
+      profileSynced: !profileError,
+    }),
     updatedSession,
   );
 }
