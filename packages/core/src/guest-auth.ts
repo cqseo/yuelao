@@ -1,0 +1,214 @@
+import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
+import { verifyEmailCaptcha } from './auth-handlers';
+import { jsonRequest, sameOriginPost, sessionResponse, sessionTokens } from './auth-session';
+import { errorResponse, json } from './http';
+
+function displayId(id: string): string {
+  // For UI only; a display ID is NOT an account recovery credential.
+  return id.slice(0, 8).toUpperCase();
+}
+
+function isMember(user: User): boolean {
+  return user.is_anonymous !== true && Boolean(user.email && user.email_confirmed_at);
+}
+
+function identity(user: User) {
+  return {
+    kind: isMember(user) ? 'member' : 'guest',
+    displayId: displayId(user.id),
+    email: isMember(user) ? user.email : null,
+  };
+}
+
+async function bodyOf(request: Request): Promise<Record<string, unknown> | null> {
+  if (!jsonRequest(request)) return null;
+  const raw = await request.text();
+  if (raw.length > 4096) return null;
+  try {
+    const value: unknown = JSON.parse(raw);
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function emailOf(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const email = input.trim().toLowerCase();
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
+}
+
+function captchaTokenOf(input: unknown): string | null {
+  return typeof input === 'string' &&
+    input.length >= 20 &&
+    input.length <= 2048 &&
+    !/\s/.test(input)
+    ? input
+    : null;
+}
+
+async function challenge(
+  request: Request,
+  token: unknown,
+  secret: string | undefined,
+  action: 'guest_create' | 'email_link',
+  verifier: typeof verifyEmailCaptcha,
+): Promise<Response | null> {
+  if (!secret) return errorResponse(503, 'captcha_not_configured');
+  const validToken = captchaTokenOf(token);
+  if (!validToken) return errorResponse(400, 'captcha_required');
+  try {
+    if (!(await verifier(request, validToken, secret, fetch, action))) {
+      return errorResponse(403, 'captcha_failed');
+    }
+    return null;
+  } catch {
+    return errorResponse(503, 'captcha_unavailable');
+  }
+}
+
+async function attached(
+  request: Request,
+  client: SupabaseClient,
+): Promise<{ user: User; session: Session } | null> {
+  const { access, refresh } = sessionTokens(request);
+  if (!access || !refresh) return null;
+  const { data, error } = await client.auth.setSession({
+    access_token: access,
+    refresh_token: refresh,
+  });
+  if (error || !data.session) return null;
+  const result = await client.auth.getUser();
+  if (result.error || !result.data.user) return null;
+  return { user: result.data.user, session: data.session };
+}
+
+export async function guestStatus(
+  request: Request,
+  client: SupabaseClient | null,
+  enabled: boolean,
+): Promise<Response> {
+  if (!enabled || !client) return json({ enabled: false, kind: 'disabled' });
+  const { access } = sessionTokens(request);
+  if (!access) return json({ enabled: true, kind: 'none' });
+  const { data, error } = await client.auth.getUser(access);
+  if (error || !data.user) return json({ enabled: true, kind: 'none' });
+  return json({ enabled: true, ...identity(data.user) });
+}
+
+/**
+ * Only creates a guest when there are no existing credentials. A refresh
+ * token that cannot be recovered must not silently create a new account.
+ * No visit to the public home page calls this endpoint.
+ */
+export async function createGuest(
+  request: Request,
+  client: SupabaseClient | null,
+  enabled: boolean,
+  turnstileSecret?: string,
+  verifier: typeof verifyEmailCaptcha = verifyEmailCaptcha,
+): Promise<Response> {
+  if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
+  if (!enabled || !client) return errorResponse(503, 'guest_signup_disabled');
+  const { access, refresh } = sessionTokens(request);
+  if (access || refresh) {
+    if (access) {
+      const found = await client.auth.getUser(access);
+      if (!found.error && found.data.user) {
+        return json({ created: false, ...identity(found.data.user) });
+      }
+    }
+    if (refresh) {
+      const refreshed = await client.auth.refreshSession({ refresh_token: refresh });
+      if (!refreshed.error && refreshed.data.session && refreshed.data.user) {
+        return sessionResponse(
+          request,
+          json({ created: false, ...identity(refreshed.data.user) }),
+          refreshed.data.session,
+        );
+      }
+    }
+    return errorResponse(409, 'existing_session_unrecoverable');
+  }
+  const payload = await bodyOf(request);
+  if (!payload) return errorResponse(400, 'invalid_request');
+  const blocked = await challenge(request, payload.captchaToken, turnstileSecret, 'guest_create', verifier);
+  if (blocked) return blocked;
+  const { data, error } = await client.auth.signInAnonymously();
+  if (error || !data.user || !data.session || data.user.is_anonymous !== true) {
+    return errorResponse(503, 'guest_signup_unavailable');
+  }
+  return sessionResponse(
+    request,
+    json({ created: true, ...identity(data.user) }, { status: 201 }),
+    data.session,
+  );
+}
+
+export async function sendGuestEmailLink(
+  request: Request,
+  client: SupabaseClient | null,
+  enabled: boolean,
+  turnstileSecret?: string,
+  verifier: typeof verifyEmailCaptcha = verifyEmailCaptcha,
+): Promise<Response> {
+  if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
+  if (!enabled || !client) return errorResponse(503, 'guest_link_disabled');
+  const session = await attached(request, client);
+  if (!session) return errorResponse(401, 'guest_session_required');
+  if (session.user.is_anonymous !== true) {
+    return sessionResponse(request, errorResponse(409, 'already_bound'), session.session);
+  }
+  const payload = await bodyOf(request);
+  const email = emailOf(payload?.email);
+  if (!email) return sessionResponse(request, errorResponse(400, 'invalid_email'), session.session);
+  const blocked = await challenge(request, payload?.captchaToken, turnstileSecret, 'email_link', verifier);
+  if (blocked) return sessionResponse(request, blocked, session.session);
+  // This keeps the existing user ID. signInWithOtp would create another account.
+  const { error } = await client.auth.updateUser({ email });
+  if (error) {
+    return sessionResponse(
+      request,
+      errorResponse(error.status === 429 ? 429 : 503, 'email_link_unavailable'),
+      session.session,
+    );
+  }
+  return sessionResponse(request, json({ sent: true, kind: 'guest' }), session.session);
+}
+
+export async function verifyGuestEmailLink(
+  request: Request,
+  client: SupabaseClient | null,
+  enabled: boolean,
+): Promise<Response> {
+  if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
+  if (!enabled || !client) return errorResponse(503, 'guest_link_disabled');
+  const previous = await attached(request, client);
+  if (!previous) return errorResponse(401, 'guest_session_required');
+  if (previous.user.is_anonymous !== true) {
+    return sessionResponse(request, errorResponse(409, 'already_bound'), previous.session);
+  }
+  const payload = await bodyOf(request);
+  const email = emailOf(payload?.email);
+  const code = payload?.code;
+  if (!email || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+    return sessionResponse(request, errorResponse(400, 'invalid_code'), previous.session);
+  }
+  const { data, error } = await client.auth.verifyOtp({
+    email,
+    token: code,
+    type: 'email_change',
+  });
+  if (error || !data.user || data.user.id !== previous.user.id || !isMember(data.user)) {
+    return sessionResponse(request, errorResponse(401, 'link_verification_failed'), previous.session);
+  }
+  const updatedSession = data.session ?? (await client.auth.getSession()).data.session;
+  if (!updatedSession) return errorResponse(503, 'session_refresh_required');
+  return sessionResponse(
+    request,
+    json({ linked: true, kind: 'member', displayId: displayId(data.user.id), email: data.user.email }),
+    updatedSession,
+  );
+}
