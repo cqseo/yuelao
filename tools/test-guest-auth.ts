@@ -19,6 +19,7 @@ const session = {
   expires_in: 3600,
 };
 const cookie = '__Host-yl_access=guest-test-access; __Host-yl_refresh=guest-test-refresh';
+const refreshOnlyCookie = '__Host-yl_refresh=guest-test-refresh';
 const anonUser = { id: userId, email: null, is_anonymous: true };
 const linkedUser = {
   id: userId,
@@ -29,6 +30,8 @@ const linkedUser = {
 
 let signupCount = 0;
 let updateCount = 0;
+let refreshCount = 0;
+let failRefresh = false;
 let currentUser: typeof anonUser | typeof linkedUser = anonUser;
 let verifiedId = userId;
 const auth = {
@@ -37,7 +40,12 @@ const auth = {
     return { data: { user: anonUser, session }, error: null };
   },
   getUser: async () => ({ data: { user: currentUser }, error: null }),
-  refreshSession: async () => ({ data: { user: currentUser, session }, error: null }),
+  refreshSession: async () => {
+    refreshCount++;
+    return failRefresh
+      ? { data: { user: null, session: null }, error: { message: 'expired' } }
+      : { data: { user: currentUser, session }, error: null };
+  },
   setSession: async () => ({ data: { user: currentUser, session }, error: null }),
   updateUser: async ({ email: e }: { email: string }) => {
     assert.equal(e, email);
@@ -157,6 +165,50 @@ const current = await guestStatus(
 );
 assert.equal((await current.json()).kind, 'guest');
 console.log('PASS repeat visitor reuses identity and does not create a duplicate');
+
+const refreshedStatus = await guestStatus(
+  new Request(origin + '/api/auth/guest/status', {
+    headers: { cookie: refreshOnlyCookie },
+  }),
+  client,
+  true,
+);
+assert.equal(refreshedStatus.status, 200);
+assert.equal((await refreshedStatus.json()).kind, 'guest');
+assert.equal(refreshedStatus.headers.getSetCookie().length, 2);
+assert.equal(signupCount, 1);
+assert.equal(refreshCount, 1);
+
+const restoredGuest = await createGuest(
+  request('/api/auth/guest', {}, refreshOnlyCookie),
+  client,
+  true,
+  secret,
+);
+assert.equal(restoredGuest.status, 200);
+assert.equal((await restoredGuest.json()).created, false);
+assert.equal(signupCount, 1);
+
+failRefresh = true;
+const stale = await guestStatus(
+  new Request(origin + '/api/auth/guest/status', {
+    headers: { cookie: refreshOnlyCookie },
+  }),
+  client,
+  true,
+);
+assert.equal((await stale.json()).kind, 'stale');
+const cannotReplace = await createGuest(
+  request('/api/auth/guest', { captchaToken: captcha }, refreshOnlyCookie),
+  client,
+  true,
+  secret,
+  challenge,
+);
+assert.equal(cannotReplace.status, 409);
+assert.equal(signupCount, 1);
+failRefresh = false;
+console.log('PASS expired access recovers with refresh token; stale credentials never create a new user');
 
 assert.equal(
   (await sendGuestEmailLink(request('/api/auth/guest/link', { email, captchaToken: captcha }),
