@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { hasVerifiedEmailIdentity } from '../packages/core/src/auth';
 import {
   createGuest,
   guestStatus,
@@ -27,6 +28,14 @@ const linkedUser = {
   is_anonymous: false,
   email_confirmed_at: '2026-11-09T12:00:00Z',
 };
+
+assert.equal(hasVerifiedEmailIdentity(anonUser), false);
+assert.equal(
+  hasVerifiedEmailIdentity({ ...linkedUser, email_confirmed_at: null }),
+  false,
+);
+assert.equal(hasVerifiedEmailIdentity(linkedUser), true);
+console.log('PASS paid account APIs require a non-anonymous, verified email identity');
 
 let signupCount = 0;
 let updateCount = 0;
