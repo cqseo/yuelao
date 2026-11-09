@@ -53,7 +53,8 @@ export function createCore(site: SiteConfig) {
     },
     getUser: (request: Request): Promise<SessionUser | null> => getUserFromRequest(request, context().env),
     auth: {
-      send: (request: Request) => sendEmailCode(request, context().supabaseAnon),
+      send: (request: Request) =>
+        sendEmailCode(request, context().supabaseAnon, context().env.TURNSTILE_SECRET_KEY),
       verify: (request: Request) => verifyEmailCode(request, context().supabaseAnon),
       refresh: (request: Request) => refreshLogin(request, context().supabaseAnon),
       logout: (request: Request) => logoutUser(request, context().supabaseService),
