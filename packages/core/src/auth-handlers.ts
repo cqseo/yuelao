@@ -54,6 +54,49 @@ export async function verifyEmailCaptcha(
   );
 }
 
+/**
+ * The ordinary email OTP route must not replace an existing guest identity.
+ * Binding an email to a guest is a different operation (updateUser), so both
+ * OTP send and OTP verify reject browsers that already carry session cookies.
+ */
+async function rejectSecondIdentity(
+  request: Request,
+  client: SupabaseClient,
+): Promise<Response | null> {
+  const { access, refresh } = sessionTokens(request);
+  if (!access && !refresh) return null;
+  if (access) {
+    const found = await client.auth.getUser(access);
+    if (!found.error && found.data.user) {
+      return errorResponse(
+        409,
+        found.data.user.is_anonymous === true ? 'guest_must_link_email' : 'already_authenticated',
+      );
+    }
+  }
+  if (refresh) {
+    const { data, error } = await client.auth.refreshSession({ refresh_token: refresh });
+    if (!error && data.session) {
+      const verified = await client.auth.getUser(data.session.access_token);
+      if (!verified.error && verified.data.user) {
+        return sessionResponse(
+          request,
+          errorResponse(
+            409,
+            verified.data.user.is_anonymous === true
+              ? 'guest_must_link_email'
+              : 'already_authenticated',
+          ),
+          data.session,
+        );
+      }
+    }
+  }
+  // A stale visitor credential must be handled explicitly; never overwrite it
+  // with a brand new account during an ordinary OTP login request.
+  return errorResponse(409, 'existing_session_unrecoverable');
+}
+
 export async function sendEmailCode(
   request: Request,
   client: SupabaseClient | null,
@@ -62,6 +105,8 @@ export async function sendEmailCode(
 ): Promise<Response> {
   if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
   if (!client) return errorResponse(503, 'auth_not_configured');
+  const existingIdentity = await rejectSecondIdentity(request, client);
+  if (existingIdentity) return existingIdentity;
   // Fail closed. A real Turnstile secret is required before any email can be sent.
   if (!turnstileSecret) return errorResponse(503, 'captcha_not_configured');
   const data = await input(request, 4096);
@@ -96,6 +141,8 @@ export async function sendEmailCode(
 export async function verifyEmailCode(request: Request, client: SupabaseClient | null): Promise<Response> {
   if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
   if (!client) return errorResponse(503, 'auth_not_configured');
+  const existingIdentity = await rejectSecondIdentity(request, client);
+  if (existingIdentity) return existingIdentity;
   const data = await input(request);
   if (!data || !validEmail(data.email) || typeof data.code !== 'string' || !/^\d{6}$/.test(data.code)) {
     return errorResponse(400, 'invalid_code');
