@@ -1,8 +1,8 @@
 import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { GuestAccount } from '~/components/GuestAccount';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
-import { GuestAccount } from '~/components/GuestAccount';
 
 export const Route = createFileRoute('/account')({
   head: () => ({
