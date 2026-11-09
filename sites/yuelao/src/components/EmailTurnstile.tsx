@@ -21,10 +21,12 @@ export function EmailTurnstile({
   siteKey,
   resetSignal,
   onToken,
+  action = 'auth_send',
 }: {
   siteKey: string;
   resetSignal: number;
   onToken: (token: string) => void;
+  action?: 'auth_send' | 'guest_create' | 'email_link';
 }) {
   const element = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
@@ -40,7 +42,7 @@ export function EmailTurnstile({
       if (cancelled || !element.current || !api) return;
       widgetId.current = api.render(element.current, {
         sitekey: siteKey,
-        action: 'auth_send',
+        action,
         callback: onToken,
         'expired-callback': () => onToken(''),
         'error-callback': () => onToken(''),
@@ -55,7 +57,7 @@ export function EmailTurnstile({
       widgetId.current = null;
       script.remove();
     };
-  }, [siteKey, onToken]);
+  }, [siteKey, onToken, action]);
 
   useEffect(() => {
     const api = (window as TurnstileWindow).turnstile;
