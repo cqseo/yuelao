@@ -18,6 +18,8 @@ export async function getUserFromRequest(request: Request, env: CoreEnv): Promis
   const supabase = createAnonClient(env);
   if (!supabase) return null;
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user?.email || data.user.is_anonymous === true) return null;
+  if (error || !data.user?.email || !data.user.email_confirmed_at || data.user.is_anonymous === true) {
+    return null;
+  }
   return { id: data.user.id, email: data.user.email };
 }
