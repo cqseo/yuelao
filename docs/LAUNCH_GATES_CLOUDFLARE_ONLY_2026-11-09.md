@@ -16,6 +16,14 @@
 - 已按 GitHub 迁移版本对齐 13 项历史迁移，包含付款结算、退款撤销、付费解读、Checkout 失败/过期状态；AI 聊天额度迁移未部署（当前不需要）。
 - 支付及交付 RPC 限定 `service_role`，匿名与普通认证角色不可直接调用。数据库已就绪不等于实际支付联调通过。
 
+## 新增：游客身份上线门槛（PR #16，尚未在正式环境启用）
+
+1. 在隔离的 Supabase 测试库应用 `20261109200000_guest_profile_email_nullable.sql`，确认 `public.profiles.email` 允许 NULL，已有 profiles 不变化、RLS 仍启用；未通过这一步不能开放游客建号。
+2. Supabase Auth 测试库开启 Anonymous Sign-Ins 和 Manual Linking。仅当浏览器进入「我的」时在受保护的 Turnstile 验证后自动建号，避免对所有主页爬虫创建用户。确认初次建号自动 upsert 自己的 profile，重复访问不会创建新用户。
+3. 先验收游客创建、刷新 cookie、游客自己保存记录、绑定邮箱 `updateUser` + `email_change` 六位 OTP、相同完整 UUID、跨设备邮箱登录。验证短编号绝不能成为登录凭据。
+4. 登录 UI 需要构建开关 `VITE_AUTH_ENABLED=true` 与 `VITE_GUEST_AUTH_ENABLED=true`，同时 Cloudflare Worker `GUEST_AUTH_ENABLED=true`；**目前三个开关都未启用**。Turnstile Site Key 在构建时，Secret Key 是 Worker Secret；暂不打开真正 AI 聊天或真实支付。
+5. 已提交 `pnpm test:auth:guest` 和测试用假 Supabase 客户端；**新代码测试尚未真实执行**，不能只凭测试文件存在就认定通过。用户 VPS 完全禁止访问。
+
 ## 第一关：邮箱验证码登录（不可跳过）
 
 1. 准备**月老自己的**已验证发件域名，不能挪用其他项目的 Resend 已验证域名。为 Supabase Auth 配置专属 SMTP / 发信服务、发件人地址、限制和送达监控。
