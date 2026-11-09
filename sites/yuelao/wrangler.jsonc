@@ -21,7 +21,6 @@
         "BILLING_ENABLE_TEST_CHECKOUT": "false",
         "AI_ENABLE_TEST_GENERATION": "false",
         "AI_CHAT_ENABLED": "false",
-    "GUEST_AUTH_ENABLED": "false",
         "GUEST_AUTH_ENABLED": "false",
         "RYBBIT_UPSTREAM": ""
       }
@@ -35,6 +34,7 @@
     "BILLING_ENABLE_TEST_CHECKOUT": "false",
     "AI_ENABLE_TEST_GENERATION": "false",
     "AI_CHAT_ENABLED": "false",
+    "GUEST_AUTH_ENABLED": "false",
     // To enable Rybbit, set this to your Rybbit API URL and add analytics.rybbit to site.config.ts.
     "RYBBIT_UPSTREAM": ""
   }
