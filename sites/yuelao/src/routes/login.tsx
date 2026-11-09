@@ -24,6 +24,8 @@ function Login() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [hasGuestSession, setHasGuestSession] = useState(false);
+  const [hasMemberSession, setHasMemberSession] = useState(false);
+  const [staleSession, setStaleSession] = useState(false);
   const [guestCheckPending, setGuestCheckPending] = useState(
     import.meta.env.VITE_GUEST_AUTH_ENABLED === 'true',
   );
@@ -36,7 +38,11 @@ function Login() {
         const res = await fetch('/api/auth/guest/status', { credentials: 'same-origin', cache: 'no-store' });
         if (res.ok) {
           const body = (await res.json()) as { kind?: string };
-          if (alive) setHasGuestSession(body.kind === 'guest');
+          if (alive) {
+            setHasGuestSession(body.kind === 'guest');
+            setHasMemberSession(body.kind === 'member');
+            setStaleSession(body.kind === 'stale');
+          }
         }
       } finally {
         if (alive) setGuestCheckPending(false);
@@ -94,6 +100,55 @@ function Login() {
     </div></section>;
   }
 
+  if (hasMemberSession) {
+    return (
+      <section className="auth-page">
+        <div className="auth-panel">
+          <h1>{text('你已登入', '你已登录')}</h1>
+          <Link className="auth-return-link" to={localizeHref('/account')}>
+            {text('返回我的姻緣簿', '返回我的姻缘簿')}
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (staleSession) {
+    return (
+      <section className="auth-page">
+        <div className="auth-panel">
+          <h1>{text('舊訪客身份需要處理', '旧游客身份需要处理')}</h1>
+          <p className="auth-intro">
+            {text(
+              '無法恢復先前的登入狀態。若該訪客尚未綁定郵箱，清除憑證後可能無法找回記錄。確認已綁定郵箱，或了解風險後才繼續。',
+              '无法恢复之前的登录状态。如果游客尚未绑定邮箱，清除凭证后可能无法找回记录。请确认已绑定邮箱，或了解风险后再继续。',
+            )}
+          </p>
+          <button type="button" className="auth-return-link" onClick={() => void resetStaleSession()} disabled={busy}>
+            {text('清除舊憑證，改用郵箱登入', '清除旧凭证，改用邮箱登录')}
+          </button>
+          {error && <p role="alert" className="auth-error">{error}</p>}
+        </div>
+      </section>
+    );
+  }
+
+  async function resetStaleSession() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      if (!res.ok) throw new Error('logout_failed');
+      window.location.assign(localizeHref('/login'));
+    } catch {
+      setError(text('無法清除已失效的登入狀態，請稍後重試。', '无法清除失效的登录状态，请稍后重试。'));
+      setBusy(false);
+    }
+  }
+
   async function callAuth(action: 'send' | 'verify', data: Record<string, string>) {
     const res = await fetch(`/api/auth/${action}`, {
       method: 'POST',
@@ -119,6 +174,11 @@ function Login() {
             '验证码已发送。请检查收件箱与垃圾邮件文件夹。',
           ),
         );
+      } else if (res.status === 409) {
+        const payload = (await res.json()) as { error?: { code?: string } };
+        if (payload.error?.code === 'guest_must_link_email') setHasGuestSession(true);
+        else if (payload.error?.code === 'already_authenticated') setHasMemberSession(true);
+        else setStaleSession(true);
       } else if (res.status === 429) {
         setError(text('寄送太頻繁，請稍後再試。', '发送太频繁，请稍后再试。'));
       } else if (res.status === 400) {
@@ -144,6 +204,13 @@ function Login() {
       const res = await callAuth('verify', { email: email.trim(), code: code.trim() });
       if (res.ok) {
         window.location.assign(localizeHref('/account'));
+        return;
+      }
+      if (res.status === 409) {
+        const payload = (await res.json()) as { error?: { code?: string } };
+        if (payload.error?.code === 'guest_must_link_email') setHasGuestSession(true);
+        else if (payload.error?.code === 'already_authenticated') setHasMemberSession(true);
+        else setStaleSession(true);
         return;
       }
       setError(
