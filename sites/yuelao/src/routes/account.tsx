@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-rout
 import { useEffect, useState } from 'react';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
+import { GuestAccount } from '~/components/GuestAccount';
 
 export const Route = createFileRoute('/account')({
   head: () => ({
@@ -198,7 +199,10 @@ function Account() {
       <p className="auth-kicker">{t('月老 · 姻緣簿', '月老 · 姻缘簿')}</p>
       <h1>{t('我的帳戶', '我的账户')}</h1>
       {view === 'loading' && <p role="status">{t('正在確認登入狀態…', '正在确认登录状态…')}</p>}
-      {view === 'login' && (
+      {view === 'login' && import.meta.env.VITE_AUTH_ENABLED === 'true' &&
+        import.meta.env.VITE_GUEST_AUTH_ENABLED === 'true' && <GuestAccount />}
+      {view === 'login' && !(import.meta.env.VITE_AUTH_ENABLED === 'true' &&
+        import.meta.env.VITE_GUEST_AUTH_ENABLED === 'true') && (
         <div className="account-card">
           <h2>{t('先登入，才能查看個人紀錄', '请先登录，查看个人记录')}</h2>
           <p>{t('透過電子信箱取得驗證碼，查閱你的訂單與已購權益。', '通过邮箱验证码查看订单与已购权益。')}</p>
