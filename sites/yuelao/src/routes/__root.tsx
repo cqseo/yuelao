@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { m } from '~/paraglide/messages.js';
 import { getLocale, localizeHref, setLocale } from '~/paraglide/runtime.js';
 import { SUPPORT_EMAIL } from '~/site/legal';
+import sereneCss from '~/site/serene.css?url';
 import appCss from '~/site/styles.css?url';
 import site from '../../site.config';
 
@@ -14,6 +15,7 @@ export const Route = createRootRoute({
     meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }],
     links: [
       { rel: 'stylesheet', href: appCss },
+      { rel: 'stylesheet', href: sereneCss },
       { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
     ],
     // Analytics scripts are skipped in local dev so dev traffic stays out of reports.
@@ -101,6 +103,15 @@ function Layout() {
             aria-current={location.pathname.startsWith('/tests') ? 'true' : undefined}
           >
             {locale === 'zh-Hans' ? '情感测试' : '情感測驗'}
+          </Link>
+          <Link to={localizeHref('/chat')} aria-current={location.pathname === '/chat' ? 'true' : undefined}>
+            {locale === 'zh-Hans' ? '问月老' : '問月老'}
+          </Link>
+          <Link
+            to={localizeHref('/daily')}
+            aria-current={location.pathname === '/daily' ? 'true' : undefined}
+          >
+            {locale === 'zh-Hans' ? '每日心笺' : '每日心箋'}
           </Link>
           {import.meta.env.VITE_AUTH_ENABLED === 'true' && (
             <Link

@@ -10,6 +10,8 @@ export const PAGES = [
   '/',
   '/ritual',
   '/tests',
+  '/chat',
+  '/daily',
   ...TESTS.map((t) => `/tests/${t.slug}`),
   '/privacy',
   '/terms',
