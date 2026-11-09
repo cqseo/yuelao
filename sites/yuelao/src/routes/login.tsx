@@ -117,7 +117,7 @@ function Login() {
     <section className="auth-page">
       <div className="auth-panel">
         <p className="auth-kicker">{text('月老 · 姻緣簿', '月老 · 姻缘簿')}</p>
-        <h1>{text('登入，保存你的心事', '登录，保存你的心事')}</h1>
+        <h1>{text('登入，查看我的姻緣簿', '登录，查看我的姻缘簿')}</h1>
         <p className="auth-intro">
           {text(
             '使用信箱收取六位數驗證碼。無需密碼，你的訂單和已購權益只會顯示在自己的帳戶。',
