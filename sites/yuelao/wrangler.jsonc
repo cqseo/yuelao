@@ -21,6 +21,8 @@
         "BILLING_ENABLE_TEST_CHECKOUT": "false",
         "AI_ENABLE_TEST_GENERATION": "false",
         "AI_CHAT_ENABLED": "false",
+    "GUEST_AUTH_ENABLED": "false",
+        "GUEST_AUTH_ENABLED": "false",
         "RYBBIT_UPSTREAM": ""
       }
     }
