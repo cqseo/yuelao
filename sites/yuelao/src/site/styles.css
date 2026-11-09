@@ -969,6 +969,74 @@ h2 {
   }
 }
 
+/* AI readout and pack redemption: same paper/temple system as account screens. */
+.account-redeem-form,
+.reading-generate-form {
+  display: grid;
+  gap: 0.85rem;
+  padding-top: 0.7rem;
+}
+.account-redeem-form label,
+.reading-generate-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--color-paper);
+  font-size: 0.92rem;
+}
+.account-redeem-form input,
+.account-redeem-form select,
+.reading-generate-form textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--color-gold-55);
+  border-radius: 4px;
+  background: var(--color-paper);
+  color: #3a281a;
+  font: inherit;
+}
+.reading-generate-form textarea {
+  resize: vertical;
+  min-height: 105px;
+}
+.account-redeem-form button,
+.reading-generate-form button,
+.private-reading button {
+  min-height: 52px;
+  border: 1px solid var(--color-gold-soft);
+  border-radius: 4px;
+  background: var(--color-vermilion-deep);
+  color: var(--color-paper);
+  font: inherit;
+  font-weight: 700;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+}
+.account-redeem-form button:disabled,
+.reading-generate-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.account-redeem-form button:focus-visible,
+.reading-generate-form button:focus-visible {
+  outline: 3px solid var(--color-gold-soft);
+  outline-offset: 3px;
+}
+.reading-generate-form .reading-consent {
+  flex-direction: row;
+  align-items: start;
+  gap: 0.65rem;
+  line-height: 1.7;
+}
+.reading-consent input {
+  margin-top: 0.3rem;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  accent-color: var(--color-vermilion);
+}
+
 /* ===== 首頁：問事總目（版式抄 kaucim，視覺抄儀式頁） ===== */
 
 .ask-top {

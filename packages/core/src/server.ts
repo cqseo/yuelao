@@ -1,5 +1,6 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { accountSnapshot } from './account';
+import { aiGenerationEnabled, generatePaidReadingRequest } from './ai-reading';
 import { getUserFromRequest, type SessionUser } from './auth';
 import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCode } from './auth-handlers';
 import { sameOriginPost } from './auth-session';
@@ -8,6 +9,7 @@ import { settleStripeWebhook } from './billing/settle';
 import { StripeProvider } from './billing/stripe';
 import type { CoreEnv } from './env';
 import { errorResponse } from './http';
+import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
 import type { SiteConfig } from './site';
 import { createAnonClient, createServiceClient } from './supabase';
@@ -56,6 +58,16 @@ export function createCore(site: SiteConfig) {
       logout: (request: Request) => logoutUser(request, context().supabaseService),
     },
     account: {
+      generate: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return generatePaidReadingRequest(request, ctx.supabaseService, user, ctx.env);
+      },
+      redeem: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return redeemPackRequest(request, ctx.supabaseService, user, ctx.env);
+      },
       reading: async (request: Request) => {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
@@ -69,7 +81,7 @@ export function createCore(site: SiteConfig) {
           ctx.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') === true &&
           Boolean(ctx.env.STRIPE_WEBHOOK_SECRET) &&
           Boolean(ctx.supabaseService);
-        return accountSnapshot(ctx.supabaseService, user, enabled);
+        return accountSnapshot(ctx.supabaseService, user, enabled, aiGenerationEnabled(ctx.env));
       },
     },
     billing: {
@@ -77,11 +89,16 @@ export function createCore(site: SiteConfig) {
         if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
         const ctx = context();
         if (ctx.env.BILLING_ENABLE_TEST_CHECKOUT !== 'true') return errorResponse(503, 'checkout_disabled');
+        // Do not accept any payment before an AI fulfillment pipeline is available.
+        if (!aiGenerationEnabled(ctx.env)) return errorResponse(503, 'paid_content_unavailable');
         // Never launch a live charge through an unreviewed test-only checkout path.
         if (!ctx.env.STRIPE_SECRET_KEY?.startsWith('sk_test_'))
           return errorResponse(503, 'test_key_required');
         if (!ctx.supabaseAnon || !ctx.supabaseService) return errorResponse(503, 'supabase_not_configured');
         if (!ctx.env.STRIPE_WEBHOOK_SECRET) return errorResponse(503, 'webhook_not_configured');
+        const { data: deliveryReady, error: deliveryError } =
+          await ctx.supabaseService.rpc('paid_ai_delivery_ready');
+        if (deliveryError || deliveryReady !== true) return errorResponse(503, 'delivery_schema_unavailable');
         const user = await getUserFromRequest(request, ctx.env);
         if (!user) return errorResponse(401, 'login_required');
         const provider = new StripeProvider({

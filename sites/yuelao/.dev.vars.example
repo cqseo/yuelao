@@ -13,3 +13,8 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 # Test checkout requires Supabase + sk_test_* + verified JWT + webhook signing.
 # Keep false unless manually running the Stripe sandbox.
 BILLING_ENABLE_TEST_CHECKOUT=false
+# Optional AI reading pipeline: test-only until report fulfillment, refunds and
+# privacy rules are verified. Keep OFF on production.
+AI_ENABLE_TEST_GENERATION=false
+OPENAI_API_KEY=
+OPENAI_MODEL=

@@ -17,6 +17,12 @@ export interface CoreEnv {
   STRIPE_WEBHOOK_SECRET?: string;
   /** Test checkouts are disabled unless explicitly set to "true". */
   BILLING_ENABLE_TEST_CHECKOUT?: string;
+  /** AI delivery is disabled until staging review and explicit opt-in. */
+  AI_ENABLE_TEST_GENERATION?: string;
+  /** Secret: configured only in Worker secrets, never public code. */
+  OPENAI_API_KEY?: string;
+  /** Explicit allowlisted model ID for the Responses API. */
+  OPENAI_MODEL?: string;
 
   /** Rybbit collector endpoint (e.g. https://events.example.com/api); the site's /stats/* is proxied here. */
   RYBBIT_UPSTREAM?: string;

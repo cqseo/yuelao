@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
@@ -7,8 +7,15 @@ export const Route = createFileRoute('/account')({
   head: () => ({
     meta: [{ title: '月老 · 我的姻緣簿' }, { name: 'robots', content: 'noindex, nofollow' }],
   }),
-  component: Account,
+  component: AccountRoute,
 });
+
+// Child pages such as /account/reading must render through an Outlet.
+// The dashboard itself is the index view, not a layout around purchased content.
+function AccountRoute() {
+  const location = useLocation();
+  return location.pathname === '/account/reading' ? <Outlet /> : <Account />;
+}
 
 type Order = {
   id: string;
@@ -40,6 +47,7 @@ type AccountData = {
   packs: Pack[];
   unlocks: Unlock[];
   billingTestEnabled: boolean;
+  aiTestEnabled: boolean;
 };
 
 async function accountRequest(): Promise<Response> {
@@ -52,6 +60,8 @@ function Account() {
   const [data, setData] = useState<AccountData | null>(null);
   const [view, setView] = useState<'loading' | 'ready' | 'login' | 'error'>('loading');
   const [currency, setCurrency] = useState<'HKD' | 'TWD'>('HKD');
+  const [redeemStick, setRedeemStick] = useState('1');
+  const [redeemCategory, setRedeemCategory] = useState<'him' | 'single' | 'reunion'>('him');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -131,6 +141,49 @@ function Account() {
       window.location.assign(url.toString());
     } catch {
       setMessage(t('無法建立測試訂單，請稍後再試。', '无法创建测试订单，请稍后再试。'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function redeemPack() {
+    if (busy || !data?.aiTestEnabled) return;
+    const pack = data.packs.find(
+      (p) => p.remaining_uses > 0 && (!p.expires_at || new Date(p.expires_at) > new Date()),
+    );
+    const stickId = Number(redeemStick);
+    if (!pack || !Number.isInteger(stickId) || stickId < 1 || stickId > 100) {
+      setMessage(t('請選擇有效籤號及可用問事包。', '请选择有效签号及可用问事包。'));
+      return;
+    }
+    setBusy(true);
+    setMessage('');
+    try {
+      const response = await fetch('/api/account/redeem', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          packId: pack.id,
+          stickId,
+          category: redeemCategory,
+          locale: getLocale(),
+        }),
+      });
+      if (!response.ok) {
+        setMessage(
+          t(
+            '這次兌換未成功，未扣除額外次數；請檢查餘額或重新整理。',
+            '本次兑换未成功，未额外扣除次数；请检查余额或刷新。',
+          ),
+        );
+        return;
+      }
+      window.location.assign(
+        `/account/reading?stickId=${stickId}&category=${redeemCategory}&locale=${getLocale()}`,
+      );
+    } catch {
+      setMessage(t('連線失敗，請確認紀錄再重試。', '连接失败，请先核对记录后重试。'));
     } finally {
       setBusy(false);
     }
@@ -233,6 +286,51 @@ function Account() {
                 {message}
               </p>
             )}
+          </section>
+
+          <section className="account-panel" aria-labelledby="account-redeem">
+            <h2 id="account-redeem">{t('使用問事包：兌換一支籤', '使用问事包：兑换一支签')}</h2>
+            <p>
+              {t(
+                '每支籤的同一情境只扣一次。AI 解讀未準備好前不會開放兌換。',
+                '每支签的相同情境只扣一次。AI 解读未准备好前不会开放兑换。',
+              )}
+            </p>
+            <div className="account-redeem-form">
+              <label htmlFor="redeem-stick">
+                {t('籤號（1–100）', '签号（1–100）')}
+                <input
+                  id="redeem-stick"
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="1"
+                  value={redeemStick}
+                  onChange={(e) => setRedeemStick(e.target.value)}
+                />
+              </label>
+              <label htmlFor="redeem-category">
+                {t('問事類型', '问事类型')}
+                <select
+                  id="redeem-category"
+                  value={redeemCategory}
+                  onChange={(e) => setRedeemCategory(e.target.value as 'him' | 'single' | 'reunion')}
+                >
+                  <option value="him">{t('問他', '问他')}</option>
+                  <option value="single">{t('脫單', '脱单')}</option>
+                  <option value="reunion">{t('複合', '复合')}</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                disabled={!data.aiTestEnabled || busy || data.packs.every((p) => p.remaining_uses <= 0)}
+                onClick={() => void redeemPack()}
+              >
+                {data.aiTestEnabled
+                  ? t('兌換並查看解讀', '兑换并查看解读')
+                  : t('AI 解讀測試未啟用', 'AI 解读测试未启用')}
+              </button>
+            </div>
           </section>
 
           <section className="account-panel" aria-labelledby="account-orders">

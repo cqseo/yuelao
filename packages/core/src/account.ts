@@ -8,6 +8,7 @@ export async function accountSnapshot(
   db: SupabaseClient | null,
   user: SessionUser | null,
   billingTestEnabled: boolean,
+  aiTestEnabled: boolean,
 ): Promise<Response> {
   if (!user) return errorResponse(401, 'login_required');
   if (!db) return errorResponse(503, 'account_unavailable');
@@ -41,5 +42,6 @@ export async function accountSnapshot(
     })),
     unlocks: unlocks.data,
     billingTestEnabled,
+    aiTestEnabled,
   });
 }

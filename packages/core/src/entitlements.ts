@@ -34,6 +34,16 @@ export async function getDeepReading(
   category: string,
   locale: string,
 ): Promise<string | null> {
+  // Prefer the per-user AI report; legacy static readings are still supported.
+  const { data: personalized, error: personalizedError } = await supabase.rpc('get_paid_ai_reading', {
+    p_user_id: userId,
+    p_stick_id: stickId,
+    p_category: category,
+    p_locale: locale,
+  });
+  if (personalizedError) throw personalizedError;
+  if (typeof personalized === 'string' && personalized.length > 0) return personalized;
+
   const { data, error } = await supabase.rpc('get_deep_reading', {
     p_user_id: userId,
     p_stick_id: stickId,
