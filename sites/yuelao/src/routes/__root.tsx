@@ -102,12 +102,14 @@ function Layout() {
           >
             {locale === 'zh-Hans' ? '情感测试' : '情感測驗'}
           </Link>
-          <Link
-            to={localizeHref('/account')}
-            aria-current={location.pathname === '/account' ? 'true' : undefined}
-          >
-            {locale === 'zh-Hans' ? '我的' : '我的'}
-          </Link>
+          {import.meta.env.VITE_AUTH_ENABLED === 'true' && (
+            <Link
+              to={localizeHref('/account')}
+              aria-current={location.pathname === '/account' ? 'true' : undefined}
+            >
+              {locale === 'zh-Hans' ? '我的' : '我的'}
+            </Link>
+          )}
         </nav>
         <nav className="site-meta">
           <Link className="nav-legal" to="/privacy">

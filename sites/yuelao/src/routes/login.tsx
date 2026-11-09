@@ -19,6 +19,26 @@ function Login() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
+  // Public V2 release: free tools are online; email login and paid
+  // delivery only appear after live Auth/Stripe/AI integration is verified.
+  if (import.meta.env.VITE_AUTH_ENABLED !== 'true') {
+    return (
+      <section className="auth-page">
+        <div className="auth-panel">
+          <p className="auth-kicker">{text('月老 · 姻緣簿', '月老 · 姻缘簿')}</p>
+          <h1>{text('姻緣簿即將開放', '姻缘簿即将开放')}</h1>
+          <p className="auth-intro">
+            {text(
+              '免費求籤與情感測驗現已開放。帳戶與付費深度解讀仍在安全驗收中，尚未收費。',
+              '免费求签与情感测试现已开放。账户与付费深度解读仍在安全验收中，尚未收费。',
+            )}
+          </p>
+          <Link to={localizeHref('/tests')}>{text('前往免費情感測驗', '前往免费情感测试')}</Link>
+        </div>
+      </section>
+    );
+  }
+
   async function callAuth(action: 'send' | 'verify', data: Record<string, string>) {
     const res = await fetch(`/api/auth/${action}`, {
       method: 'POST',
