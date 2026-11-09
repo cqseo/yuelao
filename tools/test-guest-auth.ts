@@ -54,7 +54,37 @@ const auth = {
     };
   },
 } as unknown as SupabaseClient['auth'];
-const client = { auth } as SupabaseClient;
+let profileInserts = 0;
+let profileUpdates = 0;
+const client = {
+  auth,
+  from: (table: string) => {
+    assert.equal(table, 'profiles');
+    return {
+      upsert: async (
+        value: { id: string; locale: string },
+        opts: { onConflict: string; ignoreDuplicates: boolean },
+      ) => {
+        assert.equal(value.id, userId);
+        assert.equal(value.locale, 'zh-Hant');
+        assert.deepEqual(opts, { onConflict: 'id', ignoreDuplicates: true });
+        profileInserts++;
+        return { error: null };
+      },
+      update: (value: { email: string }) => {
+        assert.equal(value.email, email);
+        return {
+          eq: async (column: string, id: string) => {
+            assert.equal(column, 'id');
+            assert.equal(id, userId);
+            profileUpdates++;
+            return { error: null };
+          },
+        };
+      },
+    };
+  },
+} as unknown as SupabaseClient;
 const challenge = async (
   _request: Request,
   token: string,
@@ -113,7 +143,8 @@ assert.equal(createdBody.kind, 'guest');
 assert.equal(createdBody.displayId, userId.slice(0, 8).toUpperCase());
 assert.equal(created.headers.getSetCookie().length, 2);
 assert.equal(signupCount, 1);
-console.log('PASS guest creation requires origin and captcha; issues Secure HttpOnly cookies');
+assert.equal(profileInserts, 1);
+console.log('PASS guest creation requires origin, captcha and persistent profile; issues Secure cookies');
 
 const duplicate = await createGuest(request('/api/auth/guest', {}, cookie), client, true, secret);
 assert.equal(duplicate.status, 200);
@@ -172,6 +203,8 @@ assert.equal(result.linked, true);
 assert.equal(result.kind, 'member');
 assert.equal(result.displayId, userId.slice(0, 8).toUpperCase());
 assert.equal(result.email, email);
+assert.equal(result.profileSynced, true);
+assert.equal(profileUpdates, 1);
 assert.equal(verified.headers.getSetCookie().length, 2);
 currentUser = linkedUser;
 const member = await guestStatus(
