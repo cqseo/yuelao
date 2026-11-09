@@ -7,6 +7,21 @@ export interface SessionUser {
   email: string;
 }
 
+/** Payment, purchase and account APIs require verified non-anonymous email identity. */
+export function hasVerifiedEmailIdentity(
+  user: {
+    email?: string | null;
+    email_confirmed_at?: string | null;
+    is_anonymous?: boolean;
+  } | null | undefined,
+): boolean {
+  return Boolean(
+    user?.email &&
+    user.email_confirmed_at &&
+    user.is_anonymous !== true,
+  );
+}
+
 /**
  * Reads the Supabase JWT from the Authorization header and verifies it.
  * Returns null when signed out, when the token is invalid, or when Supabase isn't configured.
@@ -18,8 +33,6 @@ export async function getUserFromRequest(request: Request, env: CoreEnv): Promis
   const supabase = createAnonClient(env);
   if (!supabase) return null;
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user?.email || !data.user.email_confirmed_at || data.user.is_anonymous === true) {
-    return null;
-  }
-  return { id: data.user.id, email: data.user.email };
+  if (error || !hasVerifiedEmailIdentity(data.user)) return null;
+  return { id: data.user.id, email: data.user.email as string };
 }
