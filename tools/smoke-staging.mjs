@@ -70,6 +70,11 @@ assert.equal(checkout.status, 503);
 assert.match(checkout.body, /checkout_disabled/);
 console.log('PASS staging cannot initiate payments');
 
+const webhook = await post('/api/webhooks/stripe', { object: 'forged_event' });
+assert.equal(webhook.status, 503);
+assert.match(webhook.body, /test_webhook_only/);
+console.log('PASS staging webhook refuses processing without a test Stripe key');
+
 const ai = await post('/api/account/reading/generate', {
   stickId: 8,
   category: 'him',

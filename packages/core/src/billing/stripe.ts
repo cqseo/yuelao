@@ -8,7 +8,7 @@ import type {
   WebhookTarget,
   WebhookTrigger,
 } from './provider';
-import { WebhookSignatureError } from './provider';
+import { WebhookModeError, WebhookSignatureError } from './provider';
 
 // Stripe adapter. Conventions:
 // - Prices use inline price_data; no Prices are pre-created in the Stripe dashboard;
@@ -19,6 +19,11 @@ export interface StripeOptions {
   secretKey: string;
   webhookSecret: string;
   automaticTax: boolean;
+}
+
+/** Both ordinary and restricted test-mode Stripe keys are allowed. */
+export function isStripeTestApiKey(key: unknown): key is string {
+  return typeof key === 'string' && (key.startsWith('sk_test_') || key.startsWith('rk_test_'));
 }
 
 const PROVIDER = 'stripe';
@@ -134,6 +139,8 @@ export function webhookTarget(event: Stripe.Event): WebhookTarget | null {
   switch (event.type) {
     case 'checkout.session.completed':
     case 'checkout.session.async_payment_succeeded':
+    case 'checkout.session.async_payment_failed':
+    case 'checkout.session.expired':
       return object.id ? { kind: 'checkout', ref: object.id } : null;
     case 'invoice.paid':
       return object.id ? { kind: 'payment', ref: object.id } : null;
@@ -234,6 +241,9 @@ export class StripeProvider implements PaymentProvider {
     } catch (error) {
       throw new WebhookSignatureError(error instanceof Error ? error.message : 'invalid signature');
     }
+    // The only enabled integration is TEST Stripe Checkout. A correctly
+    // signed live-mode event must not grant entitlements via this handler.
+    if (event.livemode !== false) throw new WebhookModeError();
     return { eventId: event.id, type: event.type, target: webhookTarget(event) };
   }
 

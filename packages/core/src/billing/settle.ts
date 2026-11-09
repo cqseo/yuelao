@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { errorResponse, json } from '../http';
 import type { SiteConfig } from '../site';
 import type { PaymentFact, PaymentProvider, WebhookTrigger } from './provider';
-import { WebhookSignatureError } from './provider';
+import { WebhookModeError, WebhookSignatureError } from './provider';
 
 // Settles a verified Stripe webhook against Supabase. Webhooks are trigger signals only:
 // state is always re-fetched from Stripe, then applied once via the settle_stripe_payment RPC
@@ -22,6 +22,7 @@ export async function settleStripeWebhook({ provider, supabase, request }: Settl
     trigger = await provider.parseWebhook(request);
   } catch (error) {
     if (error instanceof WebhookSignatureError) return errorResponse(400, 'invalid_signature');
+    if (error instanceof WebhookModeError) return errorResponse(403, 'live_event_forbidden');
     throw error;
   }
   if (!trigger.target) return json({ ok: true, ignored: trigger.type });

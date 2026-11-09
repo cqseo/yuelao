@@ -14,6 +14,7 @@
       "workers_dev": true,
       "vars": {
         "SITE_STAGING": "true",
+        "APP_URL": "https://yuelao-v2-staging-20261109.cqseo.workers.dev",
         "EMAIL_FROM": "noreply@example.invalid",
         "SUPABASE_URL": "",
         "SUPABASE_ANON_KEY": "",

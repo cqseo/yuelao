@@ -97,3 +97,11 @@ export interface PaymentProvider {
   /** The provider's receipt page (https) for this payment; omit if the provider has none. */
   receiptUrl?(paymentRef: string): Promise<string | null>;
 }
+
+/** A correctly signed event for a payment environment this site must not process. */
+export class WebhookModeError extends Error {
+  constructor() {
+    super('Webhook is not from the configured Stripe TEST environment');
+    this.name = 'WebhookModeError';
+  }
+}

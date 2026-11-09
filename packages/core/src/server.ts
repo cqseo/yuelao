@@ -6,7 +6,7 @@ import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCode } from './auth
 import { sameOriginPost } from './auth-session';
 import { createTestCheckout } from './billing/checkout';
 import { settleStripeWebhook } from './billing/settle';
-import { StripeProvider } from './billing/stripe';
+import { isStripeTestApiKey, StripeProvider } from './billing/stripe';
 import type { CoreEnv } from './env';
 import { errorResponse } from './http';
 import { redeemPackRequest } from './pack-redemption';
@@ -78,7 +78,7 @@ export function createCore(site: SiteConfig) {
         const user = await getUserFromRequest(request, ctx.env);
         const enabled =
           ctx.env.BILLING_ENABLE_TEST_CHECKOUT === 'true' &&
-          ctx.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') === true &&
+          isStripeTestApiKey(ctx.env.STRIPE_SECRET_KEY) &&
           Boolean(ctx.env.STRIPE_WEBHOOK_SECRET) &&
           Boolean(ctx.supabaseService);
         return accountSnapshot(ctx.supabaseService, user, enabled, aiGenerationEnabled(ctx.env));
@@ -89,11 +89,14 @@ export function createCore(site: SiteConfig) {
         if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
         const ctx = context();
         if (ctx.env.BILLING_ENABLE_TEST_CHECKOUT !== 'true') return errorResponse(503, 'checkout_disabled');
+        // A staging purchase must never redirect back to the live site.
+        if (new URL(ctx.baseURL).origin !== new URL(request.url).origin) {
+          return errorResponse(503, 'checkout_origin_mismatch');
+        }
         // Do not accept any payment before an AI fulfillment pipeline is available.
         if (!aiGenerationEnabled(ctx.env)) return errorResponse(503, 'paid_content_unavailable');
         // Never launch a live charge through an unreviewed test-only checkout path.
-        if (!ctx.env.STRIPE_SECRET_KEY?.startsWith('sk_test_'))
-          return errorResponse(503, 'test_key_required');
+        if (!isStripeTestApiKey(ctx.env.STRIPE_SECRET_KEY)) return errorResponse(503, 'test_key_required');
         if (!ctx.supabaseAnon || !ctx.supabaseService) return errorResponse(503, 'supabase_not_configured');
         if (!ctx.env.STRIPE_WEBHOOK_SECRET) return errorResponse(503, 'webhook_not_configured');
         const { data: deliveryReady, error: deliveryError } =
@@ -117,6 +120,11 @@ export function createCore(site: SiteConfig) {
       },
       webhook: (request: Request) => {
         const ctx = context();
+        // Keep refund events processable even when checkout is switched off,
+        // but never accept live API keys in this test-only application.
+        if (!isStripeTestApiKey(ctx.env.STRIPE_SECRET_KEY)) {
+          return errorResponse(503, 'test_webhook_only');
+        }
         const provider = new StripeProvider({
           secretKey: required(ctx.env, 'STRIPE_SECRET_KEY'),
           webhookSecret: required(ctx.env, 'STRIPE_WEBHOOK_SECRET'),
