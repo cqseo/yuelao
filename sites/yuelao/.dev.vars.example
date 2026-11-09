@@ -18,3 +18,9 @@ BILLING_ENABLE_TEST_CHECKOUT=false
 AI_ENABLE_TEST_GENERATION=false
 OPENAI_API_KEY=
 OPENAI_MODEL=
+
+
+# Authenticated AI companion (server-only, cost-incurring, disabled by default).
+# Must migrate ai_chat_daily quota SQL and set budget approval before enabling.
+AI_CHAT_ENABLED=false
+OPENAI_CHAT_MODEL=
