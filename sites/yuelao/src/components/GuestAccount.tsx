@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { EmailTurnstile } from './EmailTurnstile';
 
@@ -37,6 +37,13 @@ export function GuestAccount() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const mounted = useRef(false);
+  const guestCreationPending = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -71,14 +78,14 @@ export function GuestAccount() {
   }, []);
 
   useEffect(() => {
-    if (phase !== 'captcha' || !guestToken) return;
-    let alive = true;
+    if (phase !== 'captcha' || !guestToken || guestCreationPending.current) return;
+    guestCreationPending.current = true;
     setBusy(true);
     void (async () => {
       try {
         const response = await requestJson('/api/auth/guest', { captchaToken: guestToken });
         const result = (await response.json()) as GuestStatus;
-        if (!alive) return;
+        if (!mounted.current) return;
         if (response.ok && result.kind === 'guest' && result.displayId) {
           setDisplayId(result.displayId);
           setMessage('');
@@ -95,18 +102,18 @@ export function GuestAccount() {
             : '暫時無法建立訪客身份，請稍後再試；免費內容仍可使用。',
         );
       } catch {
-        if (alive) setMessage(simplified ? '连接失败，请稍后重试。' : '連線失敗，請稍後重試。');
+        if (mounted.current) {
+          setMessage(simplified ? '连接失败，请稍后重试。' : '連線失敗，請稍後重試。');
+        }
       } finally {
-        if (alive) {
+        guestCreationPending.current = false;
+        if (mounted.current) {
           setGuestToken('');
           setGuestReset((value) => value + 1);
           setBusy(false);
         }
       }
     })();
-    return () => {
-      alive = false;
-    };
   }, [guestToken, phase, simplified]);
 
   async function sendLink() {
