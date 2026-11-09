@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCaptcha, verifyEmailCode } from '../packages/core/src/auth-handlers';
+import {
+  logoutUser,
+  refreshLogin,
+  sendEmailCode,
+  verifyEmailCaptcha,
+  verifyEmailCode,
+} from '../packages/core/src/auth-handlers';
 
 const origin = 'https://auth-test.example.invalid';
 let sent = 0,
@@ -67,16 +73,59 @@ assert.equal(
   ).status,
   403,
 );
-assert.equal((await sendEmailCode(request('/api/auth/send', { email: 'bad-email' }), client, captchaSecret, captchaVerifier)).status, 400);
+assert.equal(
+  (
+    await sendEmailCode(
+      request('/api/auth/send', { email: 'bad-email' }),
+      client,
+      captchaSecret,
+      captchaVerifier,
+    )
+  ).status,
+  400,
+);
 assert.equal(
   (await sendEmailCode(request('/api/auth/send', { email: 'safe@example.invalid' }), null)).status,
   503,
 );
 assert.equal(sent, 0);
-assert.equal((await sendEmailCode(request('/api/auth/send', { email: 'safe@example.invalid' }), client, captchaSecret, captchaVerifier)).status, 400);
-assert.equal((await sendEmailCode(request('/api/auth/send', { email: 'safe@example.invalid', captchaToken }), client)).status, 503);
-assert.equal((await sendEmailCode(request('/api/auth/send', { email: 'safe@example.invalid', captchaToken }), client, captchaSecret, async () => false)).status, 403);
-const sentResp = await sendEmailCode(request('/api/auth/send', { email: 'SAFE@example.invalid', captchaToken }), client, captchaSecret, captchaVerifier);
+assert.equal(
+  (
+    await sendEmailCode(
+      request('/api/auth/send', { email: 'safe@example.invalid' }),
+      client,
+      captchaSecret,
+      captchaVerifier,
+    )
+  ).status,
+  400,
+);
+assert.equal(
+  (
+    await sendEmailCode(
+      request('/api/auth/send', { email: 'safe@example.invalid', captchaToken }),
+      client,
+    )
+  ).status,
+  503,
+);
+assert.equal(
+  (
+    await sendEmailCode(
+      request('/api/auth/send', { email: 'safe@example.invalid', captchaToken }),
+      client,
+      captchaSecret,
+      async () => false,
+    )
+  ).status,
+  403,
+);
+const sentResp = await sendEmailCode(
+  request('/api/auth/send', { email: 'SAFE@example.invalid', captchaToken }),
+  client,
+  captchaSecret,
+  captchaVerifier,
+);
 assert.equal(sentResp.status, 200);
 assert.equal(sent, 1);
 assert.equal(captchaChecks, 1);
@@ -144,12 +193,28 @@ const challengeResponse = async () => new Response(JSON.stringify({
   hostname: new URL(origin).hostname,
   action: 'auth_send',
 }), { status: 200 });
-assert.equal(await verifyEmailCaptcha(request('/api/auth/send', {}), captchaToken, captchaSecret, challengeResponse as typeof fetch), true);
+assert.equal(
+  await verifyEmailCaptcha(
+    request('/api/auth/send', {}),
+    captchaToken,
+    captchaSecret,
+    challengeResponse as typeof fetch,
+  ),
+  true,
+);
 const badChallengeResponse = async () => new Response(JSON.stringify({
   success: true,
   hostname: 'not-our-domain.invalid',
   action: 'auth_send',
 }), { status: 200 });
-assert.equal(await verifyEmailCaptcha(request('/api/auth/send', {}), captchaToken, captchaSecret, badChallengeResponse as typeof fetch), false);
+assert.equal(
+  await verifyEmailCaptcha(
+    request('/api/auth/send', {}),
+    captchaToken,
+    captchaSecret,
+    badChallengeResponse as typeof fetch,
+  ),
+  false,
+);
 console.log('PASS: Turnstile success and wrong-domain rejection');
 console.log('ALL MOCK AUTH OTP TESTS PASSED; NO REAL EMAILS SENT');
