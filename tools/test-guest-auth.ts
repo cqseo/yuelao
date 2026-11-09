@@ -65,6 +65,7 @@ const auth = {
     assert.equal(e, email);
     assert.equal(token, '123456');
     assert.equal(type, 'email_change');
+    if (verifiedId === userId) currentUser = linkedUser;
     return {
       data: { user: { ...linkedUser, id: verifiedId }, session },
       error: null,
@@ -265,6 +266,7 @@ assert.equal(result.kind, 'member');
 assert.equal(result.displayId, userId.slice(0, 8).toUpperCase());
 assert.equal(result.email, email);
 assert.equal(result.profileSynced, true);
+assert.equal(result.signInRequired, false);
 assert.equal(profileUpdates, 1);
 assert.equal(verified.headers.getSetCookie().length, 2);
 currentUser = linkedUser;
