@@ -1,6 +1,18 @@
 # 月老账号模式修正：先匿名游客，再绑定邮箱（方案与上线门槛）
 
-2026-11-09。此文档是**待开发的架构方案**，不是已上线的匿名账号功能。所有改动仅在 GitHub 草稿 PR #16 中；禁止登录或操作用户 VPS。
+2026-11-09。**阶段一代码已提交，但未完成云端集成验收、未开启功能开关或在正式库创建游客用户。** 所有改动仅在 GitHub 草稿 PR #16 中；禁止登录或操作用户 VPS。
+
+## 当前真实实现状态（代码已提交，非上线证明）
+
+- `POST /api/auth/guest`：同源 + Turnstile `guest_create` + `GUEST_AUTH_ENABLED=true` 后才可创建 Supabase 匿名用户，设置 Secure HttpOnly cookie；有有效会话时不得重复建号，refresh 失败不得静默新建。
+- `GET /api/auth/guest/status`：返回游客／已绑定状态和短展示编号，不返回 token。
+- `POST /api/auth/guest/link`：验证当前游客会话 + Turnstile `email_link`，使用 `updateUser({email})`，不新建邮箱账号。
+- `POST /api/auth/guest/verify`：验证 `email_change` 六位 OTP，要求返回的完整 `user.id` 与游客相同，签发更新后的 HttpOnly cookie。
+- `/account`：打开「我的」时自动检查身份，首次通过 Turnstile 后建立游客账号，展示「访客编号」与后绑定邮箱表单。公开首页继续免登录，**暂不在每次访问首页时自动调用 Supabase 建号**以防刷号及不必要的数据库成本。
+- `/login`：若已有游客会话，导向「我的」绑定邮箱，防止误使用普通邮箱 OTP 创建第二个账号。
+- 构建开关 `VITE_AUTH_ENABLED` 和 `VITE_GUEST_AUTH_ENABLED` 必须均为 true 才呈现游客账户 UI；Worker `GUEST_AUTH_ENABLED` 默认 false；邮箱／Turnstile 配置缺失时 API 拒绝创建或绑定。
+- `pnpm test:auth:guest`：已提交游客创建、重复访问、同一 ID 邮箱绑定及异常测试代码；**本分支仍没有 CI 结果或真实 OTP / 浏览器验收**。
+
 
 ## 1. 为什么修正
 
