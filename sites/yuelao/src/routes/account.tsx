@@ -72,6 +72,21 @@ function Account() {
       try {
         let response = await accountRequest();
         if (response.status === 401) {
+          // A valid anonymous guest is intentionally denied paid account APIs.
+          // Avoid needlessly rotating their refresh token on every My visit.
+          if (import.meta.env.VITE_GUEST_AUTH_ENABLED === 'true') {
+            const identityResponse = await fetch('/api/auth/guest/status', {
+              credentials: 'same-origin',
+              cache: 'no-store',
+            });
+            if (identityResponse.ok) {
+              const identity = (await identityResponse.json()) as { kind?: string };
+              if (identity.kind === 'guest') {
+                if (active) setView('login');
+                return;
+              }
+            }
+          }
           const refreshed = await fetch('/api/auth/refresh', {
             method: 'POST',
             credentials: 'same-origin',
