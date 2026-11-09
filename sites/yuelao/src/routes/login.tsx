@@ -41,8 +41,12 @@ function Login() {
       } finally {
         if (alive) setGuestCheckPending(false);
       }
-    })().catch(() => { if (alive) setGuestCheckPending(false); });
-    return () => { alive = false; };
+    })().catch(() => {
+      if (alive) setGuestCheckPending(false);
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // Public V2 release: free tools are online; email login and paid
