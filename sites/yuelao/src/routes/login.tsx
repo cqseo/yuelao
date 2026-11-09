@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { EmailTurnstile } from '~/components/EmailTurnstile';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 
@@ -23,6 +23,27 @@ function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [hasGuestSession, setHasGuestSession] = useState(false);
+  const [guestCheckPending, setGuestCheckPending] = useState(
+    import.meta.env.VITE_GUEST_AUTH_ENABLED === 'true',
+  );
+
+  useEffect(() => {
+    if (import.meta.env.VITE_GUEST_AUTH_ENABLED !== 'true') return;
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await fetch('/api/auth/guest/status', { credentials: 'same-origin', cache: 'no-store' });
+        if (res.ok) {
+          const body = (await res.json()) as { kind?: string };
+          if (alive) setHasGuestSession(body.kind === 'guest');
+        }
+      } finally {
+        if (alive) setGuestCheckPending(false);
+      }
+    })().catch(() => { if (alive) setGuestCheckPending(false); });
+    return () => { alive = false; };
+  }, []);
 
   // Public V2 release: free tools are online; email login and paid
   // delivery only appear after live Auth/Stripe/AI integration is verified.
@@ -47,6 +68,26 @@ function Login() {
         </div>
       </section>
     );
+  }
+
+  if (guestCheckPending) {
+    return <section className="auth-page"><div className="auth-panel">
+      <p role="status">{text('正在確認訪客身份…', '正在确认游客身份…')}</p>
+    </div></section>;
+  }
+
+  if (hasGuestSession) {
+    return <section className="auth-page"><div className="auth-panel">
+      <p className="auth-kicker">{text('月老 · 姻緣簿', '月老 · 姻缘簿')}</p>
+      <h1>{text('保留你的訪客帳號', '保留你的游客账号')}</h1>
+      <p className="auth-intro">{text(
+        '你已有訪客身份。請在「我的」頁面綁定郵箱，保留原帳號與記錄，避免另建帳號。',
+        '你已有游客身份。请在「我的」页面绑定邮箱，保留原账号与记录，避免创建第二个账号。',
+      )}</p>
+      <Link className="auth-return-link" to={localizeHref('/account')}>
+        {text('前往我的姻緣簿', '前往我的姻缘簿')}
+      </Link>
+    </div></section>;
   }
 
   async function callAuth(action: 'send' | 'verify', data: Record<string, string>) {
