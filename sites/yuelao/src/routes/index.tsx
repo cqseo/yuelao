@@ -180,13 +180,60 @@ function HomePage() {
     <>
       {/* 英雄區：與儀式頁同一幅廟會夜。簽系名、搖一搖、直接解簽、其他問法
           都壓在同一張 temple-fair.jpg 上；圖未載入時暖底頂著。 */}
+      <section className="serene-home-intro" aria-labelledby="serene-home-title">
+        <div className="serene-home-copy">
+          <span className="serene-eyebrow">THE RED THREAD / 月老 · 心的棲所</span>
+          <h1 id="serene-home-title">
+            {getLocale() === 'zh-Hans' ? (
+              <>
+                有些心事，<em>慢慢说。</em>
+              </>
+            ) : (
+              <>
+                有些心事，<em>慢慢說。</em>
+              </>
+            )}
+          </h1>
+          <p>
+            {getLocale() === 'zh-Hans'
+              ? '不必急着求答案。来这里说一句心里话，收下一封每日心笺，或求一支属于此刻的签。'
+              : '不必急著求答案。來這裡說一句心裡話，收下一封每日心箋，或求一支屬於此刻的籤。'}
+          </p>
+          <div className="serene-home-actions">
+            <Link className="serene-primary" to={localizeHref('/chat')}>
+              {getLocale() === 'zh-Hans' ? '与月老聊聊' : '與月老聊聊'} <span>↗</span>
+            </Link>
+            <Link to={localizeHref('/daily')}>
+              {getLocale() === 'zh-Hans' ? '领取今日心笺' : '領取今日心箋'} <span>↗</span>
+            </Link>
+          </div>
+          <div className="serene-home-foot">
+            <span>01 {getLocale() === 'zh-Hans' ? '说心事' : '說心事'}</span>
+            <span>02 {getLocale() === 'zh-Hans' ? '每日签到' : '每日簽到'}</span>
+            <span>03 {getLocale() === 'zh-Hans' ? '免费求签' : '免費求籤'}</span>
+          </div>
+        </div>
+        <div className="serene-home-art" aria-hidden="true">
+          <span className="serene-art-top">願 · 以 心 相 見</span>
+          <div className="serene-art-loop">
+            <div className="serene-art-seal">緣</div>
+          </div>
+          <p>
+            緣起有時
+            <br />
+            心安一生
+          </p>
+          <span className="serene-art-bottom">月下有約</span>
+        </div>
+      </section>
+
       <div className="ask-hero">
         <img className="ask-hero-img" src="/ritual/temple-fair.jpg" alt="" fetchPriority="high" />
         <div className="ask-hero-scrim" aria-hidden="true" />
         <div className="ask-top">
           <div className="ask-system">
             {/* 英雄區簽系名就是首頁 H1（P7）：「線上月老求籤」，40px 書法，同款式。 */}
-            <h1 className="name">{m.home_title()}</h1>
+            <h2 className="name">{m.home_title()}</h2>
             <span className="badge-free">{m.home_entry_free()}</span>
             <Link className="ask-shake" to={localizeHref('/ritual')}>
               {m.home_top_shake()}
