@@ -60,7 +60,7 @@ const challenge = async (
   token: string,
   key: string,
   _fetch: typeof fetch,
-  action: string,
+  action = 'auth_send',
 ) => token === captcha && key === secret && ['guest_create', 'email_link'].includes(action);
 
 function request(path: string, payload: unknown, cookies = '', hostile = false) {
