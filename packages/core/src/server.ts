@@ -7,6 +7,7 @@ import { sameOriginPost } from './auth-session';
 import { createTestCheckout } from './billing/checkout';
 import { settleStripeWebhook } from './billing/settle';
 import { isStripeTestApiKey, StripeProvider } from './billing/stripe';
+import { companionChatRequest, companionStatus } from './companion-chat';
 import type { CoreEnv } from './env';
 import { errorResponse } from './http';
 import { redeemPackRequest } from './pack-redemption';
@@ -56,6 +57,18 @@ export function createCore(site: SiteConfig) {
       verify: (request: Request) => verifyEmailCode(request, context().supabaseAnon),
       refresh: (request: Request) => refreshLogin(request, context().supabaseAnon),
       logout: (request: Request) => logoutUser(request, context().supabaseService),
+    },
+    companion: {
+      status: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return companionStatus(ctx.supabaseService, ctx.env, user);
+      },
+      chat: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return companionChatRequest(request, ctx.supabaseService, user, ctx.env);
+      },
     },
     account: {
       generate: async (request: Request) => {

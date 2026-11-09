@@ -16,7 +16,9 @@
     "check": "pnpm --filter @yuelao/core check && pnpm --filter ./sites/yuelao check",
     "format": "biome check --write .",
     "lint": "biome check .",
-    "test:local:payments": "bash tools/run-local-payment-e2e.sh"
+    "test:local:payments": "bash tools/run-local-payment-e2e.sh",
+    "test:ai:chat": "tsx tools/test-ai-chat.ts",
+    "test:ai:quota": "bash tools/run-ai-chat-quota.sh"
   },
   "type": "module"
 }

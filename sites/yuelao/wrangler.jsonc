@@ -20,6 +20,7 @@
         "SUPABASE_ANON_KEY": "",
         "BILLING_ENABLE_TEST_CHECKOUT": "false",
         "AI_ENABLE_TEST_GENERATION": "false",
+        "AI_CHAT_ENABLED": "false",
         "RYBBIT_UPSTREAM": ""
       }
     }
@@ -31,6 +32,7 @@
     // Test-only Stripe Checkout; NEVER enable with live keys.
     "BILLING_ENABLE_TEST_CHECKOUT": "false",
     "AI_ENABLE_TEST_GENERATION": "false",
+    "AI_CHAT_ENABLED": "false",
     // To enable Rybbit, set this to your Rybbit API URL and add analytics.rybbit to site.config.ts.
     "RYBBIT_UPSTREAM": ""
   }

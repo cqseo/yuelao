@@ -893,3 +893,60 @@
     transition: none;
   }
 }
+
+.chat-mode-select {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #eee7df;
+}
+.chat-mode-select button {
+  background: transparent;
+  border: 1px solid #d8c9bd;
+  color: #826f63;
+  padding: 0.45rem 0.8rem;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.chat-mode-select button[aria-pressed="true"] {
+  border-color: #a55c54;
+  background: #f5e8e3;
+  color: #873d36;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: unrelated daily and chat components are scoped. */
+.chat-mode-select > span {
+  margin-left: auto;
+  font-size: 0.73rem;
+  color: #897c72;
+}
+.chat-ai-notice,
+.chat-ai-error,
+.chat-ai-consent {
+  padding: 0.8rem 1.1rem;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.75;
+  color: #775b50;
+}
+.chat-ai-error {
+  color: #943b36;
+}
+/* biome-ignore lint/style/noDescendingSpecificity: deliberately scoped separate chat panel states. */
+.chat-ai-notice a {
+  margin-left: 0.7rem;
+  border-bottom: 1px solid #943b36;
+}
+.chat-ai-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+.chat-ai-consent input {
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  margin-top: 0.15rem;
+}

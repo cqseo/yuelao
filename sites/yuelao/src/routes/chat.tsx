@@ -16,20 +16,25 @@ export const Route = createFileRoute('/chat')({
   component: CompanionPage,
 });
 
-type Message = { id: number; role: 'assistant' | 'user'; text: string };
+type Message = { id: number; role: 'assistant' | 'user'; text: string; origin?: 'guided' | 'ai' };
+type AiStatus = { enabled: boolean; loginRequired: boolean; dailyLimit: number; remaining?: number };
 
 function CompanionPage() {
   const locale = getLocale();
   const zh = locale === 'zh-Hans';
   const t = (hant: string, hans: string) => (zh ? hans : hant);
   const [messages, setMessages] = useState<Message[]>([
-    { id: 0, role: 'assistant', text: COMPANION_START[locale] },
+    { id: 0, role: 'assistant', text: COMPANION_START[locale], origin: 'guided' },
   ]);
   const [theme, setTheme] = useState<CompanionTheme>('general');
   const [question, setQuestion] = useState('');
   const [turn, setTurn] = useState(0);
   const [suggestions, setSuggestions] = useState(COMPANION_STARTERS.map((s) => s[locale]));
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'guided' | 'ai'>('guided');
+  const [consent, setConsent] = useState(false);
+  const [aiStatus, setAiStatus] = useState<AiStatus | null>(null);
+  const [chatError, setChatError] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(1);
   const composing = useRef(false);
@@ -41,31 +46,94 @@ function CompanionPage() {
     }
   }, [lastMessageId]);
 
-  function send(text: string) {
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch('/api/chat/ai', {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async (response) => (response.ok ? ((await response.json()) as AiStatus) : null))
+      .then((status) => {
+        if (!controller.signal.aborted) setAiStatus(status);
+      })
+      .catch(() => {
+        // No AI credentials/quota should never interrupt the free guided chat.
+      });
+    return () => controller.abort();
+  }, []);
+
+  async function send(text: string) {
     const value = text.trim().slice(0, 400);
     if (!value || busy) return;
+    if (mode === 'ai' && (!consent || !aiStatus?.enabled || aiStatus.loginRequired)) return;
     setBusy(true);
-    const reply = guidedReply(value, theme, turn, locale);
-    const userId = nextId.current++;
-    const answerId = nextId.current++;
-    const additions: Message[] = [
-      { id: userId, role: 'user', text: value },
-      { id: answerId, role: 'assistant', text: reply.text },
-    ];
-    setMessages((current) => [...current, ...additions].slice(-30));
-    setTheme(reply.theme);
-    setSuggestions(reply.followups);
-    setTurn((n) => n + 1);
-    setQuestion('');
-    setBusy(false);
+    setChatError('');
+    try {
+      let answer: string;
+      if (mode === 'ai') {
+        const history = messages
+          .filter((message) => message.id !== 0)
+          .slice(-6)
+          .map(({ role, text }) => ({ role, text }));
+        const response = await fetch('/api/chat/ai', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ message: value, locale, history, consent: true }),
+        });
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('quota');
+          }
+          throw new Error('provider');
+        }
+        const content = (await response.json()) as { answer?: string };
+        if (typeof content.answer !== 'string' || !content.answer) throw new Error('provider');
+        answer = content.answer;
+        setAiStatus((status) =>
+          status && status.remaining !== undefined
+            ? { ...status, remaining: Math.max(0, status.remaining - 1) }
+            : status,
+        );
+        setSuggestions([]);
+      } else {
+        const reply = guidedReply(value, theme, turn, locale);
+        answer = reply.text;
+        setTheme(reply.theme);
+        setSuggestions(reply.followups);
+      }
+      const userId = nextId.current++;
+      const answerId = nextId.current++;
+      const additions: Message[] = [
+        { id: userId, role: 'user', text: value },
+        { id: answerId, role: 'assistant', text: answer, origin: mode },
+      ];
+      setMessages((current) => [...current, ...additions].slice(-30));
+      setTurn((n) => n + 1);
+      setQuestion('');
+    } catch (error) {
+      setChatError(
+        error instanceof Error && error.message === 'quota'
+          ? t('今日 AI 額度已用完，仍可免費使用引導式對話。', '今日 AI 额度已用完，仍可免费使用引导式对话。')
+          : t(
+              'AI 對話暫時無法使用，請稍後重試；免費引導模式仍可使用。',
+              'AI 对话暂时无法使用，稍后重试即可；免费引导模式仍可使用。',
+            ),
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   function reset() {
-    setMessages([{ id: 0, role: 'assistant', text: COMPANION_START[locale] }]);
+    setMessages([{ id: 0, role: 'assistant', text: COMPANION_START[locale], origin: 'guided' }]);
     setTheme('general');
     setSuggestions(COMPANION_STARTERS.map((s) => s[locale]));
     setTurn(0);
     setQuestion('');
+    setChatError('');
     nextId.current = 1;
   }
 
@@ -107,12 +175,79 @@ function CompanionPage() {
             <div>
               <span className="chat-online-dot" aria-hidden="true" />
               <strong>{t('月老 · 心語', '月老 · 心语')}</strong>
-              <small>{t('免費互動指引', '免费互动指引')}</small>
+              <small>
+                {mode === 'ai'
+                  ? t('AI 即時對話 · 有限次數', 'AI 实时对话 · 有限次数')
+                  : t('免費互動指引', '免费互动指引')}
+              </small>
             </div>
             <button type="button" onClick={reset}>
               {t('清除對話', '清除对话')}
             </button>
           </div>
+
+          {aiStatus?.enabled && (
+            <fieldset className="chat-mode-select">
+              <legend>{t('對話模式', '对话模式')}</legend>
+              <button
+                type="button"
+                aria-pressed={mode === 'guided'}
+                onClick={() => {
+                  setMode('guided');
+                  setSuggestions((current) =>
+                    current.length ? current : COMPANION_STARTERS.map((starter) => starter[locale]),
+                  );
+                  setChatError('');
+                }}
+                disabled={busy}
+              >
+                {t('免費引導', '免费引导')}
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === 'ai'}
+                onClick={() => {
+                  setMode('ai');
+                  setChatError('');
+                }}
+                disabled={busy}
+              >
+                {t('AI 即時對話', 'AI 实时对话')}
+              </button>
+              {aiStatus.remaining !== undefined && (
+                <span>
+                  {t('今日剩餘', '今日剩余')} {aiStatus.remaining}/{aiStatus.dailyLimit}
+                </span>
+              )}
+            </fieldset>
+          )}
+
+          {mode === 'ai' && aiStatus?.loginRequired && (
+            <p className="chat-ai-notice">
+              {t('即時 AI 對話需要先登入。', '实时 AI 对话需要先登录。')}
+              <Link to={localizeHref('/login')}>{t('前往登入', '前往登录')}</Link>
+            </p>
+          )}
+          {mode === 'ai' && !aiStatus?.loginRequired && (
+            <label className="chat-ai-consent">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(event) => setConsent(event.target.checked)}
+              />
+              <span>
+                {t(
+                  '我同意將本次訊息與最近 6 條對話送至第三方 AI 模型生成回應；原文不存入月老資料庫。',
+                  '我同意将本次消息与最近 6 条对话发送至第三方 AI 模型生成回复；原文不存入月老数据库。',
+                )}
+              </span>
+            </label>
+          )}
+          {chatError && (
+            <p className="chat-ai-error" role="alert">
+              {chatError}
+            </p>
+          )}
 
           <div className="chat-transcript" aria-live="polite" aria-relevant="additions text">
             {messages.map((message) => (
@@ -122,7 +257,11 @@ function CompanionPage() {
                 </div>
                 <div className="chat-message-body">
                   <span className="chat-message-name">
-                    {message.role === 'assistant' ? t('月老', '月老') : t('你', '你')}
+                    {message.role === 'assistant'
+                      ? message.origin === 'ai'
+                        ? t('月老 · AI', '月老 · AI')
+                        : t('月老 · 引導', '月老 · 引导')
+                      : t('你', '你')}
                   </span>
                   <p>{message.text}</p>
                 </div>
@@ -131,10 +270,10 @@ function CompanionPage() {
             <div ref={bottomRef} />
           </div>
 
-          {suggestions.length > 0 && (
+          {mode === 'guided' && suggestions.length > 0 && (
             <div className="chat-prompts">
               {suggestions.map((suggestion) => (
-                <button type="button" key={suggestion} onClick={() => send(suggestion)} disabled={busy}>
+                <button type="button" key={suggestion} onClick={() => void send(suggestion)} disabled={busy}>
                   {suggestion}
                 </button>
               ))}
@@ -145,7 +284,7 @@ function CompanionPage() {
             className="chat-composer"
             onSubmit={(event) => {
               event.preventDefault();
-              send(question);
+              void send(question);
             }}
           >
             <label htmlFor="chat-input">{t('寫下你的心事', '写下你的心事')}</label>
@@ -172,7 +311,12 @@ function CompanionPage() {
               />
               <button
                 type="submit"
-                disabled={!question.trim() || busy}
+                disabled={
+                  !question.trim() ||
+                  busy ||
+                  (mode === 'ai' &&
+                    (!consent || !aiStatus?.enabled || aiStatus.loginRequired || aiStatus.remaining === 0))
+                }
                 aria-label={t('送出心事', '发送心事')}
               >
                 ↗
@@ -181,10 +325,15 @@ function CompanionPage() {
             <p>{t('Enter 送出 · Shift + Enter 換行', 'Enter 发送 · Shift + Enter 换行')}</p>
           </form>
           <p className="chat-privacy">
-            {t(
-              '目前為免費的預設情境引導式對話，並非即時 AI 或真人諮詢。內容只留在本頁，不傳送伺服器，也不會替你斷定別人的想法。',
-              '目前为免费的预设情境引导式对话，并非实时 AI 或真人咨询。内容只留在本页，不发送服务器，也不会替你断定别人的想法。',
-            )}
+            {mode === 'ai'
+              ? t(
+                  'AI 對話是自動生成的文化與情感反思，不是心理治療或命運預測。每筆使用都會消耗今日額度，生成失敗也可能消耗一次。',
+                  'AI 对话是自动生成的文化与情感反思，不是心理治疗或命运预测。每次使用都会消耗今日额度，生成失败也可能消耗一次。',
+                )
+              : t(
+                  '目前為免費的預設情境引導式對話，並非即時 AI 或真人諮詢。內容只留在本頁，不傳送伺服器，也不會替你斷定別人的想法。',
+                  '目前为免费的预设情境引导式对话，并非实时 AI 或真人咨询。内容只留在本页，不发送服务器，也不会替你断定别人的想法。',
+                )}
           </p>
         </section>
       </div>
