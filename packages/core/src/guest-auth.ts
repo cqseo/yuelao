@@ -215,6 +215,9 @@ export async function sendGuestEmailLink(
   if (session.user.is_anonymous !== true) {
     return sessionResponse(request, errorResponse(409, 'already_bound'), session.session);
   }
+  if (!(await ensureGuestProfile(client, session.user))) {
+    return sessionResponse(request, errorResponse(503, 'guest_profile_unavailable'), session.session);
+  }
   const payload = await bodyOf(request);
   const email = emailOf(payload?.email);
   if (!email) return sessionResponse(request, errorResponse(400, 'invalid_email'), session.session);
@@ -280,16 +283,18 @@ export async function verifyGuestEmailLink(
   }
   // Updating the profile is best-effort: identity linking has already succeeded,
   // and must never be rolled back or presented as a failed OTP after success.
-  const { error: profileError } = await client
+  const { data: updatedProfile, error: profileError } = await client
     .from('profiles')
     .update({ email: data.user.email })
-    .eq('id', data.user.id);
+    .eq('id', data.user.id)
+    .select('id')
+    .maybeSingle();
   const result = json({
     linked: true,
     kind: 'member',
     displayId: displayId(data.user.id),
     email: data.user.email,
-    profileSynced: !profileError,
+    profileSynced: !profileError && updatedProfile?.id === data.user.id,
     signInRequired: !updatedSession,
   });
   return updatedSession
