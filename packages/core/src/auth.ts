@@ -33,6 +33,6 @@ export async function getUserFromRequest(request: Request, env: CoreEnv): Promis
   const supabase = createAnonClient(env);
   if (!supabase) return null;
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !hasVerifiedEmailIdentity(data.user)) return null;
+  if (error || !data.user || !hasVerifiedEmailIdentity(data.user)) return null;
   return { id: data.user.id, email: data.user.email as string };
 }
