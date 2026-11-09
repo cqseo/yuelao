@@ -152,11 +152,14 @@ export function GuestAccount() {
         code,
       });
       if (!response.ok) throw new Error('verification_failed');
-      const result = (await response.json()) as GuestStatus & { linked?: boolean };
+      const result = (await response.json()) as GuestStatus & {
+        linked?: boolean;
+        signInRequired?: boolean;
+      };
       if (!result.linked || result.kind !== 'member' || result.displayId !== displayId) {
         throw new Error('account_identity_mismatch');
       }
-      window.location.assign(localizeHref('/account'));
+      window.location.assign(localizeHref(result.signInRequired ? '/login' : '/account'));
     } catch {
       setMessage(t('驗證碼無效、過期，或帳號綁定未完成。', '验证码无效、过期，或账号绑定未完成。'));
       setBusy(false);
