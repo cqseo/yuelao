@@ -26,4 +26,6 @@ OPENAI_MODEL=
 # Authenticated AI companion (server-only, cost-incurring, disabled by default).
 # Must migrate ai_chat_daily quota SQL and set budget approval before enabling.
 AI_CHAT_ENABLED=false
+# For an isolated, WAF-protected preview only; never enable on public production untested.
+GUEST_AUTH_ENABLED=false
 OPENAI_CHAT_MODEL=
