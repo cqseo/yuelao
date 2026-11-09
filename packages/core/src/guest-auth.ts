@@ -85,15 +85,24 @@ async function attached(
   client: SupabaseClient,
 ): Promise<{ user: User; session: Session } | null> {
   const { access, refresh } = sessionTokens(request);
-  if (!access || !refresh) return null;
+  if (!refresh) return null;
+  // Access cookies expire before refresh cookies. Recover the existing user
+  // instead of treating a refresh-only session as a new anonymous visitor.
+  if (!access) {
+    const { data, error } = await client.auth.refreshSession({ refresh_token: refresh });
+    if (error || !data.session) return null;
+    const verified = await client.auth.getUser(data.session.access_token);
+    if (verified.error || !verified.data.user) return null;
+    return { user: verified.data.user, session: data.session };
+  }
   const { data, error } = await client.auth.setSession({
     access_token: access,
     refresh_token: refresh,
   });
   if (error || !data.session) return null;
-  const result = await client.auth.getUser();
-  if (result.error || !result.data.user) return null;
-  return { user: result.data.user, session: data.session };
+  const verified = await client.auth.getUser(data.session.access_token);
+  if (verified.error || !verified.data.user) return null;
+  return { user: verified.data.user, session: data.session };
 }
 
 export async function guestStatus(
@@ -102,11 +111,27 @@ export async function guestStatus(
   enabled: boolean,
 ): Promise<Response> {
   if (!enabled || !client) return json({ enabled: false, kind: 'disabled' });
-  const { access } = sessionTokens(request);
-  if (!access) return json({ enabled: true, kind: 'none' });
-  const { data, error } = await client.auth.getUser(access);
-  if (error || !data.user) return json({ enabled: true, kind: 'none' });
-  return json({ enabled: true, ...identity(data.user) });
+  const { access, refresh } = sessionTokens(request);
+  if (!access && !refresh) return json({ enabled: true, kind: 'none' });
+  // Without a refresh credential the visitor cannot retain the identity.
+  if (!refresh) return json({ enabled: true, kind: 'stale' });
+  if (access) {
+    const { data, error } = await client.auth.getUser(access);
+    if (!error && data.user) return json({ enabled: true, ...identity(data.user) });
+  }
+  // GET may set rotated session cookies, but never creates a new user.
+  const { data, error } = await client.auth.refreshSession({ refresh_token: refresh });
+  if (!error && data.session) {
+    const verified = await client.auth.getUser(data.session.access_token);
+    if (!verified.error && verified.data.user) {
+      return sessionResponse(
+        request,
+        json({ enabled: true, recovered: true, ...identity(verified.data.user) }),
+        data.session,
+      );
+    }
+  }
+  return json({ enabled: true, kind: 'stale' });
 }
 
 /**
