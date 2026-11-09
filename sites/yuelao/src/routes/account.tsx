@@ -350,7 +350,9 @@ function Account() {
                         ? t('已支付', '已支付')
                         : order.status === 'pending'
                           ? t('等待付款確認', '等待支付确认')
-                          : t('已失效', '已失效')}
+                          : order.status === 'failed'
+                            ? t('付款失敗', '支付失败')
+                            : t('已失效', '已失效')}
                     </span>
                   </li>
                 ))}

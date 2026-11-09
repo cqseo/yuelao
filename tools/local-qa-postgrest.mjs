@@ -76,6 +76,11 @@ const signatures = {
     ['p_category', 'text'],
     ['p_locale', 'text'],
   ],
+  mark_checkout_unpaid: [
+    ['p_order_id', 'uuid'],
+    ['p_checkout_ref', 'text'],
+    ['p_state', 'text'],
+  ],
   paid_ai_delivery_ready: [],
 };
 
