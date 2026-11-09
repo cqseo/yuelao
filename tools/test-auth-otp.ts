@@ -42,6 +42,10 @@ const client = {
       assert.deepEqual(args, { email: 'safe@example.invalid', options: { shouldCreateUser: true } });
       return { data: {}, error: null };
     },
+    getUser: async () => ({
+      data: { user: { id: '00000000-0000-4000-8000-000000000222', is_anonymous: true } },
+      error: null,
+    }),
     verifyOtp: async (args: unknown) => {
       verified++;
       assert.deepEqual(args, { email: 'safe@example.invalid', token: '123456', type: 'email' });
@@ -89,6 +93,23 @@ assert.equal(
   503,
 );
 assert.equal(sent, 0);
+const guestCookie = `__Host-yl_access=${token}; __Host-yl_refresh=${refresh}`;
+const guestSend = await sendEmailCode(
+  request('/api/auth/send', { email: 'safe@example.invalid', captchaToken }, guestCookie),
+  client,
+  captchaSecret,
+  captchaVerifier,
+);
+assert.equal(guestSend.status, 409);
+assert.equal((await guestSend.json()).error.code, 'guest_must_link_email');
+const guestVerify = await verifyEmailCode(
+  request('/api/auth/verify', { email: 'safe@example.invalid', code: '123456' }, guestCookie),
+  client,
+);
+assert.equal(guestVerify.status, 409);
+assert.equal(sent, 0);
+assert.equal(verified, 0);
+console.log('PASS: legacy OTP cannot overwrite the current anonymous guest account');
 assert.equal(
   (
     await sendEmailCode(
