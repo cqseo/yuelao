@@ -76,7 +76,14 @@ function request(path: string, payload: unknown, cookies = '', hostile = false) 
 }
 
 assert.equal(
-  (await createGuest(request('/api/auth/guest', { captchaToken: captcha }, '', true), client, true, secret)).status,
+  (
+    await createGuest(
+      request('/api/auth/guest', { captchaToken: captcha }, '', true),
+      client,
+      true,
+      secret,
+    )
+  ).status,
   403,
 );
 assert.equal(
