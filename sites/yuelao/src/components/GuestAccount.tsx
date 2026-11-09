@@ -69,7 +69,7 @@ export function GuestAccount() {
   }, []);
 
   useEffect(() => {
-    if (phase !== 'captcha' || !guestToken || busy) return;
+    if (phase !== 'captcha' || !guestToken) return;
     let alive = true;
     setBusy(true);
     void (async () => {
@@ -88,13 +88,12 @@ export function GuestAccount() {
           return;
         }
         setMessage(
-          t(
-            '暫時無法建立訪客身份，請稍後再試；免費內容仍可使用。',
-            '暂时无法创建游客身份，请稍后重试；免费内容仍可使用。',
-          ),
+          simplified
+            ? '暂时无法创建游客身份，请稍后重试；免费内容仍可使用。'
+            : '暫時無法建立訪客身份，請稍後再試；免費內容仍可使用。',
         );
       } catch {
-        if (alive) setMessage(t('連線失敗，請稍後重試。', '连接失败，请稍后重试。'));
+        if (alive) setMessage(simplified ? '连接失败，请稍后重试。' : '連線失敗，請稍後重試。');
       } finally {
         if (alive) {
           setGuestToken('');
@@ -106,7 +105,7 @@ export function GuestAccount() {
     return () => {
       alive = false;
     };
-  }, [guestToken, phase, busy, t]);
+  }, [guestToken, phase, simplified]);
 
   async function sendLink() {
     if (busy || !linkToken || !email.includes('@')) return;
