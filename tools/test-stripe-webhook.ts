@@ -145,6 +145,13 @@ const incomplete = await settleStripeWebhook({
 });
 assert.equal(incomplete.status, 200);
 assert.equal(dbCalls.length, 0);
+provider.fetchCheckout = async () => ({
+  orderId: fact.orderId,
+  subscription: null,
+  payment: null,
+  status: 'complete',
+  paymentStatus: 'unpaid',
+});
 const failed = await settleStripeWebhook({
   site,
   provider,
@@ -152,6 +159,60 @@ const failed = await settleStripeWebhook({
   request: signedWebhook('checkout.session.async_payment_failed', session, 'evt_failed'),
 });
 assert.equal(failed.status, 200);
+assert.equal(dbCalls.length, 1);
+assert.equal(dbCalls[0]?.name, 'mark_checkout_unpaid');
+assert.equal(dbCalls[0]?.args.p_state, 'failed');
+assert.equal(dbCalls[0]?.args.p_checkout_ref, 'cs_test_01');
+dbCalls.length = 0;
+
+provider.fetchCheckout = async () => ({
+  orderId: fact.orderId,
+  subscription: null,
+  payment: null,
+  status: 'expired',
+  paymentStatus: 'unpaid',
+});
+const expired = await settleStripeWebhook({
+  site,
+  provider,
+  supabase: db,
+  request: signedWebhook('checkout.session.expired', session, 'evt_expired'),
+});
+assert.equal(expired.status, 200);
+assert.equal(dbCalls[0]?.name, 'mark_checkout_unpaid');
+assert.equal(dbCalls[0]?.args.p_state, 'expired');
+dbCalls.length = 0;
+
+provider.fetchCheckout = async () => ({
+  orderId: fact.orderId,
+  subscription: null,
+  payment: fact,
+  status: 'expired',
+  paymentStatus: 'paid',
+});
+const paidExpired = await settleStripeWebhook({
+  site,
+  provider,
+  supabase: db,
+  request: signedWebhook('checkout.session.expired', session, 'evt_paid_expired'),
+});
+assert.equal(paidExpired.status, 200);
+assert.equal(dbCalls.length, 0);
+
+provider.fetchCheckout = async () => ({
+  orderId: fact.orderId,
+  subscription: null,
+  payment: null,
+  status: 'open',
+  paymentStatus: 'unpaid',
+});
+const unverified = await settleStripeWebhook({
+  site,
+  provider,
+  supabase: db,
+  request: signedWebhook('checkout.session.expired', session, 'evt_unverified'),
+});
+assert.equal(unverified.status, 503);
 assert.equal(dbCalls.length, 0);
 console.log('PASS: unpaid/failed delayed checkout events grant no entitlements');
 

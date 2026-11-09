@@ -60,6 +60,9 @@ export interface CheckoutFact {
   orderId: string | null;
   payment: PaymentFact | null;
   subscription: SubscriptionFact | null;
+  /** Provider-refetched state, not values from the incoming webhook payload. */
+  status?: string;
+  paymentStatus?: string;
 }
 
 /** A webhook is only a trigger: it tells us which object to fetch the latest state for. */

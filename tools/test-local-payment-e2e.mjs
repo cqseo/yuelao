@@ -46,10 +46,10 @@ provider.createCheckout = async (request) => {
   };
 };
 
-function webhook(type, eventId, { live = false } = {}) {
+function webhook(type, eventId, { live = false, checkoutRef = 'cs_test_local_e2e_1' } = {}) {
   const obj = type.startsWith('charge.')
     ? { object: 'charge', id: 'ch_local_e2e_001', payment_intent: 'pi_local_e2e_001' }
-    : { object: 'checkout.session', id: 'cs_test_local_e2e_1' };
+    : { object: 'checkout.session', id: checkoutRef };
   const payload = JSON.stringify({
     id: eventId,
     object: 'event',
@@ -328,6 +328,112 @@ async function run() {
     0,
   );
   console.log('PASS: underpayment is rejected and cannot grant rights');
+
+  // Failure / expiration must not leave payment attempts indefinitely pending.
+  // Order status comes ONLY from a current provider-refetched checkout state.
+  const third = await createTestCheckout({
+    site,
+    provider,
+    database: db,
+    user: mainUser,
+    baseUrl,
+    request: apiRequest('/api/billing/checkout', {
+      productId: 'pack_3',
+      locale: 'zh-Hant',
+      currency: 'HKD',
+    }),
+  });
+  assert.equal(third.status, 201);
+  const failedId = (await third.json()).orderId;
+  const failedRef = (await queryOne('SELECT checkout_ref FROM public.orders WHERE id=$1', [failedId]))
+    .checkout_ref;
+  provider.fetchCheckout = async (checkoutRef) => {
+    assert.equal(checkoutRef, failedRef);
+    return {
+      orderId: failedId,
+      status: 'complete',
+      paymentStatus: 'unpaid',
+      payment: null,
+      subscription: null,
+    };
+  };
+  const failedEvent = () =>
+    webhook('checkout.session.async_payment_failed', 'evt_local_failed', {
+      checkoutRef: failedRef,
+    });
+  assert.equal(
+    (await settleStripeWebhook({ site, provider, supabase: db, request: failedEvent() })).status,
+    200,
+  );
+  assert.equal(
+    (await settleStripeWebhook({ site, provider, supabase: db, request: failedEvent() })).status,
+    200,
+  );
+  assert.equal((await queryOne('SELECT status FROM public.orders WHERE id=$1', [failedId])).status, 'failed');
+  assert.equal(
+    await count('SELECT count(*)::integer FROM public.entitlements WHERE order_id=$1', [failedId]),
+    0,
+  );
+  console.log('PASS: delayed failed payment closes order, is idempotent and never grants credits');
+
+  const fourth = await createTestCheckout({
+    site,
+    provider,
+    database: db,
+    user: mainUser,
+    baseUrl,
+    request: apiRequest('/api/billing/checkout', {
+      productId: 'pack_3',
+      locale: 'zh-Hant',
+      currency: 'HKD',
+    }),
+  });
+  assert.equal(fourth.status, 201);
+  const expiredId = (await fourth.json()).orderId;
+  const expiredRef = (await queryOne('SELECT checkout_ref FROM public.orders WHERE id=$1', [expiredId]))
+    .checkout_ref;
+  provider.fetchCheckout = async (checkoutRef) => {
+    assert.equal(checkoutRef, expiredRef);
+    return {
+      orderId: expiredId,
+      status: 'expired',
+      paymentStatus: 'unpaid',
+      payment: null,
+      subscription: null,
+    };
+  };
+  const expiredRequest = () =>
+    webhook('checkout.session.expired', 'evt_local_expired', { checkoutRef: expiredRef });
+  assert.equal(
+    (await settleStripeWebhook({ site, provider, supabase: db, request: expiredRequest() })).status,
+    200,
+  );
+  assert.equal(
+    (await queryOne('SELECT status FROM public.orders WHERE id=$1', [expiredId])).status,
+    'expired',
+  );
+  assert.equal(
+    await count('SELECT count(*)::integer FROM public.entitlements WHERE order_id=$1', [expiredId]),
+    0,
+  );
+  console.log('PASS: expired unpaid Checkout is recorded without granting access');
+
+  provider.fetchCheckout = async () => ({
+    orderId,
+    status: 'expired',
+    paymentStatus: 'unpaid',
+    payment: null,
+    subscription: null,
+  });
+  const alreadyPaidExpired = await settleStripeWebhook({
+    site,
+    provider,
+    supabase: db,
+    request: webhook('checkout.session.expired', 'evt_local_paid_never_downgraded'),
+  });
+  assert.equal(alreadyPaidExpired.status, 200);
+  assert.equal((await queryOne('SELECT status FROM public.orders WHERE id=$1', [orderId])).status, 'paid');
+  console.log('PASS: late expiration cannot downgrade an already paid order');
 
   const privileges = await queryOne(
     "SELECT has_function_privilege('anon'," +

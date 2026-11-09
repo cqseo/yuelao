@@ -20,7 +20,8 @@
     "test:ai:chat": "tsx tools/test-ai-chat.ts",
     "test:ai:quota": "bash tools/run-ai-chat-quota.sh",
     "test:db:retrofit": "bash tools/test-db-retrofit.sh",
-    "test:auth:otp": "tsx tools/test-auth-otp.ts"
+    "test:auth:otp": "tsx tools/test-auth-otp.ts",
+    "test:stripe:webhook": "tsx tools/test-stripe-webhook.ts"
   },
   "type": "module"
 }

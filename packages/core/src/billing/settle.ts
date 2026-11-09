@@ -29,6 +29,38 @@ export async function settleStripeWebhook({ provider, supabase, request }: Settl
   if (!supabase) {
     return errorResponse(503, 'supabase_not_configured', 'Supabase is not configured for this worker');
   }
+  if (
+    trigger.target.kind === 'checkout' &&
+    (trigger.type === 'checkout.session.async_payment_failed' || trigger.type === 'checkout.session.expired')
+  ) {
+    // Signed webhook events are notifications only; retrieve the *current*
+    // Checkout state before changing any order. Never trust event metadata.
+    let checkout: Awaited<ReturnType<PaymentProvider['fetchCheckout']>>;
+    try {
+      checkout = await provider.fetchCheckout(trigger.target.ref);
+    } catch {
+      return errorResponse(503, 'checkout_state_unavailable');
+    }
+    if (checkout.payment?.paid || checkout.paymentStatus === 'paid') {
+      return json({ ok: true, ignored: trigger.type, reason: 'already_paid' });
+    }
+    const expired = trigger.type === 'checkout.session.expired';
+    const verifiedUnpaid =
+      checkout.paymentStatus === 'unpaid' && checkout.status === (expired ? 'expired' : 'complete');
+    if (!verifiedUnpaid || !checkout.orderId) {
+      return errorResponse(503, 'checkout_state_unverified');
+    }
+    const { data, error } = await supabase.rpc('mark_checkout_unpaid', {
+      p_order_id: checkout.orderId,
+      p_checkout_ref: trigger.target.ref,
+      p_state: expired ? 'expired' : 'failed',
+    });
+    if (error || data === 'order_not_found') {
+      return errorResponse(500, 'checkout_order_update_failed');
+    }
+    return json({ ok: true, event: trigger.eventId, status: data });
+  }
+
   const fact = await fetchFact(provider, trigger);
   if (!fact) return json({ ok: true, ignored: trigger.type, reason: 'no_payment_fact' });
   const { error } = await supabase.rpc('settle_stripe_payment', {

@@ -257,12 +257,24 @@ export class StripeProvider implements PaymentProvider {
         subscriptionRef ? this.fetchSubscription(subscriptionRef) : null,
         invoiceRef ? this.fetchPayment(invoiceRef) : null,
       ]);
-      return { orderId, subscription, payment };
+      return {
+        orderId,
+        subscription,
+        payment,
+        status: session.status ?? 'unknown',
+        paymentStatus: session.payment_status,
+      };
     }
     const intentRef = idOf(session.payment_intent);
     const payment =
       intentRef && session.payment_status === 'paid' ? await this.fetchPayment(intentRef) : null;
-    return { orderId, subscription: null, payment };
+    return {
+      orderId,
+      subscription: null,
+      payment,
+      status: session.status ?? 'unknown',
+      paymentStatus: session.payment_status,
+    };
   }
 
   async fetchPayment(paymentRef: string): Promise<PaymentFact | null> {
