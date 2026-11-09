@@ -1,6 +1,12 @@
 import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { verifyEmailCaptcha } from './auth-handlers';
-import { jsonRequest, sameOriginPost, sessionResponse, sessionTokens } from './auth-session';
+import {
+  clearSessionResponse,
+  jsonRequest,
+  sameOriginPost,
+  sessionResponse,
+  sessionTokens,
+} from './auth-session';
 import { errorResponse, json } from './http';
 
 function displayId(id: string): string {
@@ -252,23 +258,41 @@ export async function verifyGuestEmailLink(
   if (error || !data.user || data.user.id !== previous.user.id || !isMember(data.user)) {
     return sessionResponse(request, errorResponse(401, 'link_verification_failed'), previous.session);
   }
-  const updatedSession = data.session ?? (await client.auth.getSession()).data.session;
-  if (!updatedSession) return errorResponse(503, 'session_refresh_required');
+  // An email-change OTP may not return a fresh session. Never reuse the
+  // pre-verification anonymous JWT and mistakenly claim membership is ready.
+  let updatedSession: Session | null = data.session;
+  if (!updatedSession) {
+    const refreshed = await client.auth.refreshSession({
+      refresh_token: previous.session.refresh_token,
+    });
+    if (!refreshed.error) updatedSession = refreshed.data.session;
+  }
+  if (updatedSession) {
+    const verified = await client.auth.getUser(updatedSession.access_token);
+    if (
+      verified.error ||
+      !verified.data.user ||
+      verified.data.user.id !== previous.user.id ||
+      !isMember(verified.data.user)
+    ) {
+      updatedSession = null;
+    }
+  }
   // Updating the profile is best-effort: identity linking has already succeeded,
   // and must never be rolled back or presented as a failed OTP after success.
   const { error: profileError } = await client
     .from('profiles')
     .update({ email: data.user.email })
     .eq('id', data.user.id);
-  return sessionResponse(
-    request,
-    json({
-      linked: true,
-      kind: 'member',
-      displayId: displayId(data.user.id),
-      email: data.user.email,
-      profileSynced: !profileError,
-    }),
-    updatedSession,
-  );
+  const result = json({
+    linked: true,
+    kind: 'member',
+    displayId: displayId(data.user.id),
+    email: data.user.email,
+    profileSynced: !profileError,
+    signInRequired: !updatedSession,
+  });
+  return updatedSession
+    ? sessionResponse(request, result, updatedSession)
+    : clearSessionResponse(request, result);
 }
