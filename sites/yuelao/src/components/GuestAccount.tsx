@@ -5,7 +5,7 @@ import { EmailTurnstile } from './EmailTurnstile';
 
 type GuestStatus = {
   enabled?: boolean;
-  kind?: 'none' | 'guest' | 'member' | 'disabled';
+  kind?: 'none' | 'guest' | 'member' | 'disabled' | 'stale';
   displayId?: string;
   email?: string | null;
 };
@@ -25,7 +25,7 @@ async function requestJson(path: string, payload: Record<string, string>) {
 export function GuestAccount() {
   const simplified = getLocale() === 'zh-Hans';
   const t = (hant: string, hans: string) => (simplified ? hans : hant);
-  const [phase, setPhase] = useState<'loading' | 'captcha' | 'guest' | 'sent' | 'member' | 'error'>(
+  const [phase, setPhase] = useState<'loading' | 'captcha' | 'guest' | 'sent' | 'member' | 'stale' | 'error'>(
     'loading',
   );
   const [displayId, setDisplayId] = useState('');
@@ -56,6 +56,8 @@ export function GuestAccount() {
           setPhase('guest');
         } else if (result.kind === 'member') {
           setPhase('member');
+        } else if (result.kind === 'stale') {
+          setPhase('stale');
         } else {
           setPhase('captcha');
         }
@@ -165,6 +167,16 @@ export function GuestAccount() {
             '訪客帳戶尚未開放，免費求籤和每日心箋可直接使用。',
             '游客账户尚未开放，免费求签和每日心笺可直接使用。',
           )}
+        </p>
+      )}
+      {phase === 'stale' && (
+        <p role="alert" className="guest-warning">
+          {t(
+            '這個訪客身份目前無法恢復。請勿反覆建立新帳號；若先前已綁定郵箱，請使用郵箱登入。',
+            '这个游客身份目前无法恢复。请勿反复创建新账号；如果已经绑定邮箱，请用邮箱登录。',
+          )}
+          {' '}
+          <Link to={localizeHref('/login')}>{t('使用郵箱登入', '使用邮箱登录')}</Link>
         </p>
       )}
       {phase === 'captcha' && (
