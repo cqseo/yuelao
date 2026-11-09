@@ -35,6 +35,7 @@ export async function verifyEmailCaptcha(
   token: string,
   secret: string,
   fetchImpl: typeof fetch = fetch,
+  expectedAction = 'auth_send',
 ): Promise<boolean> {
   const data = new URLSearchParams({ secret, response: token });
   const ip = request.headers.get('cf-connecting-ip');
@@ -49,7 +50,7 @@ export async function verifyEmailCaptcha(
   return (
     result.success === true &&
     result.hostname === new URL(request.url).hostname &&
-    result.action === 'auth_send'
+    result.action === expectedAction
   );
 }
 
