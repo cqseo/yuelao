@@ -1086,6 +1086,41 @@ h2 {
   }
 }
 
+/* 訪客身份是低門檻、可找回的帳戶入口，不是付費牆。 */
+.guest-account {
+  max-width: 35rem;
+  padding: clamp(1.15rem, 4vw, 2rem);
+}
+.guest-account h2 {
+  margin: 0.1rem 0 0.75rem;
+  color: var(--color-gold-soft);
+  font-size: clamp(1.4rem, 4vw, 1.8rem);
+}
+.guest-account h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+.guest-account > p {
+  font-size: 0.93rem;
+  line-height: 1.8;
+}
+.guest-account > p strong {
+  color: var(--color-gold-soft);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.13em;
+}
+.guest-warning {
+  padding: 0.8rem 1rem;
+  border-left: 2px solid var(--color-gold-55);
+  background: rgba(201, 162, 39, 0.08);
+  color: var(--color-paper-dim);
+  font-size: 0.85rem;
+}
+.guest-account a:focus-visible {
+  outline: 2px solid var(--color-gold-soft);
+  outline-offset: 3px;
+}
+
 /* AI readout and pack redemption: same paper/temple system as account screens. */
 .account-redeem-form,
 .reading-generate-form {
