@@ -41,6 +41,7 @@ let signupCount = 0;
 let updateCount = 0;
 let refreshCount = 0;
 let failRefresh = false;
+let returnVerifySession = true;
 let currentUser: typeof anonUser | typeof linkedUser = anonUser;
 let verifiedId = userId;
 const auth = {
@@ -67,7 +68,7 @@ const auth = {
     assert.equal(type, 'email_change');
     if (verifiedId === userId) currentUser = linkedUser;
     return {
-      data: { user: { ...linkedUser, id: verifiedId }, session },
+      data: { user: { ...linkedUser, id: verifiedId }, session: returnVerifySession ? session : null },
       error: null,
     };
   },
@@ -277,4 +278,22 @@ const member = await guestStatus(
 );
 assert.equal((await member.json()).kind, 'member');
 console.log('PASS same-ID verification, mismatched-ID rejection, and permanent membership');
+
+// Some Supabase email-change confirmations return a user but no fresh access
+// session. Never reuse an old anonymous token in that case.
+currentUser = anonUser;
+returnVerifySession = false;
+failRefresh = true;
+const recoverByEmail = await verifyGuestEmailLink(
+  request('/api/auth/guest/verify', { email, code: '123456' }, cookie),
+  client,
+  true,
+);
+assert.equal(recoverByEmail.status, 200);
+const fallbackResult = await recoverByEmail.json();
+assert.equal(fallbackResult.linked, true);
+assert.equal(fallbackResult.signInRequired, true);
+assert.ok(recoverByEmail.headers.getSetCookie().every((value) => value.includes('Max-Age=0')));
+assert.equal(signupCount, 1);
+console.log('PASS successful email change without fresh session requires a safe new email sign-in');
 console.log('ALL MOCK GUEST AUTH TESTS PASSED; NO SUPABASE USERS OR EMAILS CREATED');
