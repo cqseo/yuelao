@@ -14,7 +14,7 @@ on:
       - fix/yuelao-auth-launch-guards-20261109
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: guest-auth-validation-${{ github.ref }}
@@ -27,6 +27,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: pnpm/action-setup@v4
         with:
           version: 10.30.1
@@ -35,6 +38,36 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Apply Biome safe formatter and lint autofixes to PR files
+        shell: bash
+        run: |
+          mapfile -d '' changed < <(git diff --name-only -z origin/main...HEAD | grep -zE '\.(tsx?|jsx?|jsonc?|css|md|ya?ml)      - name: Mock auth regression tests
+        run: |
+          pnpm test:auth:otp
+          pnpm test:auth:guest
+      - name: Stripe webhook mock tests
+        run: pnpm test:stripe:webhook
+      - name: Format, lint, and compile
+        run: |
+          pnpm lint
+          pnpm check
+# No AWS, VPS, Cloudflare or Supabase deployment actions.
+# No production credentials or external payments used.
+ || true)
+          if ((${#changed[@]})); then
+            pnpm exec biome check --write "${changed[@]}"
+          fi
+      - name: Commit PR formatting (cloud runner only)
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          git add --all
+          if ! git diff --cached --quiet; then
+            git config user.name 'yuelao-ci'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'style(auth): normalize changed files with Biome'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
       - name: Mock auth regression tests
         run: |
           pnpm test:auth:otp
