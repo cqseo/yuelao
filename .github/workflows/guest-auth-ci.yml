@@ -1,0 +1,62 @@
+name: Guest Auth & Safe Build Checks
+on:
+  pull_request:
+    paths:
+      - "packages/core/**"
+      - "sites/yuelao/**"
+      - "tools/test-*.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/guest-auth-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guest-auth-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Mock authentication and checkout tests (no deployments)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Mock auth regression tests
+        run: |
+          pnpm test:auth:otp
+          pnpm test:auth:guest
+      - name: Stripe webhook mock tests
+        run: pnpm test:stripe:webhook
+      - name: Disposable PostgreSQL migration and payment integration
+        run: pnpm test:local:payments
+      - name: Lint, TypeScript, and production build
+        run: |
+          pnpm lint
+          pnpm check
+      - name: Build isolated guest UI preview
+        env:
+          VITE_AUTH_ENABLED: "true"
+          VITE_GUEST_AUTH_ENABLED: "true"
+          VITE_TURNSTILE_SITE_KEY: "0x4AAAAAAF6867ET6r61zXr3"
+        run: pnpm --filter yuelao-site build
+      - name: Upload preview build (no deployment or secrets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: yuelao-guest-preview
+          path: |
+            sites/yuelao/dist/client/
+            sites/yuelao/dist/server/
+          if-no-files-found: error
+          retention-days: 3
+# No user VPS, deployment, production credentials, or real payments.

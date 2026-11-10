@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { GuestAccount } from '~/components/GuestAccount';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
 
@@ -71,6 +72,21 @@ function Account() {
       try {
         let response = await accountRequest();
         if (response.status === 401) {
+          // A valid anonymous guest is intentionally denied paid account APIs.
+          // Avoid needlessly rotating their refresh token on every My visit.
+          if (import.meta.env.VITE_GUEST_AUTH_ENABLED === 'true') {
+            const identityResponse = await fetch('/api/auth/guest/status', {
+              credentials: 'same-origin',
+              cache: 'no-store',
+            });
+            if (identityResponse.ok) {
+              const identity = (await identityResponse.json()) as { kind?: string };
+              if (identity.kind === 'guest') {
+                if (active) setView('login');
+                return;
+              }
+            }
+          }
           const refreshed = await fetch('/api/auth/refresh', {
             method: 'POST',
             credentials: 'same-origin',
@@ -198,15 +214,23 @@ function Account() {
       <p className="auth-kicker">{t('月老 · 姻緣簿', '月老 · 姻缘簿')}</p>
       <h1>{t('我的帳戶', '我的账户')}</h1>
       {view === 'loading' && <p role="status">{t('正在確認登入狀態…', '正在确认登录状态…')}</p>}
-      {view === 'login' && (
-        <div className="account-card">
-          <h2>{t('先登入，才能查看個人紀錄', '请先登录，查看个人记录')}</h2>
-          <p>{t('透過電子信箱取得驗證碼，查閱你的訂單與已購權益。', '通过邮箱验证码查看订单与已购权益。')}</p>
-          <Link className="account-link" to={localizeHref('/login')}>
-            {t('前往登入', '前往登录')}
-          </Link>
-        </div>
-      )}
+      {view === 'login' &&
+        import.meta.env.VITE_AUTH_ENABLED === 'true' &&
+        import.meta.env.VITE_GUEST_AUTH_ENABLED === 'true' && <GuestAccount />}
+      {view === 'login' &&
+        !(
+          import.meta.env.VITE_AUTH_ENABLED === 'true' && import.meta.env.VITE_GUEST_AUTH_ENABLED === 'true'
+        ) && (
+          <div className="account-card">
+            <h2>{t('先登入，才能查看個人紀錄', '请先登录，查看个人记录')}</h2>
+            <p>
+              {t('透過電子信箱取得驗證碼，查閱你的訂單與已購權益。', '通过邮箱验证码查看订单与已购权益。')}
+            </p>
+            <Link className="account-link" to={localizeHref('/login')}>
+              {t('前往登入', '前往登录')}
+            </Link>
+          </div>
+        )}
       {view === 'error' && (
         <p role="alert">{t('目前無法讀取帳戶資料，請稍後重試。', '暂时无法读取账户数据，请稍后重试。')}</p>
       )}

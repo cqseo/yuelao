@@ -29,13 +29,95 @@ async function input(request: Request, max = 1024): Promise<Record<string, unkno
   }
 }
 
-export async function sendEmailCode(request: Request, client: SupabaseClient | null): Promise<Response> {
+/** Verify Turnstile before requesting an email OTP. Never trust a browser-only CAPTCHA flag. */
+export async function verifyEmailCaptcha(
+  request: Request,
+  token: string,
+  secret: string,
+  fetchImpl: typeof fetch = fetch,
+  expectedAction = 'auth_send',
+): Promise<boolean> {
+  const data = new URLSearchParams({ secret, response: token });
+  const ip = request.headers.get('cf-connecting-ip');
+  if (ip) data.set('remoteip', ip);
+  const response = await fetchImpl('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    body: data,
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) return false;
+  const result = (await response.json()) as { success?: unknown; hostname?: unknown; action?: unknown };
+  return (
+    result.success === true &&
+    result.hostname === new URL(request.url).hostname &&
+    result.action === expectedAction
+  );
+}
+
+/**
+ * The ordinary email OTP route must not replace an existing guest identity.
+ * Binding an email to a guest is a different operation (updateUser), so both
+ * OTP send and OTP verify reject browsers that already carry session cookies.
+ */
+async function rejectSecondIdentity(request: Request, client: SupabaseClient): Promise<Response | null> {
+  const { access, refresh } = sessionTokens(request);
+  if (!access && !refresh) return null;
+  if (access) {
+    const found = await client.auth.getUser(access);
+    if (!found.error && found.data.user) {
+      return errorResponse(
+        409,
+        found.data.user.is_anonymous === true ? 'guest_must_link_email' : 'already_authenticated',
+      );
+    }
+  }
+  if (refresh) {
+    const { data, error } = await client.auth.refreshSession({ refresh_token: refresh });
+    if (!error && data.session) {
+      const verified = await client.auth.getUser(data.session.access_token);
+      if (!verified.error && verified.data.user) {
+        return sessionResponse(
+          request,
+          errorResponse(
+            409,
+            verified.data.user.is_anonymous === true ? 'guest_must_link_email' : 'already_authenticated',
+          ),
+          data.session,
+        );
+      }
+    }
+  }
+  // A stale visitor credential must be handled explicitly; never overwrite it
+  // with a brand new account during an ordinary OTP login request.
+  return errorResponse(409, 'existing_session_unrecoverable');
+}
+
+export async function sendEmailCode(
+  request: Request,
+  client: SupabaseClient | null,
+  turnstileSecret?: string,
+  captchaVerifier: typeof verifyEmailCaptcha = verifyEmailCaptcha,
+): Promise<Response> {
   if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
   if (!client) return errorResponse(503, 'auth_not_configured');
-  const data = await input(request);
+  const existingIdentity = await rejectSecondIdentity(request, client);
+  if (existingIdentity) return existingIdentity;
+  // Fail closed. A real Turnstile secret is required before any email can be sent.
+  if (!turnstileSecret) return errorResponse(503, 'captcha_not_configured');
+  const data = await input(request, 4096);
   if (!data || !validEmail(data.email)) return errorResponse(400, 'invalid_email');
-  // Supabase handles per-email rate limiting; before public launch add Turnstile
-  // and edge/IP rate controls to prevent mass signups and email abuse.
+  const token = data.captchaToken;
+  if (typeof token !== 'string' || token.length < 20 || token.length > 2048 || /\s/.test(token))
+    return errorResponse(400, 'captcha_required');
+  try {
+    if (!(await captchaVerifier(request, token, turnstileSecret))) {
+      return errorResponse(403, 'captcha_failed');
+    }
+  } catch {
+    return errorResponse(503, 'captcha_unavailable');
+  }
+  // Cloudflare verifies the single-use Turnstile token here, before Supabase Auth.
+  // Keep Supabase's own CAPTCHA integration off to avoid verifying the same token twice.
   const { error } = await client.auth.signInWithOtp({
     email: data.email.trim().toLowerCase(),
     options: { shouldCreateUser: true },
@@ -50,6 +132,8 @@ export async function sendEmailCode(request: Request, client: SupabaseClient | n
 export async function verifyEmailCode(request: Request, client: SupabaseClient | null): Promise<Response> {
   if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
   if (!client) return errorResponse(503, 'auth_not_configured');
+  const existingIdentity = await rejectSecondIdentity(request, client);
+  if (existingIdentity) return existingIdentity;
   const data = await input(request);
   if (!data || !validEmail(data.email) || typeof data.code !== 'string' || !/^\d{6}$/.test(data.code)) {
     return errorResponse(400, 'invalid_code');

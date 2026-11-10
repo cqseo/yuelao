@@ -1,0 +1,161 @@
+name: Isolated Supabase Auth E2E (Mailpit, No Hosted DB)
+on:
+  push:
+    branches:
+      - fix/yuelao-auth-launch-guards-20261109
+    paths:
+      - ".github/workflows/isolated-supabase-auth-e2e.yml"
+      - "tools/test-auth-local-e2e.mjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yuelao-local-auth-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  real-local-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      - name: Configure disposable GoTrue + local Mailpit
+        shell: bash
+        run: |
+          mkdir -p /tmp/yuelao-auth-ci/supabase/templates
+          cat > /tmp/yuelao-auth-ci/supabase/config.toml <<'TOML'
+          project_id = "yuelao-guest-auth-ci"
+
+          [api]
+          enabled = true
+          port = 54321
+
+          [db]
+          port = 54322
+
+          [studio]
+          enabled = false
+
+          [storage]
+          enabled = false
+
+          [realtime]
+          enabled = false
+
+          [analytics]
+          enabled = false
+
+          [edge_runtime]
+          enabled = false
+
+          [auth]
+          enabled = true
+          site_url = "http://localhost:3000"
+          enable_anonymous_sign_ins = true
+
+          [auth.email]
+          enable_confirmations = true
+          secure_email_change = false
+
+          [auth.email.template.email_change]
+          subject = "YueLao local test - confirm new email"
+          content_path = "supabase/templates/email_change.html"
+
+          [auth.email.template.magic_link]
+          subject = "YueLao local test - sign in"
+          content_path = "supabase/templates/magic_link.html"
+
+          [local_smtp]
+          enabled = true
+          port = 54324
+          TOML
+          echo '<html><body>YUELAO-EMAIL-CHANGE-CODE: {{ .Token }}</body></html>' > /tmp/yuelao-auth-ci/supabase/templates/email_change.html
+          echo '<html><body>YUELAO-EMAIL-LOGIN-CODE: {{ .Token }}</body></html>' > /tmp/yuelao-auth-ci/supabase/templates/magic_link.html
+          echo 'Disposable local auth config prepared. No hosted Supabase credentials.'
+      - name: Start ephemeral local GoTrue (GitHub-hosted runner only)
+        shell: bash
+        run: |
+          cd /tmp/yuelao-auth-ci
+          supabase start -x studio,postgres-meta,storage-api,imgproxy,realtime,edge-runtime,vector,logflare,supavisor > /tmp/supabase-auth-start.log 2>&1 || {
+            tail -n 75 /tmp/supabase-auth-start.log | sed -E 's/eyJ[A-Za-z0-9_.-]{40,}/[REDACTED_LOCAL_TOKEN]/g' || true
+            exit 1
+          }
+          echo 'Local Supabase Auth & Mailpit started successfully.'
+          AUTH_CONTAINER="$(docker ps --format '{{.Names}}' | grep -E 'supabase_auth|gotrue' | head -n 1 || true)"
+          # GoTrue's initial email template fetch may race Kong startup and return
+          # ECONNREFUSED. Wait for its background template reload before sending.
+          # No remote email is sent; only this runner's Mailpit is used.
+          if [ -n "$AUTH_CONTAINER" ]; then
+            for attempt in $(seq 1 25); do
+              RELOADS="$(docker logs "$AUTH_CONTAINER" 2>&1 | grep -c '"event":"templatemailer_reloader_template_update".*"mail_type":"email_change"' || true)"
+              # First event can be the failed initial fetch. Require the second
+              # background reload, then leave time for magic_link to refresh.
+              if [ "$RELOADS" -ge 2 ]; then
+                sleep 3
+                echo 'GoTrue retry completed after initial Kong startup race'
+                break
+              fi
+              sleep 1
+            done
+          fi
+          KONG_CONTAINER="$(docker ps --format '{{.Names}}' | grep -E 'supabase_kong' | head -n 1 || true)"
+          if [ -n "$AUTH_CONTAINER" ]; then
+            echo 'GoTrue template settings present (values redacted):'
+            docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$AUTH_CONTAINER" |
+              grep -E '^GOTRUE_MAILER_(TEMPLATES|SUBJECTS)_(EMAIL_CHANGE|MAGIC_LINK)=' |
+              sed -E 's/=.*/=[present]/' || true
+          fi
+          if [ -n "$AUTH_CONTAINER" ] && [ -n "$KONG_CONTAINER" ]; then
+            TEMPLATE_URL="$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$AUTH_CONTAINER" | sed -n 's/^GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE=//p' | head -n 1)"
+            echo "Local custom template endpoint configured: ${TEMPLATE_URL:+yes}"
+            if [ -n "$TEMPLATE_URL" ]; then
+              TEMPLATE_PATH="$(node -e 'console.log(new URL(process.argv[1]).pathname)' "$TEMPLATE_URL")"
+              if docker exec "$KONG_CONTAINER" sh -c "wget -qO- 'http://127.0.0.1:8088$TEMPLATE_PATH'" 2>/dev/null | grep -q 'YUELAO-EMAIL-CHANGE-CODE:'; then
+                echo 'LOCAL_TEMPLATE_HTTP=ready'
+              else
+                echo 'LOCAL_TEMPLATE_HTTP=unavailable; checking Kong custom nginx reload'
+                docker exec "$KONG_CONTAINER" kong reload --nginx-conf /home/kong/custom_nginx.template >/dev/null 2>&1 || true
+                if docker exec "$KONG_CONTAINER" sh -c "wget -qO- 'http://127.0.0.1:8088$TEMPLATE_PATH'" 2>/dev/null | grep -q 'YUELAO-EMAIL-CHANGE-CODE:'; then
+                  echo 'LOCAL_TEMPLATE_HTTP=restored'
+                else
+                  echo 'LOCAL_TEMPLATE_HTTP=still_unavailable'
+                fi
+              fi
+            fi
+          fi
+      - name: Verify real anonymous user upgraded via local email OTP
+        shell: bash
+        run: |
+          cd /tmp/yuelao-auth-ci
+          eval "$(supabase status -o env | grep -E '^(ANON_KEY|API_URL)=')"
+          test -n "$ANON_KEY"
+          test -n "$API_URL"
+          if ! LOCAL_SUPABASE_URL="$API_URL" LOCAL_SUPABASE_ANON_KEY="$ANON_KEY" node "$GITHUB_WORKSPACE/tools/test-auth-local-e2e.mjs"; then
+            AUTH_CONTAINER="$(docker ps --format '{{.Names}}' | grep -E 'supabase_auth|gotrue' | head -n 1 || true)"
+            if [ -n "$AUTH_CONTAINER" ]; then
+              echo 'Sanitized GoTrue template error diagnostics:'
+              docker logs "$AUTH_CONTAINER" 2>&1 |
+                grep -E 'templatemailer|template_body|template_subject|email_change' |
+                sed -E 's/(token=)[^&" ]+/\\1[REDACTED]/g;s/eyJ[A-Za-z0-9_.-]{35,}/[REDACTED_JWT]/g' |
+                tail -n 22 || true
+            fi
+            exit 1
+          fi
+      - name: Destroy disposable containers
+        if: always()
+        shell: bash
+        run: |
+          cd /tmp/yuelao-auth-ci
+          supabase stop --no-backup >/dev/null 2>&1 || true
+          echo 'Destroyed disposable local Auth test resources; no hosted Supabase changes.'
+# No user VPS, no hosted database/project/branch creation, no real SMTP emails, no payments.

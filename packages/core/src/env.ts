@@ -9,6 +9,10 @@ export interface CoreEnv {
   SUPABASE_SERVICE_ROLE_KEY: string;
   /** Sender address shown on emails. */
   EMAIL_FROM: string;
+  /** Server-only Cloudflare Turnstile secret for email OTP anti-abuse. */
+  TURNSTILE_SECRET_KEY?: string;
+  /** New anonymous account provisioning is opt-in and off until anti-abuse QA. */
+  GUEST_AUTH_ENABLED?: string;
   /** Overrides site.url in local dev, e.g. http://localhost:5173. */
   APP_URL?: string;
 

@@ -713,6 +713,55 @@ h2 {
   }
 }
 
+/* 參考菩提苑的「我的」固定入口，手機三項快捷導覽。 */
+.mobile-account-tabs {
+  display: none;
+}
+@media (max-width: 640px) {
+  body {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+  .mobile-account-tabs {
+    position: fixed;
+    z-index: 80;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-around;
+    padding: 0.5rem max(0.5rem, env(safe-area-inset-right)) calc(0.5rem + env(safe-area-inset-bottom))
+      max(0.5rem, env(safe-area-inset-left));
+    border-top: 1px solid var(--color-gold-55);
+    background: rgba(29, 20, 15, 0.97);
+    box-shadow: 0 -6px 24px rgba(12, 6, 3, 0.2);
+  }
+  .mobile-account-tabs a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    min-height: 46px;
+    color: var(--color-paper-dim);
+    font-size: 0.88rem;
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: 5px;
+  }
+  .mobile-account-tabs a[aria-current="page"] {
+    background: rgba(201, 162, 39, 0.11);
+    color: var(--color-gold-soft);
+    font-weight: 700;
+  }
+  .mobile-account-tabs a:focus-visible {
+    outline: 3px solid var(--color-gold-soft);
+    outline-offset: -3px;
+  }
+  .site-header .site-nav a:last-child {
+    display: none;
+  }
+}
+
 /* ===== 月老帳戶：沿用廟會夜與米紙，個人資料清晰可讀 ===== */
 .auth-page,
 .account-page {
@@ -967,6 +1016,109 @@ h2 {
   .account-currency select {
     width: 100%;
   }
+}
+
+/* 簡明的兩步登入：先知道會保存甚麼，再輸入信箱與驗證碼。 */
+.auth-account-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
+  margin: 1.3rem 0 1.35rem;
+}
+.auth-account-preview span {
+  font-size: 0.76rem;
+  line-height: 1.5;
+  padding: 0.32rem 0.6rem;
+  border: 1px solid rgba(201, 162, 39, 0.32);
+  border-radius: 3px;
+  color: var(--color-paper-78);
+}
+.auth-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.1rem 0 1.5rem;
+  color: var(--color-paper-62);
+  font-size: 0.78rem;
+}
+.auth-steps > span[aria-current="step"] {
+  color: var(--color-gold-soft);
+}
+.auth-steps b {
+  margin-right: 0.3rem;
+  font-variant-numeric: tabular-nums;
+}
+.auth-step-divider {
+  width: 1.2rem;
+  height: 1px;
+  background: var(--color-gold-55);
+  flex: 0 0 auto;
+}
+.auth-back {
+  margin: 1.5rem 0 0.7rem;
+  text-align: center;
+  font-size: 0.83rem;
+}
+.auth-back a,
+.auth-return-link {
+  color: var(--color-gold-soft);
+  text-underline-offset: 5px;
+}
+.auth-disabled-note {
+  margin: 1.4rem 0 1.2rem;
+  font-size: 0.85rem;
+  color: var(--color-paper-78);
+}
+.auth-return-link {
+  display: inline-block;
+  min-height: 44px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--color-gold-55);
+  text-decoration: none;
+}
+@media (max-width: 380px) {
+  .auth-steps {
+    gap: 0.35rem;
+    font-size: 0.7rem;
+  }
+  .auth-account-preview {
+    gap: 0.35rem;
+  }
+}
+
+/* 訪客身份是低門檻、可找回的帳戶入口，不是付費牆。 */
+.guest-account {
+  max-width: 35rem;
+  padding: clamp(1.15rem, 4vw, 2rem);
+}
+.guest-account h2 {
+  margin: 0.1rem 0 0.75rem;
+  color: var(--color-gold-soft);
+  font-size: clamp(1.4rem, 4vw, 1.8rem);
+}
+.guest-account h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+.guest-account > p {
+  font-size: 0.93rem;
+  line-height: 1.8;
+}
+.guest-account > p strong {
+  color: var(--color-gold-soft);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.13em;
+}
+.guest-warning {
+  padding: 0.8rem 1rem;
+  border-left: 2px solid var(--color-gold-55);
+  background: rgba(201, 162, 39, 0.08);
+  color: var(--color-paper-dim);
+  font-size: 0.85rem;
+}
+.guest-account a:focus-visible {
+  outline: 2px solid var(--color-gold-soft);
+  outline-offset: 3px;
 }
 
 /* AI readout and pack redemption: same paper/temple system as account screens. */

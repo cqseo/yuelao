@@ -7,7 +7,9 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "upload_source_maps": true,
-  // Staging creates a separate Worker, with no live DB, API keys or payment secrets.
+  // Staging creates a separate Worker. Configure independent, non-production bindings
+  // via Cloudflare Worker secrets only after a protected test database is available.
+  // Never add empty SUPABASE_* vars here: they can mask the actual secret bindings.
   "env": {
     "staging": {
       "name": "yuelao-v2-staging-20261109",
@@ -16,23 +18,23 @@
         "SITE_STAGING": "true",
         "APP_URL": "https://yuelao-v2-staging-20261109.cqseo.workers.dev",
         "EMAIL_FROM": "noreply@example.invalid",
-        "SUPABASE_URL": "",
-        "SUPABASE_ANON_KEY": "",
         "BILLING_ENABLE_TEST_CHECKOUT": "false",
         "AI_ENABLE_TEST_GENERATION": "false",
         "AI_CHAT_ENABLED": "false",
+        "GUEST_AUTH_ENABLED": "false",
         "RYBBIT_UPSTREAM": ""
       }
     }
   },
+  // Supabase URL and API keys are supplied through per-Worker bindings, not blank vars.
+  // Keep payment and AI conversation controls disabled by default.
   "vars": {
     "EMAIL_FROM": "noreply@example.com",
-    "SUPABASE_URL": "",
-    "SUPABASE_ANON_KEY": "",
     // Test-only Stripe Checkout; NEVER enable with live keys.
     "BILLING_ENABLE_TEST_CHECKOUT": "false",
     "AI_ENABLE_TEST_GENERATION": "false",
     "AI_CHAT_ENABLED": "false",
+    "GUEST_AUTH_ENABLED": "false",
     // To enable Rybbit, set this to your Rybbit API URL and add analytics.rybbit to site.config.ts.
     "RYBBIT_UPSTREAM": ""
   }

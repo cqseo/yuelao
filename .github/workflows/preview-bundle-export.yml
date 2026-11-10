@@ -1,0 +1,72 @@
+name: One-time Cloudflare Preview Bundle Export
+on:
+  push:
+    branches:
+      - fix/yuelao-auth-launch-guards-20261109
+    paths:
+      - ".github/workflows/preview-bundle-export.yml"
+permissions:
+  contents: write
+jobs:
+  export:
+    if: github.repository == 'cqseo/yuelao'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Compile guarded staging-only code (no secrets and no deployment)
+        env:
+          VITE_AUTH_ENABLED: "true"
+          VITE_GUEST_AUTH_ENABLED: "true"
+          VITE_TURNSTILE_SITE_KEY: "0x4AAAAAAF6867ET6r61zXr3"
+        run: pnpm --filter yuelao-site build
+      - name: Package portable preview bundle
+        shell: bash
+        run: |
+          mkdir -p /tmp/yuelao-guest-api-bundle
+          tar --exclude="*.map" --exclude="*/.vite/*" -czf /tmp/yuelao-preview.tar.gz -C sites/yuelao/dist client server
+          python - <<'PY'
+          import pathlib, base64, hashlib, json
+          source = pathlib.Path('/tmp/yuelao-preview.tar.gz').read_bytes()
+          encoded = base64.b64encode(source).decode('ascii')
+          root = pathlib.Path('/tmp/yuelao-guest-api-bundle')
+          chunk_size = 180000
+          chunks = [encoded[i:i+chunk_size] for i in range(0, len(encoded), chunk_size)]
+          for idx, part in enumerate(chunks):
+              (root / f'{idx:03d}.txt').write_text(part)
+          (root / 'manifest.json').write_text(json.dumps({
+              'commit': '${{ github.sha }}',
+              'sha256': hashlib.sha256(source).hexdigest(),
+              'archive_bytes': len(source),
+              'chunk_count': len(chunks),
+              'chunk_size': chunk_size,
+              'production_enabled': False,
+              'deploy_to': 'yuelao-v2-staging-20261109'
+          }, indent=2))
+          print(f'Packaged {len(chunks)} authenticated staging source chunks; no credentials present.')
+          PY
+      - name: Publish temporary Git branch containing only compiled public files
+        shell: bash
+        run: |
+          target="$(mktemp -d)"
+          git worktree add --detach "$target" HEAD >/dev/null
+          cd "$target"
+          git checkout --orphan yuelao-preview-bundle-20261110 >/dev/null
+          git rm -rf . >/dev/null
+          cp -a /tmp/yuelao-guest-api-bundle/. .
+          git config user.name "yuelao-preview-build"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json *.txt
+          git commit -m "artifact: temporary verified preview build, no private bindings" >/dev/null
+          git push origin HEAD:refs/heads/yuelao-preview-bundle-20261110 --force
+# This workflow does NOT deploy to Cloudflare, Supabase, a VPS, or any paid service.

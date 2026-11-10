@@ -33,7 +33,16 @@ const AI_RULES = [
 export const Route = createFileRoute('/robots.txt')({
   server: {
     handlers: {
-      GET: () => robotsTxt(site, ['/api/', '/account', '/login', '/billing/'], AI_RULES),
+      GET: () =>
+        import.meta.env.VITE_SITE_STAGING === 'true'
+          ? new Response('User-agent: *\nDisallow: /\n', {
+              headers: {
+                'content-type': 'text/plain; charset=utf-8',
+                'cache-control': 'no-store',
+                'x-robots-tag': 'noindex, nofollow',
+              },
+            })
+          : robotsTxt(site, ['/api/', '/account', '/login', '/billing/'], AI_RULES),
     },
   },
 });

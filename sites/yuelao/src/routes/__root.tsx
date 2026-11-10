@@ -12,7 +12,13 @@ import site from '../../site.config';
 
 export const Route = createRootRoute({
   head: () => ({
-    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }],
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      ...(import.meta.env.VITE_SITE_STAGING === 'true'
+        ? [{ name: 'robots', content: 'noindex, nofollow, noarchive' }]
+        : []),
+    ],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'stylesheet', href: sereneCss },
@@ -92,8 +98,7 @@ function Layout() {
         <Link to="/" className="brand">
           {site.name}
         </Link>
-        {/* 主導航（P8）：只留已上線的問事總目。姻緣簿、香燈簿、我的
-            未建，不在頂欄佔位，等頁面建好再加回來。 */}
+        {/* 參考菩提苑：讓「我的」有固定入口。登入尚未配置時指向清楚的暫未開放畫面。 */}
         <nav className="site-nav" aria-label={m.common_nav_label()}>
           <Link to="/" aria-current={location.pathname === '/' ? 'true' : undefined}>
             {m.common_nav_home()}
@@ -113,14 +118,14 @@ function Layout() {
           >
             {locale === 'zh-Hans' ? '每日心笺' : '每日心箋'}
           </Link>
-          {import.meta.env.VITE_AUTH_ENABLED === 'true' && (
-            <Link
-              to={localizeHref('/account')}
-              aria-current={location.pathname === '/account' ? 'true' : undefined}
-            >
-              {locale === 'zh-Hans' ? '我的' : '我的'}
-            </Link>
-          )}
+          <Link
+            to={localizeHref(import.meta.env.VITE_AUTH_ENABLED === 'true' ? '/account' : '/login')}
+            aria-current={
+              location.pathname.startsWith('/account') || location.pathname === '/login' ? 'true' : undefined
+            }
+          >
+            我的
+          </Link>
         </nav>
         <nav className="site-meta">
           <Link className="nav-legal" to="/privacy">
@@ -153,6 +158,26 @@ function Layout() {
       <main>
         <Outlet />
       </main>
+      {/* 手機版「我的」快捷入口：不依賴打開選單，也不顯示未開放的 AI 聊天。 */}
+      <nav className="mobile-account-tabs" aria-label={locale === 'zh-Hans' ? '快捷导航' : '快捷導覽'}>
+        <Link to="/" aria-current={location.pathname === '/' ? 'page' : undefined}>
+          {locale === 'zh-Hans' ? '首页' : '首頁'}
+        </Link>
+        <Link
+          to={localizeHref('/tests')}
+          aria-current={location.pathname.startsWith('/tests') ? 'page' : undefined}
+        >
+          {locale === 'zh-Hans' ? '测验' : '測驗'}
+        </Link>
+        <Link
+          to={localizeHref(import.meta.env.VITE_AUTH_ENABLED === 'true' ? '/account' : '/login')}
+          aria-current={
+            location.pathname.startsWith('/account') || location.pathname === '/login' ? 'page' : undefined
+          }
+        >
+          我的
+        </Link>
+      </nav>
       <footer className="site-footer">
         <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: site.name })}</span>
         <nav>
