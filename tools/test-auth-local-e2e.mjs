@@ -30,7 +30,7 @@ async function getMailCode(prefix) {
       const allText = JSON.stringify(detail);
       const index = allText.indexOf(prefix);
       if (index !== -1) {
-        const match = allText.slice(index).match(/(\\d{6})/);
+        const match = allText.slice(index).match(/(\d{6})/);
         if (match) return match[1];
       }
     }
