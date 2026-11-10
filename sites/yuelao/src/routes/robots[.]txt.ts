@@ -35,7 +35,7 @@ export const Route = createFileRoute('/robots.txt')({
     handlers: {
       GET: () =>
         import.meta.env.VITE_SITE_STAGING === 'true'
-          ? new Response('User-agent: *\\nDisallow: /\\n', {
+          ? new Response('User-agent: *\nDisallow: /\n', {
               headers: {
                 'content-type': 'text/plain; charset=utf-8',
                 'cache-control': 'no-store',
