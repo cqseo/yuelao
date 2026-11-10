@@ -1,0 +1,9 @@
+{
+  "commit": "0bc6ceb17fe1e447e9b26a9e47cb6149337b4f07",
+  "sha256": "2ed0f4cb65475d9ac66ab7cdbd0ac2ec808df0efbf698e4f76cc6494966f65bf",
+  "archive_bytes": 2845536,
+  "chunk_count": 22,
+  "chunk_size": 180000,
+  "production_enabled": false,
+  "deploy_to": "yuelao-v2-staging-20261109"
+}
