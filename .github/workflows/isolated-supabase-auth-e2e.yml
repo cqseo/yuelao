@@ -66,11 +66,11 @@ jobs:
 
           [auth.email.template.email_change]
           subject = "YueLao local test - confirm new email"
-          content_path = "./supabase/templates/email_change.html"
+          content_path = "supabase/templates/email_change.html"
 
           [auth.email.template.magic_link]
           subject = "YueLao local test - sign in"
-          content_path = "./supabase/templates/magic_link.html"
+          content_path = "supabase/templates/magic_link.html"
 
           [local_smtp]
           enabled = true
@@ -88,6 +88,13 @@ jobs:
             exit 1
           }
           echo 'Local Supabase Auth & Mailpit started successfully.'
+          AUTH_CONTAINER="$(docker ps --format '{{.Names}}' | grep -E 'supabase_auth|gotrue' | head -n 1 || true)"
+          if [ -n "$AUTH_CONTAINER" ]; then
+            echo 'GoTrue template settings present (values redacted):'
+            docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$AUTH_CONTAINER" |
+              grep -E '^GOTRUE_MAILER_(TEMPLATES|SUBJECTS)_(EMAIL_CHANGE|MAGIC_LINK)=' |
+              sed -E 's/=.*/=[present]/' || true
+          fi
       - name: Verify real anonymous user upgraded via local email OTP
         shell: bash
         run: |
