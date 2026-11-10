@@ -72,7 +72,7 @@ jobs:
           subject = "YueLao local test - sign in"
           content_path = "./supabase/templates/magic_link.html"
 
-          [inbucket]
+          [local_smtp]
           enabled = true
           port = 54324
           TOML
@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           cd /tmp/yuelao-auth-ci
-          supabase start -x studio,postgres-meta,storage-api,imgproxy,realtime,edge-runtime,vector,analytics,supavisor > /tmp/supabase-auth-start.log 2>&1 || {
+          supabase start -x studio,postgres-meta,storage-api,imgproxy,realtime,edge-runtime,vector,logflare,supavisor > /tmp/supabase-auth-start.log 2>&1 || {
             tail -n 75 /tmp/supabase-auth-start.log | sed -E 's/eyJ[A-Za-z0-9_.-]{40,}/[REDACTED_LOCAL_TOKEN]/g' || true
             exit 1
           }
