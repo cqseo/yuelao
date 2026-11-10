@@ -9,12 +9,9 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/guest-auth-ci.yml"
-  push:
-    branches:
-      - fix/yuelao-auth-launch-guards-20261109
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: guest-auth-validation-${{ github.ref }}
@@ -27,9 +24,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: pnpm/action-setup@v4
         with:
           version: 10.30.1
@@ -38,32 +32,14 @@ jobs:
           node-version: "24"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Apply safe Biome autofixes to changed PR files
-        shell: bash
-        run: |
-          mapfile -t changed < <(git diff --name-only origin/main...HEAD | grep -E '[.](tsx?|jsx?|jsonc?|css|md|ya?ml)$' || true)
-          if [ "${#changed[@]}" -gt 0 ]; then
-            pnpm exec biome check --write "${changed[@]}"
-          fi
-      - name: Commit formatting to PR branch (GitHub-hosted runner only)
-        if: github.event_name == 'push'
-        shell: bash
-        run: |
-          git add --all
-          if ! git diff --cached --quiet; then
-            git config user.name "yuelao-ci"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "style(auth): apply Biome formatting to PR"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
       - name: Mock auth regression tests
         run: |
           pnpm test:auth:otp
           pnpm test:auth:guest
       - name: Stripe webhook mock tests
         run: pnpm test:stripe:webhook
-      - name: Format, lint and compile
+      - name: Lint, TypeScript, and production build
         run: |
           pnpm lint
           pnpm check
-# No user VPS, server deployment, external payments or secret credentials.
+# No user VPS, deployment, production credentials, or real payments.
