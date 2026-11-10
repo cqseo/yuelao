@@ -24,10 +24,25 @@ async function getMailCode(prefix) {
     const listResponse = await fetch(mailpitUrl + '/api/v1/messages');
     assert.equal(listResponse.status, 200, 'Mailpit did not respond');
     const list = await listResponse.json();
+    if (attempt === 5) {
+      console.log('MAILPIT_DIAGNOSTIC', JSON.stringify({
+        count: list.count,
+        total: list.total,
+        visibleMessages: list.messages?.length ?? 0,
+        subjects: (list.messages || []).slice(0, 5).map((m) => m.Subject),
+      }));
+    }
     for (const message of list.messages || []) {
       const detailResponse = await fetch(mailpitUrl + '/api/v1/message/' + message.ID);
       const detail = await detailResponse.json();
       const allText = JSON.stringify(detail);
+      if (attempt === 5) {
+        console.log('MAILPIT_MESSAGE_METADATA', JSON.stringify({
+          keys: Object.keys(detail),
+          expectedMarkerFound: allText.includes(prefix),
+          hasSixDigitCandidate: /\d{6}/.test(allText),
+        }));
+      }
       const index = allText.indexOf(prefix);
       if (index !== -1) {
         const match = allText.slice(index).match(/(\d{6})/);
@@ -49,6 +64,12 @@ console.log('PASS real Supabase GoTrue anonymous signup and session');
 
 const change = await guest.auth.updateUser({ email });
 assert.ifError(change.error);
+console.log('GOTRUE_EMAIL_UPDATE_STATE', JSON.stringify({
+  userStillAnonymous: change.data.user?.is_anonymous,
+  hasNewEmail: Boolean(change.data.user?.new_email),
+  hasEmail: Boolean(change.data.user?.email),
+  confirmed: Boolean(change.data.user?.email_confirmed_at),
+}));
 const otp = await getMailCode('YUELAO-EMAIL-CHANGE-CODE:');
 const verified = await guest.auth.verifyOtp({ email, token: otp, type: 'email_change' });
 assert.ifError(verified.error);
