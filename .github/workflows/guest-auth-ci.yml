@@ -38,6 +38,8 @@ jobs:
           pnpm test:auth:guest
       - name: Stripe webhook mock tests
         run: pnpm test:stripe:webhook
+      - name: Disposable PostgreSQL migration and payment integration
+        run: pnpm test:local:payments
       - name: Lint, TypeScript, and production build
         run: |
           pnpm lint
