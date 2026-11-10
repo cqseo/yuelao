@@ -236,12 +236,12 @@ function Login() {
             '使用邮箱接收六位验证码。无需密码，你的订单和已购权益只会显示在自己的账户。',
           )}
         </p>
-        <div className="auth-account-preview" aria-label={text('登入後可查看', '登录后可查看')}>
+        <div className="auth-account-preview" role="group" aria-label={text('登入後可查看', '登录后可查看')}>
           <span>{text('已解鎖籤文', '已解锁签文')}</span>
           <span>{text('問事包餘額', '问事包余额')}</span>
           <span>{text('訂單紀錄', '订单记录')}</span>
         </div>
-        <div className="auth-steps" aria-label={text('登入步驟', '登录步骤')}>
+        <div className="auth-steps" role="group" aria-label={text('登入步驟', '登录步骤')}>
           <span aria-current={step === 'email' ? 'step' : undefined}>
             <b>01</b> {text('輸入信箱', '输入邮箱')}
           </span>
