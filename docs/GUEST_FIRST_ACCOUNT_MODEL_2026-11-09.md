@@ -14,6 +14,20 @@
 - `pnpm test:auth:guest`：已提交游客创建、重复访问、同一 ID 邮箱绑定及异常测试代码；**本分支仍没有 CI 结果或真实 OTP / 浏览器验收**。
 
 
+## 2026-11-10 真实匿名认证验收（独立 GitHub 云端环境）
+
+**已通过的真实 Supabase Auth 测试**：[GitHub Actions #42835734963](https://github.com/cqseo/yuelao/actions/runs/42835734963)。
+
+在 GitHub 托管的临时 Supabase GoTrue + Mailpit 服务中（不连接托管生产 Supabase）：
+
+1. `signInAnonymously()` 实际创建游客用户及会话，成功。
+2. `updateUser({email})` 发出邮件到临时 Mailpit；收到验证码，经 `verifyOtp({email, token, type:'email_change'})` 认证后 **用户 UUID 保持不变**，账号转为非匿名、邮箱已确认。
+3. 另一个全新 Supabase 客户端通过 `signInWithOtp({email, options:{shouldCreateUser:false}})` 和六位邮箱 OTP 登录，成功找回**同一 UUID**。
+4. 测试结束后临时容器已销毁；未产生真实用户、外发邮件、实际付款或新的托管 Supabase 项目。
+5. GoTrue 启动前先于 Kong 模板服务运行会临时使用默认邮件模板，现已在测试中等待 GoTrue 后台重新加载模板后再发送；该问题属于测试环境启动竞态。
+
+**仍未完成：** Cloudflare 预览 Worker 未接入独立 Supabase Auth，真实的前端 Turnstile→Worker 安全 Cookie→数据库 profile 写入→邮箱绑定**整条链路**尚未验证；正式发信域名/SMTP、邮件可送达性、浏览器跨设备、实际 RLS/限流均需要进一步联调。不要将本次局部 Auth 通过当作生产上线完成。生产 `profiles.email` 仍为 NOT NULL，游客迁移未执行。三个登录/支付/AI 开关仍然关闭。
+
 ## 1. 为什么修正
 
 参考站菩提苑在公开「更多」页面写明可以「用吉祥号或手机号在新设备恢复」记录：
