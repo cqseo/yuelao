@@ -67,5 +67,5 @@ export function EmailTurnstile({
     }
   }, [resetSignal, onToken]);
 
-  return <div ref={element} aria-label="安全驗證" />;
+  return <div ref={element} role="group" aria-label="安全驗證" />;
 }
