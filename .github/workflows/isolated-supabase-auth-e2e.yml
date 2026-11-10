@@ -84,7 +84,7 @@ jobs:
         run: |
           cd /tmp/yuelao-auth-ci
           supabase start -x studio,postgres-meta,storage-api,imgproxy,realtime,edge-runtime,vector,analytics,supavisor > /tmp/supabase-auth-start.log 2>&1 || {
-            grep -E 'Error|error|failed|invalid|not supported' /tmp/supabase-auth-start.log | tail -n 20 || true
+            tail -n 75 /tmp/supabase-auth-start.log | sed -E 's/eyJ[A-Za-z0-9_.-]{40,}/[REDACTED_LOCAL_TOKEN]/g' || true
             exit 1
           }
           echo 'Local Supabase Auth & Mailpit started successfully.'
