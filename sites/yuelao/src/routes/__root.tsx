@@ -12,7 +12,13 @@ import site from '../../site.config';
 
 export const Route = createRootRoute({
   head: () => ({
-    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }],
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      ...(import.meta.env.VITE_SITE_STAGING === 'true'
+        ? [{ name: 'robots', content: 'noindex, nofollow, noarchive' }]
+        : []),
+    ],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'stylesheet', href: sereneCss },
