@@ -9,6 +9,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: yuelao-local-auth-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   real-local-auth:
     runs-on: ubuntu-latest
@@ -89,11 +92,30 @@ jobs:
           }
           echo 'Local Supabase Auth & Mailpit started successfully.'
           AUTH_CONTAINER="$(docker ps --format '{{.Names}}' | grep -E 'supabase_auth|gotrue' | head -n 1 || true)"
+          KONG_CONTAINER="$(docker ps --format '{{.Names}}' | grep -E 'supabase_kong' | head -n 1 || true)"
           if [ -n "$AUTH_CONTAINER" ]; then
             echo 'GoTrue template settings present (values redacted):'
             docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$AUTH_CONTAINER" |
               grep -E '^GOTRUE_MAILER_(TEMPLATES|SUBJECTS)_(EMAIL_CHANGE|MAGIC_LINK)=' |
               sed -E 's/=.*/=[present]/' || true
+          fi
+          if [ -n "$AUTH_CONTAINER" ] && [ -n "$KONG_CONTAINER" ]; then
+            TEMPLATE_URL="$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$AUTH_CONTAINER" | sed -n 's/^GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE=//p' | head -n 1)"
+            echo "Local custom template endpoint configured: ${TEMPLATE_URL:+yes}"
+            if [ -n "$TEMPLATE_URL" ]; then
+              TEMPLATE_PATH="$(node -e 'console.log(new URL(process.argv[1]).pathname)' "$TEMPLATE_URL")"
+              if docker exec "$KONG_CONTAINER" sh -c "wget -qO- 'http://127.0.0.1:8088$TEMPLATE_PATH'" 2>/dev/null | grep -q 'YUELAO-EMAIL-CHANGE-CODE:'; then
+                echo 'LOCAL_TEMPLATE_HTTP=ready'
+              else
+                echo 'LOCAL_TEMPLATE_HTTP=unavailable; checking Kong custom nginx reload'
+                docker exec "$KONG_CONTAINER" kong reload --nginx-conf /home/kong/custom_nginx.template >/dev/null 2>&1 || true
+                if docker exec "$KONG_CONTAINER" sh -c "wget -qO- 'http://127.0.0.1:8088$TEMPLATE_PATH'" 2>/dev/null | grep -q 'YUELAO-EMAIL-CHANGE-CODE:'; then
+                  echo 'LOCAL_TEMPLATE_HTTP=restored'
+                else
+                  echo 'LOCAL_TEMPLATE_HTTP=still_unavailable'
+                fi
+              fi
+            fi
           fi
       - name: Verify real anonymous user upgraded via local email OTP
         shell: bash
