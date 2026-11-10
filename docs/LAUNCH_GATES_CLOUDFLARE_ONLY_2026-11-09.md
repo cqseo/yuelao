@@ -24,6 +24,12 @@
 4. 登录 UI 需要构建开关 `VITE_AUTH_ENABLED=true` 与 `VITE_GUEST_AUTH_ENABLED=true`，同时 Cloudflare Worker `GUEST_AUTH_ENABLED=true`；**目前三个开关都未启用**。Turnstile Site Key 在构建时，Secret Key 是 Worker Secret；暂不打开真正 AI 聊天或真实支付。
 5. 已提交 `pnpm test:auth:guest` 和测试用假 Supabase 客户端；**新代码测试尚未真实执行**，不能只凭测试文件存在就认定通过。用户 VPS 完全禁止访问。
 
+### 2026-11-10：预览验证与 CI 更新
+
+- 已在 Cloudflare 创建 `yuelao-staging-guest-email-auth` Turnstile widget，仅允许 `yuelao-v2-staging-20261109.cqseo.workers.dev`。公共 Site Key 为 `0x4AAAAAAF6867ET6r61zXr3`；私密 Siteverify 密钥已经写入**预览 Worker Secret Binding**，没有提交到 GitHub，也未在正式 Worker 设置。
+- GitHub 托管 CI 的 `pnpm test:auth:guest`、`pnpm test:auth:otp`、`pnpm test:stripe:webhook`、`pnpm lint`、`pnpm check` 已完成并通过（完整记录：https://github.com/cqseo/yuelao/actions/runs/42766900621）。这不等于真实 Supabase OTP 邮件或 Stripe 付款验收。
+- 预览 Worker 的 Supabase URL/API Key 仍为空；GitHub 仓库目前没有关联 Cloudflare Workers Builds。保持所有正式支付、AI 聊天、游客开户开关为关闭。
+
 ## 第一关：邮箱验证码登录（不可跳过）
 
 1. 准备**月老自己的**已验证发件域名，不能挪用其他项目的 Resend 已验证域名。为 Supabase Auth 配置专属 SMTP / 发信服务、发件人地址、限制和送达监控。
@@ -46,7 +52,7 @@
 
 - `sites/yuelao/wrangler.jsonc` 不写空字符串 `SUPABASE_URL` / `SUPABASE_ANON_KEY` 占位，避免部署时覆盖 Worker 机密绑定。
 - `SUPABASE_URL`、`SUPABASE_ANON_KEY`（公开可见的项目配置）、`SUPABASE_SERVICE_ROLE_KEY`（私密）、`TURNSTILE_SECRET_KEY`（私密）应在 Cloudflare 对**正确的 Worker 与环境**分别绑定。绝不将 service-role 或 Turnstile secret 放到 Vite `VITE_*`、git 或前端。
-- 当前 ChatGPT 内的 Cloudflare 连接没有授权 `cqseo` 账户，不能用另一账户替代部署；先连对账户再执行 Cloudflare 发布。GitHub 代码更新本身**不会**自动修改正式 Worker。
+- **2026-11-10：已连接正确的 cqseo Cloudflare 账户**，已验证 `yuelao` 正式 Worker 和 `yuelao-v2-staging-20261109` 预览 Worker 都在该账户。两边 Supabase URL/API Key 仍是空值，GitHub 尚未连接 Cloudflare Workers Builds；提交代码**不会**自动更新正式站。
 - 不使用 VPS 或用户远程服务器做构建。允许使用独立的云端 CI / 托管构建，但需明确环境和密钥边界；不要将真实密钥放入日志。
 
 ## 验收证据的范围
