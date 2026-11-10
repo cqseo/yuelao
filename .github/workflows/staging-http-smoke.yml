@@ -1,0 +1,41 @@
+name: Staging HTTP Smoke (Read Only)
+on:
+  push:
+    branches:
+      - fix/yuelao-auth-launch-guards-20261109
+    paths:
+      - ".github/workflows/staging-http-smoke.yml"
+      - "tools/test-staging-http-smoke.mjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Verify actual Cloudflare staging HTTP routes
+        run: node tools/test-staging-http-smoke.mjs
+      - name: Inspect hydrated My page without changing server data
+        shell: bash
+        run: |
+          if command -v google-chrome >/dev/null; then
+            echo 'CHROME_VERSION:'
+            google-chrome --version
+            google-chrome --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu --virtual-time-budget=6000 --dump-dom https://yuelao-v2-staging-20261109.cqseo.workers.dev/account > /tmp/yuelao-account-dom.html 2>/tmp/chrome-preview-errors.txt
+            if grep -q '目前無法讀取帳戶資料\|暂时无法读取账户数据' /tmp/yuelao-account-dom.html; then
+              echo 'ACCOUNT_GENERIC_ERROR_VISIBLE=true'
+            elif grep -q '訪客帳戶尚未開放\|游客账户尚未开放' /tmp/yuelao-account-dom.html; then
+              echo 'ACCOUNT_GUEST_COMING_SOON_VISIBLE=true'
+            else
+              echo 'ACCOUNT_PAGE_UNKNOWN_STATE'
+              grep -o '<h1[^>]*>[^<]*</h1>' /tmp/yuelao-account-dom.html | head -n 3 || true
+            fi
+          else
+            echo 'Chrome binary not available; performed server HTTP smoke only.'
+          fi
+# No app secrets, tests of signups, user VPS, or deployments.
