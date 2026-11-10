@@ -1,0 +1,106 @@
+name: Isolated Supabase Auth E2E (Mailpit, No Hosted DB)
+on:
+  push:
+    branches:
+      - fix/yuelao-auth-launch-guards-20261109
+    paths:
+      - ".github/workflows/isolated-supabase-auth-e2e.yml"
+      - "tools/test-auth-local-e2e.mjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-local-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      - name: Configure disposable GoTrue + local Mailpit
+        shell: bash
+        run: |
+          mkdir -p /tmp/yuelao-auth-ci/supabase/templates
+          cat > /tmp/yuelao-auth-ci/supabase/config.toml <<'TOML'
+          project_id = "yuelao-guest-auth-ci"
+
+          [api]
+          enabled = true
+          port = 54321
+
+          [db]
+          port = 54322
+
+          [studio]
+          enabled = false
+
+          [storage]
+          enabled = false
+
+          [realtime]
+          enabled = false
+
+          [analytics]
+          enabled = false
+
+          [edge_runtime]
+          enabled = false
+
+          [auth]
+          enabled = true
+          site_url = "http://localhost:3000"
+          enable_anonymous_sign_ins = true
+
+          [auth.email]
+          enable_confirmations = true
+          secure_email_change = false
+
+          [auth.email.template.email_change]
+          subject = "YueLao local test - confirm new email"
+          content_path = "./supabase/templates/email_change.html"
+
+          [auth.email.template.magic_link]
+          subject = "YueLao local test - sign in"
+          content_path = "./supabase/templates/magic_link.html"
+
+          [inbucket]
+          enabled = true
+          port = 54324
+          TOML
+          echo '<html><body>YUELAO-EMAIL-CHANGE-CODE: {{ .Token }}</body></html>' > /tmp/yuelao-auth-ci/supabase/templates/email_change.html
+          echo '<html><body>YUELAO-EMAIL-LOGIN-CODE: {{ .Token }}</body></html>' > /tmp/yuelao-auth-ci/supabase/templates/magic_link.html
+          echo 'Disposable local auth config prepared. No hosted Supabase credentials.'
+      - name: Start ephemeral local GoTrue (GitHub-hosted runner only)
+        shell: bash
+        run: |
+          cd /tmp/yuelao-auth-ci
+          supabase start -x studio,postgres-meta,storage-api,imgproxy,realtime,edge-runtime,vector,analytics,supavisor > /tmp/supabase-auth-start.log 2>&1 || {
+            grep -E 'Error|error|failed|invalid|not supported' /tmp/supabase-auth-start.log | tail -n 20 || true
+            exit 1
+          }
+          echo 'Local Supabase Auth & Mailpit started successfully.'
+      - name: Verify real anonymous user upgraded via local email OTP
+        shell: bash
+        run: |
+          cd /tmp/yuelao-auth-ci
+          eval "$(supabase status -o env | grep -E '^(ANON_KEY|API_URL)=')"
+          test -n "$ANON_KEY"
+          test -n "$API_URL"
+          LOCAL_SUPABASE_URL="$API_URL" LOCAL_SUPABASE_ANON_KEY="$ANON_KEY" node "$GITHUB_WORKSPACE/tools/test-auth-local-e2e.mjs"
+      - name: Destroy disposable containers
+        if: always()
+        shell: bash
+        run: |
+          cd /tmp/yuelao-auth-ci
+          supabase stop --no-backup >/dev/null 2>&1 || true
+          echo 'Destroyed disposable local Auth test resources; no hosted Supabase changes.'
+# No user VPS, no hosted database/project/branch creation, no real SMTP emails, no payments.
