@@ -97,12 +97,12 @@ jobs:
           # No remote email is sent; only this runner's Mailpit is used.
           if [ -n "$AUTH_CONTAINER" ]; then
             for attempt in $(seq 1 25); do
-              if docker logs "$AUTH_CONTAINER" 2>&1 |
-                grep -q '"event":"templatemailer_reloader_template_update".*"mail_type":"email_change"'; then
-                # A successful template update is logged after any initial refusal;
-                # let the same background reload finish the magic_link template too.
+              RELOADS="$(docker logs "$AUTH_CONTAINER" 2>&1 | grep -c '"event":"templatemailer_reloader_template_update".*"mail_type":"email_change"' || true)"
+              # First event can be the failed initial fetch. Require the second
+              # background reload, then leave time for magic_link to refresh.
+              if [ "$RELOADS" -ge 2 ]; then
                 sleep 3
-                echo 'GoTrue template reload observed before E2E'
+                echo 'GoTrue retry completed after initial Kong startup race'
                 break
               fi
               sleep 1
