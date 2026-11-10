@@ -19,6 +19,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: "c7e30e39bf58e1ad33871164f3cd1818"
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ENV: "staging"
       VITE_AUTH_ENABLED: "true"
       VITE_GUEST_AUTH_ENABLED: "true"
       VITE_TURNSTILE_SITE_KEY: "0x4AAAAAAF6867ET6r61zXr3"
@@ -62,8 +63,20 @@ jobs:
           console.log('Only the named staging Worker may be deployed; payment, AI and guest signup remain off.');
           NODE
           pnpm --filter yuelao-site build
+          node - <<'NODE'
+          const c = require('./sites/yuelao/dist/server/wrangler.json');
+          if (
+            c.name !== 'yuelao-v2-staging-20261109' ||
+            c.vars?.SITE_STAGING !== 'true' ||
+            c.vars?.GUEST_AUTH_ENABLED !== 'false' ||
+            c.vars?.AI_CHAT_ENABLED !== 'false' ||
+            c.vars?.AI_ENABLE_TEST_GENERATION !== 'false' ||
+            c.vars?.BILLING_ENABLE_TEST_CHECKOUT !== 'false'
+          ) throw new Error('Not a safe staging build. Deployment blocked.');
+          console.log('Preview-only build verified');
+          NODE
       - name: Deploy PREVIEW environment only; never touch production
         if: steps.gate.outputs.ready == 'true'
         working-directory: sites/yuelao
-        run: pnpm exec wrangler deploy --env staging
+        run: pnpm exec wrangler deploy
 # No production deployment; never use user's VPS or attach production Supabase to preview.
