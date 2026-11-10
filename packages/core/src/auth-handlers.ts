@@ -59,10 +59,7 @@ export async function verifyEmailCaptcha(
  * Binding an email to a guest is a different operation (updateUser), so both
  * OTP send and OTP verify reject browsers that already carry session cookies.
  */
-async function rejectSecondIdentity(
-  request: Request,
-  client: SupabaseClient,
-): Promise<Response | null> {
+async function rejectSecondIdentity(request: Request, client: SupabaseClient): Promise<Response | null> {
   const { access, refresh } = sessionTokens(request);
   if (!access && !refresh) return null;
   if (access) {
@@ -83,9 +80,7 @@ async function rejectSecondIdentity(
           request,
           errorResponse(
             409,
-            verified.data.user.is_anonymous === true
-              ? 'guest_must_link_email'
-              : 'already_authenticated',
+            verified.data.user.is_anonymous === true ? 'guest_must_link_email' : 'already_authenticated',
           ),
           data.session,
         );
@@ -112,12 +107,8 @@ export async function sendEmailCode(
   const data = await input(request, 4096);
   if (!data || !validEmail(data.email)) return errorResponse(400, 'invalid_email');
   const token = data.captchaToken;
-  if (
-    typeof token !== 'string' ||
-    token.length < 20 ||
-    token.length > 2048 ||
-    /\s/.test(token)
-  ) return errorResponse(400, 'captcha_required');
+  if (typeof token !== 'string' || token.length < 20 || token.length > 2048 || /\s/.test(token))
+    return errorResponse(400, 'captcha_required');
   try {
     if (!(await captchaVerifier(request, token, turnstileSecret))) {
       return errorResponse(403, 'captcha_failed');

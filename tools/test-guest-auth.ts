@@ -30,10 +30,7 @@ const linkedUser = {
 };
 
 assert.equal(hasVerifiedEmailIdentity(anonUser), false);
-assert.equal(
-  hasVerifiedEmailIdentity({ ...linkedUser, email_confirmed_at: null }),
-  false,
-);
+assert.equal(hasVerifiedEmailIdentity({ ...linkedUser, email_confirmed_at: null }), false);
 assert.equal(hasVerifiedEmailIdentity(linkedUser), true);
 console.log('PASS paid account APIs require a non-anonymous, verified email identity');
 
@@ -134,24 +131,15 @@ function request(path: string, payload: unknown, cookies = '', hostile = false) 
 }
 
 assert.equal(
-  (
-    await createGuest(
-      request('/api/auth/guest', { captchaToken: captcha }, '', true),
-      client,
-      true,
-      secret,
-    )
-  ).status,
+  (await createGuest(request('/api/auth/guest', { captchaToken: captcha }, '', true), client, true, secret))
+    .status,
   403,
 );
 assert.equal(
   (await createGuest(request('/api/auth/guest', { captchaToken: captcha }), client, false, secret)).status,
   503,
 );
-assert.equal(
-  (await createGuest(request('/api/auth/guest', {}), client, true, secret)).status,
-  400,
-);
+assert.equal((await createGuest(request('/api/auth/guest', {}), client, true, secret)).status, 400);
 assert.equal(
   (await createGuest(request('/api/auth/guest', { captchaToken: captcha }), client, true)).status,
   503,
@@ -231,13 +219,27 @@ failRefresh = false;
 console.log('PASS expired access recovers with refresh token; stale credentials never create a new user');
 
 assert.equal(
-  (await sendGuestEmailLink(request('/api/auth/guest/link', { email, captchaToken: captcha }),
-    client, true, secret, challenge)).status,
+  (
+    await sendGuestEmailLink(
+      request('/api/auth/guest/link', { email, captchaToken: captcha }),
+      client,
+      true,
+      secret,
+      challenge,
+    )
+  ).status,
   401,
 );
 assert.equal(
-  (await sendGuestEmailLink(request('/api/auth/guest/link', { email }, cookie),
-    client, true, secret, challenge)).status,
+  (
+    await sendGuestEmailLink(
+      request('/api/auth/guest/link', { email }, cookie),
+      client,
+      true,
+      secret,
+      challenge,
+    )
+  ).status,
   400,
 );
 const sent = await sendGuestEmailLink(
@@ -253,14 +255,24 @@ assert.equal(updateCount, 1);
 console.log('PASS visitor email link uses updateUser, not signInWithOtp');
 
 assert.equal(
-  (await verifyGuestEmailLink(request('/api/auth/guest/verify',
-    { email, code: '12345' }, cookie), client, true)).status,
+  (
+    await verifyGuestEmailLink(
+      request('/api/auth/guest/verify', { email, code: '12345' }, cookie),
+      client,
+      true,
+    )
+  ).status,
   400,
 );
 verifiedId = anotherId;
 assert.equal(
-  (await verifyGuestEmailLink(request('/api/auth/guest/verify',
-    { email, code: '123456' }, cookie), client, true)).status,
+  (
+    await verifyGuestEmailLink(
+      request('/api/auth/guest/verify', { email, code: '123456' }, cookie),
+      client,
+      true,
+    )
+  ).status,
   401,
 );
 verifiedId = userId;

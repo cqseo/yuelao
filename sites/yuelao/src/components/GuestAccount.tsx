@@ -42,7 +42,9 @@ export function GuestAccount() {
 
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; };
+    return () => {
+      mounted.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -130,10 +132,7 @@ export function GuestAccount() {
       setMessage(t('驗證碼已寄送，請檢查郵箱。', '验证码已发送，请检查邮箱。'));
     } catch {
       setMessage(
-        t(
-          '暫時無法寄送驗證碼，請檢查郵箱或稍後重試。',
-          '暂时无法发送验证码，请检查邮箱或稍后重试。',
-        ),
+        t('暫時無法寄送驗證碼，請檢查郵箱或稍後重試。', '暂时无法发送验证码，请检查邮箱或稍后重试。'),
       );
     } finally {
       setBusy(false);
@@ -184,8 +183,7 @@ export function GuestAccount() {
           {t(
             '這個訪客身份目前無法恢復。請勿反覆建立新帳號；若先前已綁定郵箱，請使用郵箱登入。',
             '这个游客身份目前无法恢复。请勿反复创建新账号；如果已经绑定邮箱，请用邮箱登录。',
-          )}
-          {' '}
+          )}{' '}
           <Link to={localizeHref('/login')}>{t('使用郵箱登入', '使用邮箱登录')}</Link>
         </p>
       )}
@@ -283,7 +281,11 @@ export function GuestAccount() {
           <Link to={localizeHref('/login')}>{t('已有郵箱帳號，請登入', '已有邮箱账号，请登录')}</Link>
         </p>
       )}
-      {message && <p role="status" className="auth-notice">{message}</p>}
+      {message && (
+        <p role="status" className="auth-notice">
+          {message}
+        </p>
+      )}
       <p>
         <Link to={localizeHref('/daily')}>{t('先看每日心箋', '先看每日心笺')}</Link>
         {' · '}

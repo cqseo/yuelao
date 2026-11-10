@@ -114,7 +114,9 @@ function Layout() {
           </Link>
           <Link
             to={localizeHref(import.meta.env.VITE_AUTH_ENABLED === 'true' ? '/account' : '/login')}
-            aria-current={location.pathname.startsWith('/account') || location.pathname === '/login' ? 'true' : undefined}
+            aria-current={
+              location.pathname.startsWith('/account') || location.pathname === '/login' ? 'true' : undefined
+            }
           >
             我的
           </Link>
@@ -163,7 +165,9 @@ function Layout() {
         </Link>
         <Link
           to={localizeHref(import.meta.env.VITE_AUTH_ENABLED === 'true' ? '/account' : '/login')}
-          aria-current={location.pathname.startsWith('/account') || location.pathname === '/login' ? 'page' : undefined}
+          aria-current={
+            location.pathname.startsWith('/account') || location.pathname === '/login' ? 'page' : undefined
+          }
         >
           我的
         </Link>

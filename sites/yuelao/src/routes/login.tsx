@@ -81,23 +81,33 @@ function Login() {
   }
 
   if (guestCheckPending) {
-    return <section className="auth-page"><div className="auth-panel">
-      <p role="status">{text('正在確認訪客身份…', '正在确认游客身份…')}</p>
-    </div></section>;
+    return (
+      <section className="auth-page">
+        <div className="auth-panel">
+          <p role="status">{text('正在確認訪客身份…', '正在确认游客身份…')}</p>
+        </div>
+      </section>
+    );
   }
 
   if (hasGuestSession) {
-    return <section className="auth-page"><div className="auth-panel">
-      <p className="auth-kicker">{text('月老 · 姻緣簿', '月老 · 姻缘簿')}</p>
-      <h1>{text('保留你的訪客帳號', '保留你的游客账号')}</h1>
-      <p className="auth-intro">{text(
-        '你已有訪客身份。請在「我的」頁面綁定郵箱，保留原帳號與記錄，避免另建帳號。',
-        '你已有游客身份。请在「我的」页面绑定邮箱，保留原账号与记录，避免创建第二个账号。',
-      )}</p>
-      <Link className="auth-return-link" to={localizeHref('/account')}>
-        {text('前往我的姻緣簿', '前往我的姻缘簿')}
-      </Link>
-    </div></section>;
+    return (
+      <section className="auth-page">
+        <div className="auth-panel">
+          <p className="auth-kicker">{text('月老 · 姻緣簿', '月老 · 姻缘簿')}</p>
+          <h1>{text('保留你的訪客帳號', '保留你的游客账号')}</h1>
+          <p className="auth-intro">
+            {text(
+              '你已有訪客身份。請在「我的」頁面綁定郵箱，保留原帳號與記錄，避免另建帳號。',
+              '你已有游客身份。请在「我的」页面绑定邮箱，保留原账号与记录，避免创建第二个账号。',
+            )}
+          </p>
+          <Link className="auth-return-link" to={localizeHref('/account')}>
+            {text('前往我的姻緣簿', '前往我的姻缘簿')}
+          </Link>
+        </div>
+      </section>
+    );
   }
 
   if (hasMemberSession) {
@@ -124,10 +134,19 @@ function Login() {
               '无法恢复之前的登录状态。如果游客尚未绑定邮箱，清除凭证后可能无法找回记录。请确认已绑定邮箱，或了解风险后再继续。',
             )}
           </p>
-          <button type="button" className="auth-return-link" onClick={() => void resetStaleSession()} disabled={busy}>
+          <button
+            type="button"
+            className="auth-return-link"
+            onClick={() => void resetStaleSession()}
+            disabled={busy}
+          >
             {text('清除舊憑證，改用郵箱登入', '清除旧凭证，改用邮箱登录')}
           </button>
-          {error && <p role="alert" className="auth-error">{error}</p>}
+          {error && (
+            <p role="alert" className="auth-error">
+              {error}
+            </p>
+          )}
         </div>
       </section>
     );

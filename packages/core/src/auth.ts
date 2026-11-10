@@ -9,17 +9,16 @@ export interface SessionUser {
 
 /** Payment, purchase and account APIs require verified non-anonymous email identity. */
 export function hasVerifiedEmailIdentity(
-  user: {
-    email?: string | null;
-    email_confirmed_at?: string | null;
-    is_anonymous?: boolean;
-  } | null | undefined,
+  user:
+    | {
+        email?: string | null;
+        email_confirmed_at?: string | null;
+        is_anonymous?: boolean;
+      }
+    | null
+    | undefined,
 ): boolean {
-  return Boolean(
-    user?.email &&
-    user.email_confirmed_at &&
-    user.is_anonymous !== true,
-  );
+  return Boolean(user?.email && user.email_confirmed_at && user.is_anonymous !== true);
 }
 
 /**

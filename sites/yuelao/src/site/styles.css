@@ -730,8 +730,8 @@ h2 {
     display: flex;
     align-items: stretch;
     justify-content: space-around;
-    padding: 0.5rem max(0.5rem, env(safe-area-inset-right))
-      calc(0.5rem + env(safe-area-inset-bottom)) max(0.5rem, env(safe-area-inset-left));
+    padding: 0.5rem max(0.5rem, env(safe-area-inset-right)) calc(0.5rem + env(safe-area-inset-bottom))
+      max(0.5rem, env(safe-area-inset-left));
     border-top: 1px solid var(--color-gold-55);
     background: rgba(29, 20, 15, 0.97);
     box-shadow: 0 -6px 24px rgba(12, 6, 3, 0.2);

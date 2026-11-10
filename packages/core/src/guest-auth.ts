@@ -47,10 +47,7 @@ function emailOf(input: unknown): string | null {
 }
 
 function captchaTokenOf(input: unknown): string | null {
-  return typeof input === 'string' &&
-    input.length >= 20 &&
-    input.length <= 2048 &&
-    !/\s/.test(input)
+  return typeof input === 'string' && input.length >= 20 && input.length <= 2048 && !/\s/.test(input)
     ? input
     : null;
 }
@@ -79,10 +76,9 @@ async function ensureGuestProfile(client: SupabaseClient, user: User): Promise<b
   if (user.is_anonymous !== true) return true;
   // Requires guest_profile_email_nullable migration and the user's own RLS.
   // Idempotent, so a recovered session can repair an interrupted first visit.
-  const { error } = await client.from('profiles').upsert(
-    { id: user.id, locale: 'zh-Hant' },
-    { onConflict: 'id', ignoreDuplicates: true },
-  );
+  const { error } = await client
+    .from('profiles')
+    .upsert({ id: user.id, locale: 'zh-Hant' }, { onConflict: 'id', ignoreDuplicates: true });
   return !error;
 }
 

@@ -122,12 +122,8 @@ assert.equal(
   400,
 );
 assert.equal(
-  (
-    await sendEmailCode(
-      request('/api/auth/send', { email: 'safe@example.invalid', captchaToken }),
-      client,
-    )
-  ).status,
+  (await sendEmailCode(request('/api/auth/send', { email: 'safe@example.invalid', captchaToken }), client))
+    .status,
   503,
 );
 assert.equal(
@@ -209,11 +205,15 @@ const cleared = loggedOut.headers.getSetCookie();
 assert.equal(cleared.length, 2);
 assert.ok(cleared.every((c) => c.includes('Max-Age=0')));
 console.log('PASS: logout clears both session cookies');
-const challengeResponse = async () => new Response(JSON.stringify({
-  success: true,
-  hostname: new URL(origin).hostname,
-  action: 'auth_send',
-}), { status: 200 });
+const challengeResponse = async () =>
+  new Response(
+    JSON.stringify({
+      success: true,
+      hostname: new URL(origin).hostname,
+      action: 'auth_send',
+    }),
+    { status: 200 },
+  );
 assert.equal(
   await verifyEmailCaptcha(
     request('/api/auth/send', {}),
@@ -223,11 +223,15 @@ assert.equal(
   ),
   true,
 );
-const badChallengeResponse = async () => new Response(JSON.stringify({
-  success: true,
-  hostname: 'not-our-domain.invalid',
-  action: 'auth_send',
-}), { status: 200 });
+const badChallengeResponse = async () =>
+  new Response(
+    JSON.stringify({
+      success: true,
+      hostname: 'not-our-domain.invalid',
+      action: 'auth_send',
+    }),
+    { status: 200 },
+  );
 assert.equal(
   await verifyEmailCaptcha(
     request('/api/auth/send', {}),
