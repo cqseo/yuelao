@@ -21,27 +21,33 @@ const makeClient = () =>
 
 async function getMailCode(prefix) {
   for (let attempt = 0; attempt < 30; attempt++) {
-    const listResponse = await fetch(mailpitUrl + '/api/v1/messages');
+    const listResponse = await fetch(`${mailpitUrl}/api/v1/messages`);
     assert.equal(listResponse.status, 200, 'Mailpit did not respond');
     const list = await listResponse.json();
     if (attempt === 5) {
-      console.log('MAILPIT_DIAGNOSTIC', JSON.stringify({
-        count: list.count,
-        total: list.total,
-        visibleMessages: list.messages?.length ?? 0,
-        subjects: (list.messages || []).slice(0, 5).map((m) => m.Subject),
-      }));
+      console.log(
+        'MAILPIT_DIAGNOSTIC',
+        JSON.stringify({
+          count: list.count,
+          total: list.total,
+          visibleMessages: list.messages?.length ?? 0,
+          subjects: (list.messages || []).slice(0, 5).map((m) => m.Subject),
+        }),
+      );
     }
     for (const message of list.messages || []) {
-      const detailResponse = await fetch(mailpitUrl + '/api/v1/message/' + message.ID);
+      const detailResponse = await fetch(`${mailpitUrl}/api/v1/message/${message.ID}`);
       const detail = await detailResponse.json();
       const allText = JSON.stringify(detail);
       if (attempt === 5) {
-        console.log('MAILPIT_MESSAGE_METADATA', JSON.stringify({
-          keys: Object.keys(detail),
-          expectedMarkerFound: allText.includes(prefix),
-          hasSixDigitCandidate: /\d{6}/.test(allText),
-        }));
+        console.log(
+          'MAILPIT_MESSAGE_METADATA',
+          JSON.stringify({
+            keys: Object.keys(detail),
+            expectedMarkerFound: allText.includes(prefix),
+            hasSixDigitCandidate: /\d{6}/.test(allText),
+          }),
+        );
       }
       const index = allText.indexOf(prefix);
       if (index !== -1) {
@@ -51,7 +57,7 @@ async function getMailCode(prefix) {
     }
     await new Promise((resolve) => setTimeout(resolve, 700));
   }
-  throw new Error('Local Mailpit did not receive expected ' + prefix + ' OTP');
+  throw new Error(`Local Mailpit did not receive expected ${prefix} OTP`);
 }
 
 const guest = makeClient();
@@ -64,12 +70,15 @@ console.log('PASS real Supabase GoTrue anonymous signup and session');
 
 const change = await guest.auth.updateUser({ email });
 assert.ifError(change.error);
-console.log('GOTRUE_EMAIL_UPDATE_STATE', JSON.stringify({
-  userStillAnonymous: change.data.user?.is_anonymous,
-  hasNewEmail: Boolean(change.data.user?.new_email),
-  hasEmail: Boolean(change.data.user?.email),
-  confirmed: Boolean(change.data.user?.email_confirmed_at),
-}));
+console.log(
+  'GOTRUE_EMAIL_UPDATE_STATE',
+  JSON.stringify({
+    userStillAnonymous: change.data.user?.is_anonymous,
+    hasNewEmail: Boolean(change.data.user?.new_email),
+    hasEmail: Boolean(change.data.user?.email),
+    confirmed: Boolean(change.data.user?.email_confirmed_at),
+  }),
+);
 const otp = await getMailCode('YUELAO-EMAIL-CHANGE-CODE:');
 const verified = await guest.auth.verifyOtp({ email, token: otp, type: 'email_change' });
 assert.ifError(verified.error);
