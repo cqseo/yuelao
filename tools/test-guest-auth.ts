@@ -179,7 +179,7 @@ assert.equal(duplicate.status, 200);
 assert.equal((await duplicate.json()).created, false);
 assert.equal(signupCount, 1);
 const current = await guestStatus(
-  new Request(origin + '/api/auth/guest/status', { headers: { cookie } }),
+  new Request(new URL('/api/auth/guest/status', origin), { headers: { cookie } }),
   client,
   true,
 );
@@ -187,7 +187,7 @@ assert.equal((await current.json()).kind, 'guest');
 console.log('PASS repeat visitor reuses identity and does not create a duplicate');
 
 const refreshedStatus = await guestStatus(
-  new Request(origin + '/api/auth/guest/status', {
+  new Request(new URL('/api/auth/guest/status', origin), {
     headers: { cookie: refreshOnlyCookie },
   }),
   client,
@@ -211,7 +211,7 @@ assert.equal(signupCount, 1);
 
 failRefresh = true;
 const stale = await guestStatus(
-  new Request(origin + '/api/auth/guest/status', {
+  new Request(new URL('/api/auth/guest/status', origin), {
     headers: { cookie: refreshOnlyCookie },
   }),
   client,
@@ -281,7 +281,7 @@ assert.equal(profileUpdates, 1);
 assert.equal(verified.headers.getSetCookie().length, 2);
 currentUser = linkedUser;
 const member = await guestStatus(
-  new Request(origin + '/api/auth/guest/status', { headers: { cookie } }),
+  new Request(new URL('/api/auth/guest/status', origin), { headers: { cookie } }),
   client,
   true,
 );
