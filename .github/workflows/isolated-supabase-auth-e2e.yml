@@ -124,7 +124,17 @@ jobs:
           eval "$(supabase status -o env | grep -E '^(ANON_KEY|API_URL)=')"
           test -n "$ANON_KEY"
           test -n "$API_URL"
-          LOCAL_SUPABASE_URL="$API_URL" LOCAL_SUPABASE_ANON_KEY="$ANON_KEY" node "$GITHUB_WORKSPACE/tools/test-auth-local-e2e.mjs"
+          if ! LOCAL_SUPABASE_URL="$API_URL" LOCAL_SUPABASE_ANON_KEY="$ANON_KEY" node "$GITHUB_WORKSPACE/tools/test-auth-local-e2e.mjs"; then
+            AUTH_CONTAINER="$(docker ps --format '{{.Names}}' | grep -E 'supabase_auth|gotrue' | head -n 1 || true)"
+            if [ -n "$AUTH_CONTAINER" ]; then
+              echo 'Sanitized GoTrue template error diagnostics:'
+              docker logs "$AUTH_CONTAINER" 2>&1 |
+                grep -E 'templatemailer|template_body|template_subject|email_change' |
+                sed -E 's/(token=)[^&" ]+/\\1[REDACTED]/g;s/eyJ[A-Za-z0-9_.-]{35,}/[REDACTED_JWT]/g' |
+                tail -n 22 || true
+            fi
+            exit 1
+          fi
       - name: Destroy disposable containers
         if: always()
         shell: bash
