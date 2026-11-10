@@ -13,6 +13,10 @@ for (const path of ['/', '/account', '/login', '/favicon.svg']) {
     assert.match(response.headers.get('content-type') || '', /html/i);
     const body = await response.text();
     assert.ok(body.includes('月老'), `Missing app text at ${path}`);
+    if (path === '/') {
+      assert.match(body, /noindex/i, 'Staging homepage must be noindex');
+      assert.match(body, /月老 2\.0 · 預覽環境/, 'Missing visible staging notice');
+    }
   } else {
     await response.arrayBuffer();
   }
@@ -27,6 +31,15 @@ assert.equal(state.status, 200);
 const guest = await state.json();
 assert.equal(guest.enabled, false, 'Preview must not create real Supabase visitors');
 assert.equal(guest.kind, 'disabled', 'Preview guest auth must fail closed');
+
+const robots = await fetch(new URL('/robots.txt', base), {
+  signal: AbortSignal.timeout(20000),
+});
+assert.equal(robots.status, 200);
+const robotsBody = await robots.text();
+assert.match(robotsBody, /User-agent: \*\s*Disallow: \/\s*$/m);
+assert.match(robots.headers.get('x-robots-tag') || '', /noindex/);
+console.log('PASS: staging robots.txt blocks crawlers and returns X-Robots-Tag');
 
 console.log('PASS: Cloudflare staging HTTP routes and disabled guest auth');
 console.log('No authenticated users, OTP emails, orders or payment attempts were created.');
