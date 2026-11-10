@@ -44,4 +44,19 @@ jobs:
         run: |
           pnpm lint
           pnpm check
+      - name: Build isolated guest UI preview
+        env:
+          VITE_AUTH_ENABLED: "true"
+          VITE_GUEST_AUTH_ENABLED: "true"
+          VITE_TURNSTILE_SITE_KEY: "0x4AAAAAAF6867ET6r61zXr3"
+        run: pnpm --filter yuelao-site build
+      - name: Upload preview build (no deployment or secrets)
+        uses: actions/upload-artifact@v4
+        with:
+          name: yuelao-guest-preview
+          path: |
+            sites/yuelao/dist/client/
+            sites/yuelao/dist/server/
+          if-no-files-found: error
+          retention-days: 3
 # No user VPS, deployment, production credentials, or real payments.
