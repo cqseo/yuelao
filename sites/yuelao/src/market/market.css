@@ -854,3 +854,145 @@
 .mk #hud:has(#back:not([hidden])) #look {
   display: none;
 }
+
+/* 掌櫃說話：名牌 + 一句話，疊在提示上方 */
+.mk #stack {
+  position: fixed;
+  z-index: 12;
+  left: 50%;
+  top: calc(4.25rem + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  width: min(30rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+.mk #stack #hint {
+  position: static;
+  transform: none;
+}
+.mk #say {
+  display: none;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+}
+.mk #say.show {
+  display: grid;
+}
+.mk #say b {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.mk #say p {
+  margin: 0;
+  min-height: 1.7em;
+  font-size: 1rem;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+}
+@media (min-width: 900px) {
+  .mk #stack {
+    left: calc(50% - 6rem);
+  }
+}
+
+/* 追問月老 */
+.mk .ask-log {
+  display: grid;
+  gap: 0.6rem;
+  max-height: 34vh;
+  margin: 0.75rem 0;
+  overflow-y: auto;
+  touch-action: pan-y;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.mk .ask-log p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  white-space: pre-line;
+}
+.mk .ask-log .npc {
+  color: var(--paper);
+}
+.mk .ask-log .me {
+  justify-self: end;
+  max-width: 85%;
+  padding: 0.3rem 0.7rem;
+  border-radius: 3px;
+  background: rgba(220, 187, 124, 0.12);
+  color: var(--paper-70);
+}
+.mk .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+.mk .chips button {
+  appearance: none;
+  min-height: 36px;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(239, 229, 207, 0.18);
+  border-radius: 3px;
+  background: none;
+  font-size: 0.8125rem;
+  color: var(--paper-70);
+}
+.mk .chips button:hover {
+  border-color: var(--gold);
+  color: var(--paper);
+}
+.mk .ask {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.mk .ask input {
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(7, 8, 18, 0.5);
+  font: inherit;
+  font-size: 1rem;
+  color: var(--paper);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.mk .ask input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.mk #panel .ask .seal {
+  width: auto;
+  min-height: 48px;
+  padding: 0 1.25rem;
+}
+.mk .ask-ai {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--paper-50);
+}
+.mk button.ghost.full {
+  justify-content: center;
+  width: min(24rem, calc(100vw - 2.5rem));
+}

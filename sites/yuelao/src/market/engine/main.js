@@ -29,6 +29,7 @@ export function startMarket(root, opts = {}) {
   const panel = $('#panel');
   const cardEl = $('#card');
   const hintEl = $('#hint');
+  const sayEl = $('#say');
   const fade = $('#fade');
   const spots = $('#spots');
   const rail = $('#rail');
@@ -42,6 +43,7 @@ export function startMarket(root, opts = {}) {
       if (b) handler(b.dataset.a);
     };
   }
+  let sayTimer = 0;
   const ui = {
     panel(html, handler, scroll) {
       panel.innerHTML = html;
@@ -58,6 +60,24 @@ export function startMarket(root, opts = {}) {
       hintEl.textContent = text;
       hintEl.classList.toggle('show', !!text);
     },
+    /** 掌櫃開口：名牌 + 一句話，逐字出現。空字串收起。 */
+    say(name, text) {
+      clearInterval(sayTimer);
+      sayEl.classList.toggle('show', !!text);
+      if (!text) return;
+      sayEl.firstElementChild.textContent = name;
+      const p = sayEl.lastElementChild;
+      p.textContent = '';
+      let i = 0;
+      sayTimer = setInterval(() => {
+        p.textContent = text.slice(0, ++i);
+        if (i % 3 === 0) audio.tick(520, 0.03, 0.02);
+        if (i >= text.length) clearInterval(sayTimer);
+      }, 45);
+    },
+    ask: (text, o) => (opts.ask ? opts.ask(text, o) : Promise.reject(new Error('no ask'))),
+    askStarters: () => opts.starters || [],
+    aiStatus: () => opts.aiStatus?.() || { available: false },
     leave: () => leaveRoom(),
   };
 
@@ -662,6 +682,7 @@ export function startMarket(root, opts = {}) {
   return () => {
     dead = true;
     ac.abort();
+    clearInterval(sayTimer);
     cancelAnimationFrame(raf);
     audio.stop();
     renderer?.dispose();

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { STICKS } from '../../ritual/sticks';
+import { createNpc } from './npc.js';
 import { audio, canvasTex, ease, glow, lerp, rand, textPlane, tween, wait, woodTex } from './util.js';
 
 const CATS = [
@@ -252,6 +253,24 @@ export function createYuelao(ui) {
     return c;
   });
 
+  // 掌櫃：月老站在供桌左後方
+  const npc = createNpc('yuelao');
+  npc.root.position.set(-1.5, 0, -3.75);
+  npc.root.rotation.y = 0.38;
+  scene.add(npc.root);
+  const npcLight = new THREE.PointLight(0xffc890, 5, 5, 1.8);
+  npcLight.position.set(-1.1, 2.1, -2.6);
+  scene.add(npcLight);
+  const say = (text) => {
+    npc.talk();
+    ui.say(npc.name, text);
+  };
+  const PICK_LINES = {
+    him: '心裡有人了。那就搖吧，籤筒不會騙你。',
+    single: '還沒遇到？緣分這條線，我替你找找。',
+    reunion: '舊人難忘。搖一支，看這條線斷了沒有。',
+  };
+
   // ---------- flow ----------
   let state = 'idle';
   let cat = 'him';
@@ -276,6 +295,7 @@ export function createYuelao(ui) {
        <div class="choices">${CATS.map((c) => `<button data-a="${c.key}"><b>${c.word}</b><span>${c.desc}</span></button>`).join('')}</div>`,
       (a) => {
         cat = a;
+        say(PICK_LINES[a]);
         showShake();
       },
     );
@@ -335,6 +355,7 @@ export function createYuelao(ui) {
     tubeGlow.material.opacity = 0;
     await wait(0.35);
     ui.hint('');
+    say(`${stick.no}。先別急著看，擲筊問我認不認。`);
     ui.panel(
       `<p class="kicker">掉出來的是</p><h2 class="big">${stick.no}</h2>
        <p class="note">這支籤算不算數，要擲筊請示月老。一平一凸是聖筊，才算數。</p>
@@ -382,18 +403,21 @@ export function createYuelao(ui) {
     state = 'tossed';
     if (result === 'sheng') {
       audio.bell(660, 0.22);
+      say('聖筊。這支籤，我認了。');
       ui.panel(
         `<p class="kicker">一平一凸</p><h2 class="big">聖筊</h2><p class="note">月老點頭了，這支籤算數。</p>
          <button class="seal" data-a="v">看月老的判詞</button>`,
         () => verdict(),
       );
     } else if (result === 'xiao') {
+      say('笑筊。你問得不夠清楚，靜下心再擲一次。');
       ui.panel(
         `<p class="kicker">兩面凸起</p><h2 class="big">笑筊</h2><p class="note">月老在笑：問題還沒問清楚。靜下心，再擲一次。</p>
          <button class="seal" data-a="again">再擲一次</button>`,
         () => toss(), // 鐵律：落定後不動，重擲從落點起步
       );
     } else {
+      say('陰筊。這支不算，重新搖。');
       ui.panel(
         `<p class="kicker">兩面平坦</p><h2 class="big">陰筊</h2><p class="note">月老沒有答應，這支籤作廢。重新搖一支。</p>
          <button class="seal" data-a="re">重新搖籤</button>`,
@@ -420,6 +444,7 @@ export function createYuelao(ui) {
   function verdict() {
     state = 'verdict';
     ui.panel('');
+    say('判詞寫好了，拿去看。還有想問的，就開口。');
     const c = CATS.find((x) => x.key === cat);
     ui.card(
       `<div class="paper">
@@ -433,13 +458,85 @@ export function createYuelao(ui) {
          <span class="p-seal">月老已批</span>
        </div>
        <div class="card-actions"><button class="seal" data-a="again">再求一支</button><button class="ghost" data-a="leave">回到街上</button></div>
+       <button class="ghost full" data-a="ask">問月老：這支籤我該怎麼做</button>
        <a class="ghost full" href="/sign/${stick.id}">看這支籤的完整解讀</a>`,
       (a) => {
         ui.card('');
-        if (a === 'leave') ui.leave();
+        if (a === 'ask') showAsk();
+        else if (a === 'leave') ui.leave();
         else showPick();
       },
     );
+  }
+
+  // 追問月老：免費的引導式回答；AI 即時對話開放且已登入、勾選同意時才走 AI。
+  const asked = [];
+  function showAsk(chips = ui.askStarters()) {
+    state = 'ask';
+    const ai = ui.aiStatus();
+    ui.panel(
+      `<p class="kicker">問月老</p>
+       <div class="ask-log" id="ask-log"></div>
+       <div class="chips" id="ask-chips"></div>
+       ${
+         ai.available
+           ? `<label class="ask-ai"><input type="checkbox" id="ask-ai" /><span>用 AI 即時回答。我同意將本次訊息與最近 6 條對話送至第三方 AI 模型生成回應；原文不存入月老資料庫。</span></label>`
+           : ''
+       }
+       <form class="ask" id="ask-form"><input id="ask-input" maxlength="200" autocomplete="off" placeholder="把想問的寫下來" aria-label="想問月老的事" /><button class="seal" type="submit">問</button></form>
+       <button class="ghost" data-a="card">回到判詞</button>`,
+      (a) => a === 'card' && verdict(),
+      true,
+    );
+    const log = document.getElementById('ask-log');
+    const chipBox = document.getElementById('ask-chips');
+    const input = document.getElementById('ask-input');
+    const line = (who, text) => {
+      const p = document.createElement('p');
+      p.className = who;
+      p.textContent = text; // 使用者輸入只當純文字放進畫面
+      log.appendChild(p);
+      log.scrollTop = log.scrollHeight;
+    };
+    for (const m of asked.slice(-6)) line(m.who, m.text);
+    if (!asked.length) line('npc', '說吧，我聽著。');
+    const setChips = (list) => {
+      chipBox.textContent = '';
+      for (const text of list.slice(0, 3)) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = text;
+        b.onclick = () => send(text);
+        chipBox.appendChild(b);
+      }
+    };
+    setChips(chips);
+    let busy = false;
+    async function send(raw) {
+      const text = raw.trim().slice(0, 200);
+      if (!text || busy) return;
+      busy = true;
+      input.value = '';
+      line('me', text);
+      asked.push({ who: 'me', text });
+      npc.talk();
+      let reply;
+      try {
+        reply = await ui.ask(text, { ai: !!document.getElementById('ask-ai')?.checked });
+      } catch {
+        reply = { text: '我這會兒聽不清楚，等一下再問一次。', followups: [] };
+      }
+      busy = false;
+      if (state !== 'ask') return;
+      npc.talk();
+      line('npc', reply.text);
+      asked.push({ who: 'npc', text: reply.text });
+      setChips(reply.followups || []);
+    }
+    document.getElementById('ask-form').onsubmit = (e) => {
+      e.preventDefault();
+      send(input.value);
+    };
   }
 
   return {
@@ -462,6 +559,7 @@ export function createYuelao(ui) {
       audio.bell(392, 0.18, 4);
       homeCups(); // 新的一次進門，筊杯回到供桌原位
       showPick();
+      say('來了。不急，心裡放著誰，先想清楚。');
     },
     exit() {
       state = 'idle';
@@ -469,6 +567,7 @@ export function createYuelao(ui) {
       ui.panel('');
       ui.card('');
       ui.hint('');
+      ui.say('', '');
     },
     resize(aspect) {
       camera.fov = aspect < 0.8 ? 72 : aspect < 1.2 ? 60 : 50;
@@ -489,6 +588,7 @@ export function createYuelao(ui) {
       if (state === 'shake') energy = Math.min(1, energy + mag * 0.012);
     },
     update(dt, t) {
+      npc.update(dt, t);
       for (const g of threads) g.rotation.z = Math.sin(t * 0.8 + g.userData.ph) * 0.04;
       for (const s of smokes) {
         const k = (s.userData.k + t * 0.07) % 1;
