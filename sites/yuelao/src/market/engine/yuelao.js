@@ -457,7 +457,7 @@ export function createYuelao(ui) {
          <p class="p-verdict">${stick.verdict[cat]}</p>
          <span class="p-seal">月老已批</span>
        </div>
-       <div class="card-actions"><button class="seal" data-a="again">再求一支</button><button class="ghost" data-a="leave">回到街上</button></div>
+       <div class="card-actions"><button class="seal" data-a="again">再求一支</button><button class="ghost" data-a="leave">回到廣場</button></div>
        <button class="ghost full" data-a="ask">問月老：這支籤我該怎麼做</button>
        <a class="ghost full" href="/sign/${stick.id}">看這支籤的完整解讀</a>`,
       (a) => {

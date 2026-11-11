@@ -87,7 +87,7 @@ export function Market() {
       <header id="hud">
         <div className="left">
           <button type="button" id="back" hidden>
-            回到街上
+            回到廣場
           </button>
           <span id="hud-title">月下集市</span>
         </div>

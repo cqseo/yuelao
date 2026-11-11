@@ -582,7 +582,7 @@ export function createTarot(ui) {
           })
           .join('')}
        </div>
-       <div class="card-actions"><button class="seal" data-a="again">再抽一次</button><button class="ghost" data-a="leave">回到街上</button></div>`,
+       <div class="card-actions"><button class="seal" data-a="again">再抽一次</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (a) => (a === 'leave' ? ui.leave() : intro()),
       true,
     );

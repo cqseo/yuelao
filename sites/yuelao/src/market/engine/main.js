@@ -5,6 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { createAvatar, HAIRS, OUTFITS } from './avatar.js';
+import { createCrowd } from './crowd.js';
 import { createTarot } from './tarot.js';
 import { audio, ease, stepTweens, tween, wait } from './util.js';
 import { createWorld } from './world.js';
@@ -95,8 +96,9 @@ export function startMarket(root, opts = {}) {
   const rooms = {};
   let active = null; // room object, or null while walking the market
   let mode = 'boot';
-  const me = { x: 0, z: 30, yaw: 0, pitch: 0.1, y: 1.9, bob: 0, speed: 0, face: Math.PI };
+  const me = { x: 0, z: 43, yaw: 0, pitch: 0.1, y: 1.9, bob: 0, speed: 0, face: Math.PI };
   let avatar;
+  let crowd;
   let third = true; // third-person view (you see your own character); V or the 視角 button switches
   let tp = 0; // 0 = first person, 1 = third person; eased so the switch glides
   let wardrobe = false;
@@ -138,13 +140,14 @@ export function startMarket(root, opts = {}) {
     });
     renderer.setPixelRatio(Math.min(devicePixelRatio, coarse ? 1.5 : 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = !coarse;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     await step('正在蓋房子、掛燈籠', 34);
     world = createWorld(renderer, coarse);
     avatar = createAvatar(coarse);
     world.scene.add(avatar.root);
+    crowd = createCrowd(world, coarse ? 6 : 12);
     try {
       avatar.apply(JSON.parse(localStorage.getItem('market-look') || '{}'));
     } catch {}
@@ -180,7 +183,12 @@ export function startMarket(root, opts = {}) {
     if (h) {
       menu.classList.remove('show');
       hud.classList.add('show');
-      Object.assign(me, { x: 0, z: h === 'plaza' ? -36 : 13, pitch: 0, y: 1.65 });
+      Object.assign(me, {
+        x: h === 'plaza' ? 9 : 0,
+        z: h === 'plaza' ? -12 : world.spawn[1],
+        pitch: 0,
+        y: 1.65,
+      });
       mode = 'walk';
       applyCam();
       if (rooms[h])
@@ -242,7 +250,7 @@ export function startMarket(root, opts = {}) {
         ? `<b>${l.name}</b><span>${l.sub}</span>`
         : l.open
           ? `<b>${l.name}</b><span>${l.sub}</span>`
-          : `<b>${l.name}</b><span>籌備中</span>`;
+          : `<b>${l.name}</b><span>${l.note || '籌備中'}</span>`;
       b.disabled = !l.open;
       if (l.open) b.onclick = () => mode === 'walk' && goTo(l.room);
       spots.appendChild(b);
@@ -250,7 +258,7 @@ export function startMarket(root, opts = {}) {
     }
     for (const r of world.rooms) {
       const b = document.createElement('button');
-      b.innerHTML = `<b>${r.name}</b><span>${r.open ? r.sub : '籌備中'}</span>`;
+      b.innerHTML = `<b>${r.name}</b><span>${r.open ? r.sub : r.note || '籌備中'}</span>`;
       b.disabled = !r.open;
       b.onclick = () => mode === 'walk' && goTo(r);
       rail.appendChild(b);
@@ -325,7 +333,7 @@ export function startMarket(root, opts = {}) {
     audio.bell(330, 0.2, 5);
     const y0 = me.y;
     tween(2.5, (k) => (me.y = y0 + (1.65 - y0) * k));
-    await walkPath([[0, 12.5]], 4.6);
+    await walkPath([world.spawn], 4.6);
     hud.classList.add('show');
     $('#back').hidden = true;
     mode = 'walk';
@@ -337,16 +345,35 @@ export function startMarket(root, opts = {}) {
     setTimeout(() => mode === 'walk' && ui.hint(''), 8000);
   }
 
-  /** Walk to a room's door (along the street centre line) and go in. */
+  /** 走到某間房門口再進去：從山門外先進廣場；直線會穿過許願池就繞半圈。 */
   async function goTo(r) {
     if (mode !== 'walk') return;
     mode = 'moving';
     ui.hint('');
-    await walkPath([
-      [0, me.z > 16 ? 15 : me.z],
-      [0, r.stand.z],
-      [r.stand.x, r.stand.z],
-    ]);
+    const pts = [];
+    let x = me.x;
+    let z = me.z;
+    if (z > world.spawn[1] + 1) {
+      pts.push(world.spawn);
+      [x, z] = world.spawn;
+    }
+    const dx = r.stand.x - x;
+    const dz = r.stand.z - z;
+    const u = Math.max(0, Math.min(1, -(x * dx + z * dz) / (dx * dx + dz * dz || 1)));
+    let nx = x + dx * u;
+    let nz = z + dz * u;
+    const near = Math.hypot(nx, nz);
+    const clear = world.pondR + 2.5;
+    if (near < clear) {
+      if (near < 0.5) {
+        nx = -dz;
+        nz = dx;
+      }
+      const n = Math.hypot(nx, nz);
+      pts.push([(nx / n) * (clear + 1.5), (nz / n) * (clear + 1.5)]);
+    }
+    pts.push([r.stand.x, r.stand.z]);
+    await walkPath(pts);
     enterRoom(r, false, true);
   }
 
@@ -404,15 +431,17 @@ export function startMarket(root, opts = {}) {
     composer.passes[0].camera = world.camera;
     bloom.strength = 0.42;
     bloom.threshold = 0.82;
-    // 回到街上：站在門外，順著街往裡看，鏡頭才不會卡進屋子裡
-    Object.assign(me, {
-      x: r.stand.x + r.fx * 0.6,
-      z: r.stand.z + r.fz * 0.6,
-      yaw: 0,
-      pitch: 0,
-      y: 1.65,
-      face: Math.PI,
-    });
+    // 回到廣場：站在門外，沿著圓環朝大殿那一側看，鏡頭才不會卡進屋子裡
+    const px = r.stand.x + r.fx * 0.6;
+    const pz = r.stand.z + r.fz * 0.6;
+    let tx = -pz;
+    let tz = px;
+    if (tz > 0) {
+      tx = -tx;
+      tz = -tz;
+    }
+    const yaw = yawTo(tx, tz);
+    Object.assign(me, { x: px, z: pz, yaw, pitch: 0, y: 1.65, face: yaw + Math.PI });
     applyCam();
     $('#back').hidden = true;
     mode = 'walk';
@@ -652,9 +681,10 @@ export function startMarket(root, opts = {}) {
       tp += (want - tp) * Math.min(1, dt * 5);
       if (mode !== 'walk') applyCam();
       avatar.update(dt, t, mode === 'walk' || mode === 'moving' ? me.speed : 0);
+      crowd.update(dt, t);
       world.update(dt, t, world.camera.position);
       world.reflect(world.camera);
-      const a = world.area(me.z);
+      const a = world.area(me.x, me.z);
       if (a !== lastArea && mode !== 'room') $('#hud-title').textContent = lastArea = a;
     }
     if (active) lastArea = '';
