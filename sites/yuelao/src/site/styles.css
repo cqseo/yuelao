@@ -30,22 +30,30 @@
   font-display: swap;
 }
 
+/* 站點頁令牌（P10，見 DESIGN.md「一條紅線」）。儀式頁在 .ritual-page 內
+   另有一套自己的令牌，不受這裡影響。
+   --color-gold-55 沿用舊名（全站邊線都引用它），現在是一道很淡的金箔細線。 */
 @theme {
-  --color-ink: #12100e;
-  --color-ink-2: #1c1915;
-  --color-vermilion: #c0392b;
-  --color-vermilion-deep: #8e2418;
-  --color-gold: #c9a227;
-  --color-gold-soft: #e6cc7a;
-  --color-paper: #f3e9d2;
-  --color-paper-dim: #e8dfc9;
-  --color-paper-78: rgba(243, 233, 210, 0.78);
-  --color-paper-62: rgba(243, 233, 210, 0.62);
-  --color-gold-55: rgba(201, 162, 39, 0.55);
-  --color-muted: #8a7f70;
-  --color-line: #3a3129;
+  --color-ink: #120e0c;
+  --color-ink-2: #1d1612;
+  --color-vermilion: #b5332b;
+  --color-vermilion-deep: #86241c;
+  --color-gold: #c9a66b;
+  --color-gold-soft: #dcc79a;
+  --color-paper: #efe5cf;
+  --color-paper-dim: #d9cfba;
+  --color-paper-78: rgba(239, 229, 207, 0.78);
+  --color-paper-62: rgba(239, 229, 207, 0.62);
+  --color-gold-55: rgba(201, 166, 107, 0.3);
+  --color-muted: #8f8473;
+  --color-line: rgba(239, 229, 207, 0.12);
   --font-serif-tc: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
   --font-cal: "Ma Shan Zheng", "Noto Serif TC", serif;
+}
+
+html {
+  /* 手機底部導航列蓋住的那一截，錨點捲動時要讓出來。 */
+  scroll-padding-bottom: 5rem;
 }
 
 body {
@@ -54,96 +62,50 @@ body {
   color: var(--color-paper);
   font-size: 1.0625rem;
   line-height: 1.9;
-  /* 全站同一座廟會夜：暖色徑向底固定不動，內容在上面流動。 */
-  background-color: #1b110a;
-  background-image: radial-gradient(120% 90% at 50% 28%, #503018 0%, #2c1b0e 58%, #1b110a 100%);
-  background-attachment: fixed;
+  /* 夜色近乎平的，只在頁頂留一團燈火的暖光；不再是整片棕色漸層。 */
+  background-color: var(--color-ink);
+  background-image: radial-gradient(
+    100% 34rem at 50% 0%,
+    rgba(122, 70, 32, 0.3) 0%,
+    rgba(122, 70, 32, 0) 72%
+  );
+  background-repeat: no-repeat;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: var(--color-gold-soft);
+  text-underline-offset: 4px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
 }
 
 .page {
   max-width: 64rem;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.25rem;
 }
 
-.site-header,
-.site-footer {
+/* ===== 頂欄 / 頁尾 ===== */
+.site-header {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 0;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 1.5rem;
+  min-height: 3rem;
+  padding: 1.25rem 0;
 }
 
-.site-header nav,
-.site-footer nav {
+.site-header :where(nav),
+.site-footer :where(nav) {
   display: flex;
-  gap: 1rem;
   align-items: center;
-}
-
-/* 主導航（P8）：只留已上線的問事總目；未建的頁面不在頂欄佔位。 */
-.site-header .site-nav {
-  gap: 1.25rem;
-}
-
-.site-nav a {
-  color: var(--color-paper-dim);
-  text-decoration: none;
-  font-size: 0.9375rem;
-  letter-spacing: 0.04em;
-  padding: 0.25rem 0;
-}
-
-.site-nav a[aria-current="true"] {
-  color: var(--color-gold-soft);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-.site-meta {
-  font-size: 0.875rem;
-}
-
-@media (max-width: 640px) {
-  .site-header .site-nav {
-    order: 3;
-    flex-basis: 100%;
-    gap: 1rem;
-  }
-
-  .site-meta .nav-legal {
-    display: none;
-  }
-
-  /* Small screens: wrap footer links as whole words, not individual characters. */
-  .site-footer {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .site-footer nav {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 0.5rem 0.9rem;
-  }
-
-  .site-footer nav a {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-}
-
-.site-footer {
-  color: var(--color-muted);
-  font-size: 0.875rem;
-  border-top: 1px solid var(--color-gold-55);
-  margin-top: 4rem;
 }
 
 .brand {
@@ -151,45 +113,168 @@ a {
   font-weight: 400;
   text-decoration: none;
   color: var(--color-gold-soft);
-  font-size: 1.5rem;
+  font-size: 1.75rem;
+  line-height: 1;
+  letter-spacing: 0.1em;
+}
+
+.site-header .site-nav {
+  gap: 2.25rem;
+  margin-left: auto;
+}
+
+.site-nav :where(a) {
+  position: relative;
+  color: var(--color-paper-62);
+  text-decoration: none;
+  font-size: 0.9375rem;
   letter-spacing: 0.08em;
+  padding: 0.5rem 0;
+  transition: color 0.15s ease;
+}
+
+.site-nav :where(a:hover) {
+  color: var(--color-paper);
+}
+
+/* 當前頁：紙色字 + 一點朱紅（桌面在字下，手機在字上）。 */
+.site-nav :where(a[aria-current="true"]) {
+  color: var(--color-paper);
+}
+
+.site-nav :where(a[aria-current="true"])::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--color-vermilion);
+}
+
+.site-meta {
+  font-size: 0.8125rem;
 }
 
 .locale-switch {
   display: flex;
-  gap: 0.25rem;
   align-items: center;
-  font-size: 0.875rem;
 }
 
-.locale-switch a,
-.locale-switch button {
+.locale-switch :where(a),
+.locale-switch :where(button) {
   color: var(--color-muted);
   text-decoration: none;
-  padding: 0.25rem 0.5rem;
+  min-height: 44px;
+  padding: 0 0.5rem;
   background: none;
   border: none;
   cursor: pointer;
   font: inherit;
+  letter-spacing: 0.06em;
 }
 
-/* 語言切換只是文字，不做藥丸——藥丸只屬於搖一搖 CTA，第一次看也不會認錯。 */
-.locale-switch a[aria-current="true"],
-.locale-switch button[aria-current="true"] {
-  color: var(--color-gold-soft);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+.locale-switch :where(button + button) {
+  border-left: 1px solid var(--color-line);
 }
 
+.locale-switch :where(a[aria-current="true"]),
+.locale-switch :where(button[aria-current="true"]) {
+  color: var(--color-paper);
+}
+
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  margin-top: 5rem;
+  padding: 1.75rem 0 2.5rem;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.site-footer :where(nav) {
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+}
+
+.site-footer :where(nav a) {
+  color: var(--color-paper-62);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-footer :where(nav a:hover) {
+  color: var(--color-paper);
+}
+
+@media (max-width: 640px) {
+  .page {
+    /* 讓出底部導航列的高度。 */
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+
+  .site-header {
+    padding: 0.5rem 0;
+  }
+
+  /* 手機：四個去處移到底部固定列，拇指可及；頂部只留品牌與繁簡。 */
+  .site-header .site-nav {
+    position: fixed;
+    z-index: 40;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    gap: 0;
+    padding: 0 0.5rem env(safe-area-inset-bottom);
+    background: rgba(18, 14, 12, 0.94);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--color-line);
+  }
+
+  .site-nav :where(a) {
+    flex: 1 1 0;
+    min-height: 56px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .site-nav :where(a[aria-current="true"])::after {
+    top: 9px;
+    bottom: auto;
+  }
+
+  .site-footer {
+    margin-top: 3.5rem;
+    flex-direction: column;
+  }
+}
+
+/* ===== 通用排版 ===== */
 h1 {
-  font-size: 2.5rem;
-  line-height: 1.2;
-  margin: 2rem 0 0.5rem;
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  font-weight: 300;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  margin: 2rem 0 0.75rem;
 }
 
 h2 {
-  font-size: 1.75rem;
-  line-height: 1.35;
+  font-size: 1.625rem;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
   margin: 2rem 0 0.5rem;
 }
 
@@ -203,21 +288,25 @@ h2 {
 }
 
 .legal {
-  max-width: 48rem;
+  max-width: 44rem;
+  padding-top: 1rem;
   font-size: 1rem;
   line-height: 1.9;
+  color: var(--color-paper-78);
 }
 
 .legal p {
   line-height: 1.9;
 }
 
-.legal h1 {
-  color: var(--color-gold-soft);
+.legal h1,
+.legal h2 {
+  color: var(--color-paper);
 }
 
 .legal h2 {
-  margin-top: 1.5rem;
+  margin-top: 2.5rem;
+  font-size: 1.25rem;
 }
 
 /* ===== 月老 2.0：情感測驗中心（同一廟會夜，紙面負責閱讀） ===== */
@@ -604,7 +693,7 @@ h2 {
   padding-top: 1.4rem;
 }
 .test-explainer h2 {
-  color: var(--color-gold-soft);
+  color: var(--color-paper);
   font-size: 1.4rem;
   margin: 0 0 0.8rem;
 }
@@ -649,67 +738,6 @@ h2 {
   .quiz-option,
   .tests-tile {
     transition: none;
-  }
-}
-
-/* 首頁情感測驗入口：保留求籤首屏，測驗列在主選單前。 */
-.home-test-entry {
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  align-items: center;
-  gap: 1.5rem;
-  padding: 1.6rem;
-  margin: 1.35rem 0 2rem;
-  border: 1px solid var(--color-gold-55);
-  border-radius: 4px;
-  background: rgba(30, 21, 15, 0.8);
-}
-.home-test-entry h2 {
-  color: var(--color-paper);
-  font-size: clamp(1.35rem, 2.4vw, 1.65rem);
-  line-height: 1.4;
-  margin: 0.2rem 0 0.65rem;
-}
-.home-test-entry p:not(.tests-eyebrow) {
-  color: var(--color-paper-78);
-  font-size: 0.91rem;
-  line-height: 1.8;
-  margin: 0;
-}
-.home-test-links {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-.home-test-links a {
-  min-height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.65rem 0.8rem;
-  text-align: center;
-  line-height: 1.5;
-  border: 1px solid rgba(201, 162, 39, 0.45);
-  border-radius: 4px;
-  text-decoration: none;
-  color: var(--color-gold-soft);
-  font-weight: 700;
-  font-size: 0.85rem;
-  background: rgba(40, 25, 17, 0.7);
-}
-.home-test-links a:hover,
-.home-test-links a:focus-visible {
-  border-color: var(--color-gold-soft);
-  background: rgba(142, 36, 24, 0.26);
-}
-@media (max-width: 640px) {
-  .home-test-entry {
-    grid-template-columns: 1fr;
-    padding: 1.15rem;
-    gap: 1rem;
-  }
-  .home-test-links {
-    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -891,7 +919,7 @@ h2 {
 .account-panel h2 {
   margin: 0 0 0.7rem;
   font-size: 1.27rem;
-  color: var(--color-gold-soft);
+  color: var(--color-paper);
 }
 .account-panel > p {
   margin: 0 0 1rem;
@@ -1037,539 +1065,389 @@ h2 {
   accent-color: var(--color-vermilion);
 }
 
-/* ===== 首頁：問事總目（版式抄 kaucim，視覺抄儀式頁） ===== */
+/* ===== 首頁（P10「一條紅線」，見 DESIGN.md） =====
+   一欄、左對齊。一條 1px 朱紅直線從英雄區標題左側一路垂到頁尾，每一節
+   在線上打一個小結；這是全站唯一的裝飾。--thread-x 是紅線到內容左緣的
+   距離，英雄區與長卷共用，線才接得上。 */
 
-.ask-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem 0 1rem;
-  flex-wrap: wrap;
+.home {
+  --thread-x: 2.5rem;
+  /* 頂欄的高度：英雄區往上頂這麼多，照片從頁頂開始，頂欄壓在照片上。 */
+  --header-h: 5.5rem;
 }
 
-.ask-system {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.ask-system .name {
-  font-family: var(--font-cal);
-  font-size: 2.5rem;
-  line-height: 1;
-  color: var(--color-paper);
-  /* 英雄區簽系名就是首頁 H1（P7）：h1 預設 margin 會把頂欄撐開，清掉。 */
-  margin: 0;
-}
-
-.ask-system .badge-free {
-  color: var(--color-vermilion);
-  font-weight: 700;
-  font-size: 0.875rem;
-}
-
-/* 主行動是朱紅實心方塊 + 一道細內框線（印章的邊框），不用膠囊。
-   不換行：窄屏上寧可字小一點，也不在「搖一搖」中間斷開（P8）。 */
-.ask-shake {
-  appearance: none;
-  cursor: pointer;
-  border: none;
-  border-radius: 4px;
-  outline: 1px solid rgba(243, 233, 210, 0.55);
-  outline-offset: -5px;
-  background: var(--color-vermilion);
-  color: var(--color-paper);
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  padding: 0.75rem 1.5rem;
-  min-height: 48px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
-}
-
-.ask-direct-btn {
-  appearance: none;
-  cursor: pointer;
-  background: none;
-  border: none;
-  color: var(--color-gold-soft);
-  font-family: inherit;
-  font-size: 0.9375rem;
-  letter-spacing: 0.04em;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  padding: 0.5rem 0;
-  min-height: 44px;
-}
-
-.ask-ways {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: 0.875rem;
-  color: var(--color-muted);
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--color-line);
-}
-
-.ask-ways .label {
-  color: var(--color-paper-62);
-}
-
-.ask-ways a {
-  color: var(--color-paper-dim);
-  text-decoration: none;
-}
-
-.ask-ways a:hover {
-  color: var(--color-gold-soft);
-}
-
-.ask-ways .sep {
-  color: var(--color-line);
-}
-
-.ask-ways .soon {
-  color: var(--color-muted);
-}
-
-/* 英雄區：簽系名、搖一搖、直接解簽、其他問法都壓在同一幅廟會夜上。
-   與儀式頁同一張 temple-fair.jpg、同一層 scrim（上透下暗，底部沉進
-   頁面暖底）。圖未載入時暖底頂著，不塌成死黑。 */
-.ask-hero {
+/* 英雄區：全幅廟會夜（與儀式頁同一張圖），底部沉進頁面夜色。 */
+.home-hero {
   position: relative;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 1.5rem;
-  min-height: 340px;
+  margin: calc(var(--header-h) * -1) calc(50% - 50vw) 0;
+  min-height: min(84vh, 48rem);
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  background: radial-gradient(120% 90% at 50% 28%, #503018 0%, #2c1b0e 58%, #1b110a 100%);
+  align-items: flex-end;
+  overflow: hidden;
+  background: #1a120d;
 }
 
-.ask-hero-img {
+.home-hero-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 30%;
+  object-position: center 32%;
 }
 
-.ask-hero-scrim {
+.home-hero-scrim {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(18, 16, 14, 0.3) 0%,
-    rgba(18, 16, 14, 0) 34%,
-    rgba(18, 16, 14, 0.06) 58%,
-    rgba(18, 16, 14, 0.88) 100%
+    rgba(18, 14, 12, 0.72) 0%,
+    rgba(18, 14, 12, 0.12) 26%,
+    rgba(18, 14, 12, 0.3) 52%,
+    rgba(18, 14, 12, 0.9) 84%,
+    #120e0c 100%
   );
 }
 
-.ask-hero .ask-top,
-.ask-hero .ask-ways {
+.home-hero-inner {
   position: relative;
-  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
 }
 
-.ask-hero .ask-top {
-  padding: 1.5rem 1.25rem 1rem;
+.home-hero-copy {
+  position: relative;
+  padding: 0.5rem 0 3.5rem var(--thread-x);
 }
 
-.ask-hero .ask-ways {
-  padding: 0 1.25rem 1.5rem;
-  border-bottom: none;
+/* 紅線的起點：載入時由上往下畫一次，之後不再動。 */
+.home-hero-copy::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-vermilion);
+  transform-origin: 50% 0;
+  animation: thread-draw 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
 }
 
-.ask-hero .ask-system .name,
-.ask-hero .ask-direct-btn,
-.ask-hero .ask-ways,
-.ask-hero .ask-ways a {
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+@keyframes thread-draw {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
 }
 
-.ask-hero .ask-shake {
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
-}
-
-.ask-direct {
-  border: 1px solid var(--color-gold-55);
-  border-radius: 4px;
-  background: var(--color-ink-2);
-  padding: 1.25rem;
-  margin-top: 1.5rem;
-}
-
-.ask-direct h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.125rem;
-}
-
-.ask-direct p {
-  margin: 0 0 1rem;
-  font-size: 1rem;
-  color: var(--color-paper-78);
-  line-height: 1.9;
-}
-
-.ask-direct form {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.ask-direct input {
-  flex: 1;
-  min-width: 0;
-  background: var(--color-ink);
-  border: 1px solid var(--color-line);
-  border-radius: 4px;
+.home-hero h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 9vw, 4.5rem);
+  font-weight: 300;
+  line-height: 1.25;
+  letter-spacing: 0.1em;
   color: var(--color-paper);
-  font-family: inherit;
-  font-size: 1rem;
-  padding: 0.75rem 1rem;
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.6);
 }
 
-.ask-direct input:focus-visible {
-  outline: 2px solid var(--color-gold);
-  outline-offset: 2px;
+.home-hero-lead {
+  max-width: 26rem;
+  margin: 1.25rem 0 0;
+  text-wrap: balance;
+  font-size: 1.0625rem;
+  line-height: 1.9;
+  color: var(--color-paper-78);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.8);
 }
 
-.ask-direct button[type="submit"] {
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.75rem;
+  margin-top: 2rem;
+}
+
+/* 主行動：朱紅方塊 + 細內框（印章邊），全站同款。 */
+.btn-seal {
   appearance: none;
   cursor: pointer;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 2.25rem;
   border: none;
   border-radius: 4px;
-  outline: 1px solid rgba(243, 233, 210, 0.55);
+  outline: 1px solid rgba(239, 229, 207, 0.55);
   outline-offset: -5px;
   background: var(--color-vermilion);
   color: var(--color-paper);
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 700;
-  padding: 0.75rem 1.5rem;
-  min-height: 48px;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease;
 }
 
-.ask-direct .error {
-  color: #e8a0a8;
-  font-size: 0.875rem;
-  margin: 0.75rem 0 0;
+.btn-seal:hover {
+  background: #c23a31;
 }
 
-.ask-direct-result {
+.btn-seal:active {
+  background: var(--color-vermilion-deep);
+}
+
+.btn-seal:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+}
+
+.btn-text {
+  appearance: none;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-paper);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  letter-spacing: 0.06em;
+  text-decoration: underline;
+  text-decoration-color: rgba(239, 229, 207, 0.4);
+  text-underline-offset: 6px;
+}
+
+.btn-text:hover {
+  text-decoration-color: var(--color-paper);
+}
+
+/* 直接解籤：就在按鈕下方展開，輸籤號後去籤頁。 */
+.home-direct {
   margin-top: 1.25rem;
-  padding: 1.75rem 1.5rem 1.5rem;
-  text-align: center;
-  color: #3a2410;
-  background: url("/ritual/paper.jpg") center / cover;
-  border-radius: 4px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
-  position: relative;
+  max-width: 22rem;
 }
 
-/* 解出來的是一支籤：給它判詞卡同款米紙 + 朱紅內框，不是深底文字。 */
-.ask-direct-result::after {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border: 1px solid rgba(142, 36, 24, 0.4);
-  border-radius: 2px;
-  pointer-events: none;
+.home-direct form {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--color-paper-62);
 }
 
-.ask-direct-result .no {
-  font-weight: 700;
-  font-size: 0.875rem;
-  letter-spacing: 0.3em;
-  color: var(--color-vermilion);
-  position: relative;
+.home-direct form:focus-within {
+  border-bottom-color: var(--color-gold);
 }
 
-.ask-direct-result .grade {
-  font-family: var(--font-cal);
-  font-size: 2rem;
-  line-height: 1.3;
-  color: #5d0b14;
-  margin: 0.25rem 0;
-  position: relative;
-}
-
-.ask-direct-result .poem {
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.8;
-  margin: 0;
-  white-space: pre-line;
-  color: #41260f;
-  position: relative;
-}
-
-.ask-direct-result .verdict {
-  font-size: 1rem;
-  line-height: 1.9;
-  color: rgba(58, 36, 16, 0.82);
-  margin: 0.75rem 0 0;
-  position: relative;
-}
-
-.ask-direct-result .cta-link {
-  display: inline-block;
-  margin-top: 1rem;
-  color: var(--color-vermilion-deep);
-  position: relative;
-}
-
-.ask-direct-result .muted {
-  color: rgba(58, 36, 16, 0.6);
-  position: relative;
-}
-
-.ask-index {
-  display: grid;
-  grid-template-columns: 13rem 1fr;
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.ask-index h2 {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: 1.75rem;
-  line-height: 1.35;
+.home-direct input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-paper);
+  font-family: inherit;
+  font-size: 1.0625rem;
   letter-spacing: 0.06em;
 }
 
-.ask-cats {
-  display: grid;
-  gap: 0.5rem;
-  align-content: start;
+.home-direct input::placeholder {
+  color: var(--color-paper-62);
 }
 
-.ask-cat {
+.home-direct input:focus {
+  outline: none;
+}
+
+.home-direct button {
   appearance: none;
   cursor: pointer;
-  text-align: left;
-  background: none;
+  flex: none;
+  padding: 0 0 0 1rem;
   border: none;
-  border-left: 3px solid transparent;
-  color: var(--color-paper);
-  font-family: inherit;
-  padding: 0.75rem 0.75rem 0.75rem 1rem;
-  display: grid;
-  gap: 0.125rem;
-}
-
-.ask-cat .num {
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
-  color: var(--color-muted);
-}
-
-/* 大類名用書法金字，與儀式頁 .cat-row .word 同款；選中整塊填朱紅，
-   不是只描一條左線。 */
-.ask-cat .cat-name {
-  font-family: var(--font-cal);
-  font-size: 2.25rem;
-  font-weight: 400;
-  line-height: 1.2;
+  background: none;
   color: var(--color-gold-soft);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
-.ask-cat .cat-desc {
+.home-direct .error {
+  margin: 0.5rem 0 0;
   font-size: 0.875rem;
-  color: var(--color-paper-62);
-  line-height: 1.7;
+  color: #e9a79f;
 }
 
-.ask-cat[aria-selected="true"] {
-  border-left-color: var(--color-vermilion);
+/* 長卷：紅線接著往下。 */
+.home-scroll {
+  position: relative;
+  padding: 0 0 2rem var(--thread-x);
+}
+
+.home-scroll::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 5.5rem;
+  width: 1px;
   background: var(--color-vermilion);
 }
 
-.ask-cat[aria-selected="true"] .num {
-  color: rgba(243, 233, 210, 0.78);
+.home-section {
+  position: relative;
+  max-width: 46rem;
+  padding-top: 4.5rem;
 }
 
-.ask-cat[aria-selected="true"] .cat-name {
+.home-section:first-child {
+  padding-top: 2.5rem;
+}
+
+/* 桌面：標題在左欄、內容在右欄，用滿版心寬度；手機疊成一欄。 */
+@media (min-width: 900px) {
+  .home-section {
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    column-gap: 2.5rem;
+    align-items: start;
+    max-width: none;
+  }
+
+  .home-section > * {
+    grid-column: 2;
+  }
+
+  .home-section > h2 {
+    grid-column: 1;
+    grid-row: 1 / span 9;
+  }
+
+  .home-section > .home-rows > li:first-child .home-row {
+    padding-top: 1rem;
+  }
+
+  .home-section > .home-rows,
+  .home-section > .faq-list {
+    margin-top: 0.25rem;
+  }
+}
+
+/* 線上的結：每一節標題左側一個小菱形。 */
+.home-section > h2 {
+  position: relative;
+  text-wrap: balance;
+  margin: 0 0 1.25rem;
+  font-size: 1.625rem;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
   color: var(--color-paper);
 }
 
-.ask-cat[aria-selected="true"] .cat-desc {
-  color: rgba(243, 233, 210, 0.88);
+.home-section > h2::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--thread-x) * -1 - 4px);
+  top: 0.7em;
+  width: 9px;
+  height: 9px;
+  margin-top: -5px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-vermilion);
+  background: var(--color-ink);
+  transform: rotate(45deg);
 }
 
-.ask-entries {
+.home-section > p {
+  max-width: 40rem;
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  line-height: 1.95;
+  color: var(--color-paper-78);
+}
+
+/* 想問的事 / 其他去處：整行可點，細線分隔，不用盒子。 */
+.home-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.home-rows li {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.home-row {
   display: grid;
-  gap: 0.5rem;
-  align-content: start;
-}
-
-.ask-entry {
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid rgba(201, 162, 39, 0.28);
-  border-radius: 4px;
-  background: rgba(28, 25, 21, 0.85);
-  text-decoration: none;
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 0.25rem 1.25rem 0;
   color: var(--color-paper);
+  text-decoration: none;
 }
 
-a.ask-entry:hover {
-  border-color: var(--color-gold-55);
+.home-row .word {
+  font-family: var(--font-cal);
+  font-size: 2.5rem;
+  line-height: 1.15;
+  color: var(--color-gold-soft);
+  white-space: nowrap;
+  transition: color 0.15s ease;
 }
 
-.ask-entry .entry-name {
-  flex: none;
+.home-row .name {
   font-size: 1.125rem;
-  font-weight: 700;
+  letter-spacing: 0.06em;
   white-space: nowrap;
 }
 
-.ask-entry .entry-desc {
-  flex: 1;
-  font-size: 1rem;
-  line-height: 1.85;
-  color: var(--color-paper-78);
+.home-row .desc {
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: var(--color-paper-62);
+  transition: color 0.15s ease;
 }
 
-.ask-entry .badge {
+.home-row .chev {
   flex: none;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-}
-
-.ask-entry .badge-free {
   color: var(--color-vermilion);
-  font-weight: 700;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.ask-entry .badge-featured {
-  color: var(--color-gold-soft);
-  border: 1px solid var(--color-gold);
-  border-radius: 4px;
-  padding: 0.1rem 0.6rem;
+.home-row:hover .word,
+.home-row:hover .desc {
+  color: var(--color-paper);
 }
 
-.ask-entry .badge-soon {
-  color: var(--color-muted);
+.home-row:hover .chev {
+  transform: translateX(5px);
 }
 
-.ask-entry[aria-disabled="true"] {
-  opacity: 0.65;
-}
-
-@media (max-width: 640px) {
-  .ask-hero {
-    min-height: 280px;
-  }
-
-  /* 英雄區主行動窄屏不換行（P8）：字小一點、padding 收窄；一行塞不下時
-     整顆按鈕掉到下一行，不在字中間斷開。 */
-  .ask-system {
-    flex-wrap: wrap;
-  }
-
-  .ask-shake {
-    font-size: 0.875rem;
-    padding: 0.75rem 1rem;
-  }
-
-  .ask-index {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  /* 四個大類是乾淨的 2×2 格子（P7）：之前 flex 換行排得不齊。
-     說明文字隱藏、選中仍是整塊朱紅，對比不變。 */
-  .ask-cats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
-
-  .ask-cat {
-    border-left: none;
-    border-bottom: 3px solid transparent;
-    padding: 0.75rem;
-  }
-
-  .ask-cat[aria-selected="true"] {
-    border-bottom-color: var(--color-vermilion);
-    background: var(--color-vermilion);
-  }
-
-  .ask-cat .cat-desc {
-    display: none;
-  }
-
-  .ask-entry {
-    flex-wrap: wrap;
-    gap: 0.25rem 1rem;
-  }
-
-  .ask-entry .entry-desc {
-    flex-basis: 100%;
-  }
-}
-
-/* ===== 首頁長卷（P5）：問事總目之下的三章——怎麼問 / 這一百支籤 / 問答。
-   章與章之間金線分隔 + 大留白；每章先小眉題、再 28px H2、正文 16px/1.9。 */
-
-.home-chapters {
-  margin-top: 4rem;
-}
-
-.home-chapter {
-  border-top: 1px solid var(--color-gold-55);
-  padding: 3rem 0 0.5rem;
-  margin-top: 3.5rem;
-}
-
-.home-chapter:first-child {
-  margin-top: 0;
-}
-
-.home-chapter .kicker {
-  font-size: 0.875rem;
-  letter-spacing: 0.3em;
-  color: var(--color-gold);
-  margin: 0;
-}
-
-.home-chapter h2 {
-  margin: 0.5rem 0 1rem;
-  color: var(--color-gold-soft);
-}
-
-.home-chapter > p {
-  font-size: 1rem;
-  line-height: 1.9;
-  color: var(--color-paper-78);
-  margin: 0 0 1rem;
-  max-width: 46rem;
-}
-
+/* 四步是真的順序，才用一二三四。 */
 .how-steps {
   list-style: none;
   margin: 2rem 0 0;
   padding: 0;
   display: grid;
-  gap: 1.75rem;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2rem;
 }
 
-.home-chapter .how-steps .num {
+.how-steps .num {
   font-family: var(--font-cal);
   font-size: 1.75rem;
   line-height: 1.2;
@@ -1577,80 +1455,259 @@ a.ask-entry:hover {
 }
 
 .how-steps h3 {
-  font-size: 1.125rem;
   margin: 0.5rem 0 0.25rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--color-paper);
 }
 
 .how-steps p {
+  margin: 0;
   font-size: 0.9375rem;
   line-height: 1.85;
-  color: var(--color-paper-78);
-  margin: 0;
+  color: var(--color-paper-62);
 }
 
+/* 範例籤：月老給的東西放在米紙上（與判詞卡、籤頁同一材質）。 */
 .home-sample {
-  margin-top: 2.5rem;
-}
-
-.home-sample .sample-label {
-  font-size: 0.875rem;
-  letter-spacing: 0.2em;
-  color: var(--color-gold);
-  margin: 0 0 1rem;
+  margin-top: 3rem;
 }
 
 .home-sample > p {
+  max-width: 40rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.9;
+  color: var(--color-paper-62);
+}
+
+.sample-card {
+  position: relative;
+  padding: 2.25rem 1.5rem 2rem;
+  text-align: center;
+  color: #3a2410;
+  background: #e9dcc0 url("/ritual/paper.jpg") center / cover;
+  border-radius: 4px;
+  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.5);
+}
+
+.sample-card::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(134, 36, 28, 0.4);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.sample-card .no {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--color-vermilion);
+}
+
+.sample-card .grade {
+  margin: 0.25rem 0 0.5rem;
+  font-family: var(--font-cal);
+  font-size: 2.25rem;
+  line-height: 1.3;
+  color: #5d0b14;
+}
+
+.sample-card .poem {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.8;
+  white-space: pre-line;
+  color: #41260f;
+}
+
+.sample-card .verdict {
+  max-width: 30rem;
+  margin: 1rem auto 0;
   font-size: 1rem;
   line-height: 1.9;
-  color: var(--color-paper-78);
-  margin: 0 0 1rem;
-  max-width: 46rem;
+  color: rgba(58, 36, 16, 0.82);
 }
 
-.home-sample .ask-direct-result {
-  margin-top: 0;
-  text-align: center;
+.sample-card .muted {
+  color: rgba(58, 36, 16, 0.6);
 }
 
-.home-sample .ask-direct-result .cta-link {
+.sample-card .cta-link {
+  position: relative;
+  z-index: 1;
   display: inline-block;
   margin-top: 1rem;
   color: var(--color-vermilion-deep);
 }
 
-.faq-list {
-  margin-top: 2rem;
-  display: grid;
-  gap: 2rem;
+.home-section .more-link {
+  display: inline-block;
+  margin-top: 0.25rem;
 }
 
-.faq-item h3 {
-  font-size: 1.125rem;
-  margin: 0 0 0.5rem;
+/* 問答：一次看一題。 */
+.faq-list {
+  border-top: 1px solid var(--color-line);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.faq-item summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-height: 56px;
+  padding: 0.5rem 0.25rem 0.5rem 0;
+  font-size: 1.0625rem;
+  letter-spacing: 0.04em;
   color: var(--color-paper);
 }
 
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 加號：展開時豎線收起變成減號。 */
+.faq-item .mark {
+  position: relative;
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
+.faq-item .mark::before,
+.faq-item .mark::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 13px;
+  height: 1px;
+  background: var(--color-vermilion);
+  transition: transform 0.2s ease;
+}
+
+.faq-item .mark::after {
+  transform: rotate(90deg);
+}
+
+.faq-item[open] .mark::after {
+  transform: rotate(0deg);
+}
+
 .faq-item p {
-  font-size: 1rem;
-  line-height: 1.9;
-  color: var(--color-paper-78);
+  max-width: 40rem;
   margin: 0;
-  max-width: 46rem;
+  padding: 0 0 1.5rem;
+  font-size: 1rem;
+  line-height: 1.95;
+  color: var(--color-paper-78);
+}
+
+/* 紅線的終點：收在同心結上。 */
+.home-knot {
+  display: block;
+  position: relative;
+  width: 132px;
+  height: auto;
+  margin: 4rem 0 0 calc(var(--thread-x) * -1 - 66px);
 }
 
 @media (max-width: 640px) {
-  .home-chapters {
-    margin-top: 3rem;
+  .home {
+    --thread-x: 1.25rem;
+    --header-h: 4rem;
   }
 
-  .home-chapter {
-    padding-top: 2rem;
-    margin-top: 2.5rem;
+  .home-hero {
+    min-height: min(80vh, 40rem);
+  }
+
+  .home-hero-copy {
+    padding-bottom: 2.5rem;
+  }
+
+  .home-hero-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-seal {
+    width: 100%;
+  }
+
+  .home-section {
+    padding-top: 3.5rem;
+  }
+
+  .home-row {
+    grid-template-columns: 4.75rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    padding: 1rem 0;
+  }
+
+  .home-row .word {
+    font-size: 2rem;
+  }
+
+  .home-row.plain {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .home-row.plain .desc {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: -0.5rem;
+  }
+
+  .home-row.plain .chev {
+    grid-row: 1 / span 2;
   }
 
   .how-steps {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .how-steps li {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+    column-gap: 0.5rem;
+  }
+
+  .how-steps .num {
+    grid-row: 1 / span 2;
+  }
+
+  .how-steps h3 {
+    margin-top: 0.25rem;
+  }
+
+  /* 手機上紅線貼近左緣，結圖不往左探出畫面。 */
+  .home-knot {
+    width: 108px;
+    margin-left: calc(var(--thread-x) * -1 - 14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-copy::before {
+    animation: none;
+  }
+
+  .home-row .chev,
+  .faq-item .mark::after {
+    transition: none;
   }
 }
 
@@ -1661,7 +1718,7 @@ a.ask-entry:hover {
 }
 
 .sign-page h1 {
-  color: var(--color-gold-soft);
+  color: var(--color-paper);
 }
 
 .sign-card {

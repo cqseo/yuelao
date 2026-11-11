@@ -77,13 +77,8 @@ function DailyPage() {
 
   return (
     <article className="serene-page daily-page">
-      <div className="serene-backline">
-        <Link to={localizeHref('/')}>{t('← 回到月老', '← 回到月老')}</Link>
-        <span>{t('一日一念 · 無須登入', '一日一念 · 无须登录')}</span>
-      </div>
-
       <header className="daily-heading">
-        <span className="serene-eyebrow">A LETTER FOR TODAY / 月下日曆</span>
+        <span className="serene-eyebrow">{t('月下日曆', '月下日历')}</span>
         <h1>{t('每日，與心相見。', '每日，与心相见。')}</h1>
         <p>{t('不問明天一定如何，只陪你把今天過得更清楚。', '不问明天一定如何，只陪你把今天过得更清楚。')}</p>
       </header>

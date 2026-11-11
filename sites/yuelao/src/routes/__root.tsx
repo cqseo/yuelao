@@ -92,8 +92,8 @@ function Layout() {
         <Link to="/" className="brand">
           {site.name}
         </Link>
-        {/* 主導航（P8）：只留已上線的問事總目。姻緣簿、香燈簿、我的
-            未建，不在頂欄佔位，等頁面建好再加回來。 */}
+        {/* 主導航（P10）：四個已上線的去處。桌面在頂欄；手機（640px 以下）由
+            CSS 移到底部固定列。隱私與條款只放頁尾。 */}
         <nav className="site-nav" aria-label={m.common_nav_label()}>
           <Link to="/" aria-current={location.pathname === '/' ? 'true' : undefined}>
             {m.common_nav_home()}
@@ -123,12 +123,6 @@ function Layout() {
           )}
         </nav>
         <nav className="site-meta">
-          <Link className="nav-legal" to="/privacy">
-            {m.common_footer_privacy()}
-          </Link>
-          <Link className="nav-legal" to="/terms">
-            {m.common_footer_terms()}
-          </Link>
           {/* 繁/簡切換（P7，kaucim 式）：同一路徑、不跳頁——setLocale 寫
               PARAGLIDE_LOCALE cookie 再整頁重載，伺服器讀 cookie 做 SSR，
               網址不變。 */}

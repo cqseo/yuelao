@@ -139,13 +139,8 @@ function CompanionPage() {
 
   return (
     <article className="serene-page chat-page">
-      <div className="serene-backline">
-        <Link to={localizeHref('/')}>{t('← 回到月老', '← 回到月老')}</Link>
-        <span>{t('心事不必整理好了才說', '心事不必整理好了才说')}</span>
-      </div>
-
       <header className="chat-heading">
-        <span className="serene-eyebrow">A QUIET CONVERSATION / 月下對話</span>
+        <span className="serene-eyebrow">{t('月下對話', '月下对话')}</span>
         <h1>{t('月老，聽我說。', '月老，听我说。')}</h1>
         <p>{t('有些話，不必急著得到答案。從一句心事開始。', '有些话，不必急着得到答案。从一句心事开始。')}</p>
       </header>
