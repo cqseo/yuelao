@@ -80,7 +80,7 @@ function Layout() {
   const location = useLocation();
   // 儀式頁全幅沉浸、不掛站點頭尾：location.pathname 是去本地化後的
   // 路徑（/ritual）。
-  if (location.pathname === '/ritual') {
+  if (location.pathname === '/ritual' || location.pathname === '/market') {
     return <Outlet />;
   }
 
@@ -98,6 +98,7 @@ function Layout() {
           <Link to="/" aria-current={location.pathname === '/' ? 'true' : undefined}>
             {m.common_nav_home()}
           </Link>
+          <Link to={localizeHref('/market')}>{m.common_nav_market()}</Link>
           <Link
             to={localizeHref('/tests')}
             aria-current={location.pathname.startsWith('/tests') ? 'true' : undefined}
