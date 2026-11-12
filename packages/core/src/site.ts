@@ -32,11 +32,16 @@ export interface SubscriptionProduct extends ProductBase {
   interval: 'month' | 'year';
 }
 
-export type Product = UnlockProduct | PackProduct | SubscriptionProduct;
+/** Something the buyer owns for good once paid (an outfit, a hair ornament…). One per user. */
+export interface ItemProduct extends ProductBase {
+  kind: 'item';
+}
+
+export type Product = UnlockProduct | PackProduct | SubscriptionProduct | ItemProduct;
 
 /** A product with the price resolved for one locale — what the payment provider sees. */
 export type CheckoutProduct =
-  | { id: string; kind: 'unlock' | 'pack'; name: string; price: Price }
+  | { id: string; kind: 'unlock' | 'pack' | 'item'; name: string; price: Price }
   | { id: string; kind: 'subscription'; name: string; price: Price; interval: 'month' | 'year' };
 
 export function priceForLocale(product: Product, locale: Locale): Price {
@@ -47,10 +52,12 @@ export function priceForLocale(product: Product, locale: Locale): Price {
     HKD 1800 -> "HK$18" (zh-Hans), TWD 7500 -> "NT$75" (zh-Hant).
     (Intl currency formatting renders TWD as "$" under zh-Hant, so the
     symbol is mapped explicitly — the price must read NT$75, not $75.) */
-const CURRENCY_SYMBOL: Record<string, string> = { TWD: 'NT$', HKD: 'HK$' };
+const CURRENCY_SYMBOL: Record<string, string> = { TWD: 'NT$', HKD: 'HK$', USD: 'US$' };
 export function formatPrice(price: Price, locale: Locale): string {
   const symbol = CURRENCY_SYMBOL[price.currency] ?? `${price.currency} `;
-  return `${symbol}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(price.amount / 100)}`;
+  // Whole amounts print without decimals (NT$75); cent prices keep both (US$2.99).
+  const digits = price.amount % 100 === 0 ? 0 : 2;
+  return `${symbol}${new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(price.amount / 100)}`;
 }
 
 export function checkoutProduct(product: Product, locale: Locale): CheckoutProduct {

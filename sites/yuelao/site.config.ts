@@ -1,15 +1,23 @@
 import { defineSite } from '@yuelao/core/site';
 
 // All config for this site. Prices use minor currency units.
-// Checkout chooses HKD/TWD explicitly, independent of Traditional/Simplified locale.
+// Checkout charges in USD for every visitor, independent of Traditional/Simplified locale.
 // TODO(launch): brand name is a placeholder — see BUILD_PLAN §9.
 //   url is the live preview address (yuelao.cqseo.workers.dev); it becomes the
 //   brand domain when that decision lands — one change here updates canonical,
 //   sitemap and OG everywhere.
-// Prices (P9, copied from kaucim.ai): single deep reading HK$18; pack-3 HK$48;
-//   pack-8 HK$108. TWD is the HKD price at 4.15, rounded to whole dollars
-//   (18 -> NT$75, 48 -> NT$199, 108 -> NT$448). Do not change product ids
-//   after launch.
+// Prices (2026-11-12, owner decision): one currency, USD, at tidy price points —
+//   single deep reading US$2.99, pack-3 US$6.99, pack-8 US$13.99. Both locales
+//   carry the same price (the `prices` map is locale-keyed for historical reasons).
+//   Outfits are free for now. When a paid item is added later, list it here as
+//   `kind: 'item'` (owner's price points for those: US$2.99 / 3.99 / 4.99) — the
+//   checkout, settlement and wardrobe already handle that kind.
+//   Do not change product ids after launch.
+const usd = (amount: number) => ({
+  'zh-Hant': { amount, currency: 'USD' },
+  'zh-Hans': { amount, currency: 'USD' },
+});
+
 export default defineSite({
   id: 'yuelao',
   name: '月老',
@@ -21,30 +29,21 @@ export default defineSite({
       id: 'unlock_1',
       kind: 'unlock',
       name: '深度解讀 · 單次解鎖',
-      prices: {
-        'zh-Hant': { amount: 7500, currency: 'TWD' },
-        'zh-Hans': { amount: 1800, currency: 'HKD' },
-      },
+      prices: usd(299),
     },
     {
       id: 'pack_3',
       kind: 'pack',
       name: '問事包 · 3 次',
       uses: 3,
-      prices: {
-        'zh-Hant': { amount: 19900, currency: 'TWD' },
-        'zh-Hans': { amount: 4800, currency: 'HKD' },
-      },
+      prices: usd(699),
     },
     {
       id: 'pack_8',
       kind: 'pack',
       name: '問事包 · 8 次',
       uses: 8,
-      prices: {
-        'zh-Hant': { amount: 44800, currency: 'TWD' },
-        'zh-Hans': { amount: 10800, currency: 'HKD' },
-      },
+      prices: usd(1399),
     },
   ],
   supportEmail: 'support@example.com',
