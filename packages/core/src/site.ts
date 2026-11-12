@@ -32,11 +32,16 @@ export interface SubscriptionProduct extends ProductBase {
   interval: 'month' | 'year';
 }
 
-export type Product = UnlockProduct | PackProduct | SubscriptionProduct;
+/** Something the buyer owns for good once paid (an outfit, a hair ornament…). One per user. */
+export interface ItemProduct extends ProductBase {
+  kind: 'item';
+}
+
+export type Product = UnlockProduct | PackProduct | SubscriptionProduct | ItemProduct;
 
 /** A product with the price resolved for one locale — what the payment provider sees. */
 export type CheckoutProduct =
-  | { id: string; kind: 'unlock' | 'pack'; name: string; price: Price }
+  | { id: string; kind: 'unlock' | 'pack' | 'item'; name: string; price: Price }
   | { id: string; kind: 'subscription'; name: string; price: Price; interval: 'month' | 'year' };
 
 export function priceForLocale(product: Product, locale: Locale): Price {

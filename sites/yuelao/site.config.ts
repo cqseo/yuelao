@@ -6,11 +6,18 @@ import { defineSite } from '@yuelao/core/site';
 //   url is the live preview address (yuelao.cqseo.workers.dev); it becomes the
 //   brand domain when that decision lands — one change here updates canonical,
 //   sitemap and OG everywhere.
-// Prices (2026-11-12, owner decision: one currency, USD): single deep reading
-//   US$2.99; pack-3 US$6.99; pack-8 US$14.99. Both locales carry the same price —
-//   the `prices` map is locale-keyed for historical reasons. Amounts are a
-//   proposal pending owner sign-off; change them here only. Do not change
-//   product ids after launch.
+// Prices (2026-11-12, owner decision): one currency, USD, at tidy price points —
+//   single deep reading US$2.99, pack-3 US$6.99, pack-8 US$13.99. Both locales
+//   carry the same price (the `prices` map is locale-keyed for historical reasons).
+//   Outfits are free for now. When a paid item is added later, list it here as
+//   `kind: 'item'` (owner's price points for those: US$2.99 / 3.99 / 4.99) — the
+//   checkout, settlement and wardrobe already handle that kind.
+//   Do not change product ids after launch.
+const usd = (amount: number) => ({
+  'zh-Hant': { amount, currency: 'USD' },
+  'zh-Hans': { amount, currency: 'USD' },
+});
+
 export default defineSite({
   id: 'yuelao',
   name: '月老',
@@ -22,30 +29,21 @@ export default defineSite({
       id: 'unlock_1',
       kind: 'unlock',
       name: '深度解讀 · 單次解鎖',
-      prices: {
-        'zh-Hant': { amount: 299, currency: 'USD' },
-        'zh-Hans': { amount: 299, currency: 'USD' },
-      },
+      prices: usd(299),
     },
     {
       id: 'pack_3',
       kind: 'pack',
       name: '問事包 · 3 次',
       uses: 3,
-      prices: {
-        'zh-Hant': { amount: 699, currency: 'USD' },
-        'zh-Hans': { amount: 699, currency: 'USD' },
-      },
+      prices: usd(699),
     },
     {
       id: 'pack_8',
       kind: 'pack',
       name: '問事包 · 8 次',
       uses: 8,
-      prices: {
-        'zh-Hant': { amount: 1499, currency: 'USD' },
-        'zh-Hans': { amount: 1499, currency: 'USD' },
-      },
+      prices: usd(1399),
     },
   ],
   supportEmail: 'support@example.com',

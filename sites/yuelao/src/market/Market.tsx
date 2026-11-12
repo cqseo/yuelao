@@ -1,4 +1,4 @@
-import { findProduct, formatPrice, priceForLocale } from '@yuelao/core/site';
+import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
 import { useEffect, useRef } from 'react';
 import { track } from '~/lib/track';
 import { getLocale } from '~/paraglide/runtime.js';
@@ -44,6 +44,124 @@ export function Market() {
       }
       return res;
     };
+    /** 建單並取得 Stripe 結帳網址。金額由伺服器按商品決定，這裡只送「買哪個」。 */
+    const checkout = async (productId: string, extra: Record<string, unknown> = {}) => {
+      track('checkout_start', { product: productId, from: 'market' });
+      const product = findProduct(site, productId);
+      try {
+        const res = await authed(() =>
+          fetch('/api/billing/checkout', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              productId,
+              currency: product?.prices[locale].currency,
+              locale,
+              from: 'market',
+              ...extra,
+            }),
+          }),
+        );
+        if (res.status === 401) return { state: 'login' as const };
+        if (res.status === 409) return { state: 'owned' as const };
+        if (res.status === 429) return { state: 'busy' as const };
+        if (res.status === 201) {
+          const data = (await res.json()) as { checkoutUrl?: string };
+          // 只跳去 Stripe 的結帳網域
+          if (data.checkoutUrl && new URL(data.checkoutUrl).host === 'checkout.stripe.com')
+            return { state: 'redirect' as const, url: data.checkoutUrl };
+          return { state: 'error' as const };
+        }
+        return { state: res.status === 503 ? ('closed' as const) : ('error' as const) };
+      } catch {
+        return { state: 'error' as const };
+      }
+    };
+    // 付費外觀等「永久擁有的物品」：價格讀站點設定，擁有清單讀帳戶。
+    const BACK = 'market-back';
+    try {
+      sessionStorage.removeItem(BACK);
+    } catch {}
+    const shop = {
+      prices: Object.fromEntries(
+        // 目錄目前沒有 item 商品（外觀免費）；之後加了就會出現在這裡
+        (site.products as readonly Product[])
+          .filter((p) => p.kind === 'item')
+          .map((p) => [p.id, formatPrice(priceForLocale(p, locale), locale)]),
+      ),
+      async owned(): Promise<string[]> {
+        try {
+          const res = await authed(() =>
+            fetch('/api/account/status', { credentials: 'same-origin', cache: 'no-store' }),
+          );
+          if (!res.ok) return [];
+          const data = (await res.json()) as { items?: unknown };
+          return Array.isArray(data.items)
+            ? data.items.filter((x): x is string => typeof x === 'string')
+            : [];
+        } catch {
+          return [];
+        }
+      },
+      buy: (itemId: string) => checkout(itemId),
+      /** 記下「等一下要回集市」，登入頁與付款回程頁據此帶路。 */
+      leaving() {
+        try {
+          sessionStorage.setItem(BACK, '1');
+        } catch {}
+      },
+    };
+
+    // 許願池：列表誰都能看；許願、同願、檢舉、撤下要登入。審核與限額都在伺服器。
+    type WishResult = {
+      ok: boolean;
+      id?: string;
+      status?: string;
+      result?: string;
+      code?: string;
+      care?: boolean;
+    };
+    const wishPost = async (body: Record<string, unknown>): Promise<WishResult> => {
+      try {
+        const res = await authed(() =>
+          fetch('/api/wishes', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          }),
+        );
+        const data = (await res.json().catch(() => ({}))) as {
+          id?: string;
+          status?: string;
+          result?: string;
+          error?: { code?: string; care?: boolean };
+        };
+        if (res.ok) return { ok: true, id: data.id, status: data.status, result: data.result };
+        return { ok: false, code: data.error?.code, care: data.error?.care === true };
+      } catch {
+        return { ok: false };
+      }
+    };
+    const wishes = {
+      async list() {
+        try {
+          const res = await authed(() =>
+            fetch('/api/wishes', { credentials: 'same-origin', cache: 'no-store' }),
+          );
+          return res.ok ? await res.json() : null;
+        } catch {
+          return null;
+        }
+      },
+      make: (body: string, tag: string) => wishPost({ action: 'make', body, tag, locale }),
+      bless: (wishId: string) => wishPost({ action: 'bless', wishId }),
+      report: (wishId: string, reason: string) => wishPost({ action: 'report', wishId, reason }),
+      withdraw: (wishId: string) => wishPost({ action: 'withdraw', wishId }),
+      leaving: () => shop.leaving(),
+    };
+
     const deep = {
       price: unlock ? formatPrice(priceForLocale(unlock, locale), locale) : '',
       page: (stickId: number, category: string) =>
@@ -75,38 +193,8 @@ export function Market() {
         }
         return { state: 'none' as const };
       },
-      async buy(stickId: number, category: string) {
-        track('checkout_start', { product: 'unlock_1', from: 'market' });
-        try {
-          const res = await authed(() =>
-            fetch('/api/billing/checkout', {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({
-                productId: 'unlock_1',
-                currency: unlock?.prices[locale].currency,
-                locale,
-                stickId,
-                category,
-                from: 'market',
-              }),
-            }),
-          );
-          if (res.status === 401) return { state: 'login' as const };
-          if (res.status === 409) return { state: 'owned' as const };
-          if (res.status === 429) return { state: 'busy' as const };
-          if (res.status === 201) {
-            const data = (await res.json()) as { checkoutUrl?: string };
-            // 只跳去 Stripe 的結帳網域
-            if (data.checkoutUrl && new URL(data.checkoutUrl).host === 'checkout.stripe.com')
-              return { state: 'redirect' as const, url: data.checkoutUrl };
-            return { state: 'error' as const };
-          }
-          return { state: res.status === 503 ? ('closed' as const) : ('error' as const) };
-        } catch {
-          return { state: 'error' as const };
-        }
+      buy(stickId: number, category: string) {
+        return checkout('unlock_1', { stickId, category });
       },
       save(stickId: number, category: string) {
         try {
@@ -175,6 +263,8 @@ export function Market() {
         aiStatus: () => ({ available: !!ai?.enabled && !ai.loginRequired && ai.remaining !== 0 }),
         ask,
         deep,
+        shop,
+        wishes,
       });
     });
     return () => {
@@ -198,6 +288,7 @@ export function Market() {
             回到廣場
           </button>
           <span id="hud-title">月下集市</span>
+          <button type="button" id="sky" aria-label="天色" />
         </div>
         <div className="right">
           <button type="button" id="view">

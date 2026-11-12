@@ -14,6 +14,7 @@ import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
 import type { SiteConfig } from './site';
 import { createAnonClient, createServiceClient } from './supabase';
+import { listWishesResponse, wishActionRequest } from './wishes';
 
 // Server entry for a site: call createCore(site) once in src/core.server.ts,
 // and keep route files as thin forwarders, e.g. POST: ({ request }) => core.billing.webhook(request).
@@ -68,6 +69,18 @@ export function createCore(site: SiteConfig) {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         return companionChatRequest(request, ctx.supabaseService, user, ctx.env);
+      },
+    },
+    wishes: {
+      list: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return listWishesResponse(ctx.supabaseService, user, ctx.env);
+      },
+      act: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return wishActionRequest(request, ctx.supabaseService, user, ctx.env);
       },
     },
     account: {
