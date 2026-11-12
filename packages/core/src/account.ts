@@ -12,7 +12,7 @@ export async function accountSnapshot(
 ): Promise<Response> {
   if (!user) return errorResponse(401, 'login_required');
   if (!db) return errorResponse(503, 'account_unavailable');
-  const [orders, packs, unlocks] = await Promise.all([
+  const [orders, packs, unlocks, items] = await Promise.all([
     db
       .from('orders')
       .select('id,product_id,amount,currency,status,created_at,paid_at')
@@ -31,6 +31,7 @@ export async function accountSnapshot(
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50),
+    db.from('owned_items').select('item_id').eq('user_id', user.id).eq('revoked', false).limit(200),
   ]);
   if (orders.error || packs.error || unlocks.error) return errorResponse(503, 'account_query_failed');
   return json({
@@ -41,6 +42,8 @@ export async function accountSnapshot(
       remaining_uses: Math.max(0, pack.total_uses - pack.used_uses),
     })),
     unlocks: unlocks.data,
+    // Owned items (outfits etc.). If the table is not migrated yet this is simply empty.
+    items: items.error ? [] : (items.data ?? []).map((row) => row.item_id),
     billingTestEnabled,
     aiTestEnabled,
   });
