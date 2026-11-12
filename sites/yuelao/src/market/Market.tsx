@@ -113,6 +113,55 @@ export function Market() {
       },
     };
 
+    // 許願池：列表誰都能看；許願、同願、檢舉、撤下要登入。審核與限額都在伺服器。
+    type WishResult = {
+      ok: boolean;
+      id?: string;
+      status?: string;
+      result?: string;
+      code?: string;
+      care?: boolean;
+    };
+    const wishPost = async (body: Record<string, unknown>): Promise<WishResult> => {
+      try {
+        const res = await authed(() =>
+          fetch('/api/wishes', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          }),
+        );
+        const data = (await res.json().catch(() => ({}))) as {
+          id?: string;
+          status?: string;
+          result?: string;
+          error?: { code?: string; care?: boolean };
+        };
+        if (res.ok) return { ok: true, id: data.id, status: data.status, result: data.result };
+        return { ok: false, code: data.error?.code, care: data.error?.care === true };
+      } catch {
+        return { ok: false };
+      }
+    };
+    const wishes = {
+      async list() {
+        try {
+          const res = await authed(() =>
+            fetch('/api/wishes', { credentials: 'same-origin', cache: 'no-store' }),
+          );
+          return res.ok ? await res.json() : null;
+        } catch {
+          return null;
+        }
+      },
+      make: (body: string, tag: string) => wishPost({ action: 'make', body, tag, locale }),
+      bless: (wishId: string) => wishPost({ action: 'bless', wishId }),
+      report: (wishId: string, reason: string) => wishPost({ action: 'report', wishId, reason }),
+      withdraw: (wishId: string) => wishPost({ action: 'withdraw', wishId }),
+      leaving: () => shop.leaving(),
+    };
+
     const deep = {
       price: unlock ? formatPrice(priceForLocale(unlock, locale), locale) : '',
       page: (stickId: number, category: string) =>
@@ -215,6 +264,7 @@ export function Market() {
         ask,
         deep,
         shop,
+        wishes,
       });
     });
     return () => {
