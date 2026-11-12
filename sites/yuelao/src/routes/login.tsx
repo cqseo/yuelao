@@ -86,7 +86,12 @@ function Login() {
     try {
       const res = await callAuth('verify', { email: email.trim(), code: code.trim() });
       if (res.ok) {
-        window.location.assign(localizeHref('/account'));
+        // 從集市的月老殿過來登入的，登入後回月老殿（固定路徑，不接受外部傳入的網址）。
+        let fromMarket = false;
+        try {
+          fromMarket = sessionStorage.getItem('market-pending') !== null;
+        } catch {}
+        window.location.assign(fromMarket ? '/market#yuelao' : localizeHref('/account'));
         return;
       }
       setError(

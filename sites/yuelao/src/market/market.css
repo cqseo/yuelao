@@ -996,3 +996,42 @@
   justify-content: center;
   width: min(24rem, calc(100vw - 2.5rem));
 }
+
+/* 深度解讀：判詞卡上的主按鈕、面板裡當按鈕用的連結 */
+.mk #card .seal.full {
+  width: min(24rem, calc(100vw - 2.5rem));
+}
+.mk a.linkbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  text-decoration: none;
+}
+
+/* 判詞卡下方：付費項用金框、不搶「再求一支」的硃紅；卡片比螢幕高時從頂端排起 */
+.mk #card {
+  align-content: safe center;
+  gap: 0.9rem;
+}
+.mk .offer {
+  appearance: none;
+  width: min(24rem, calc(100vw - 2.5rem));
+  min-height: 52px;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  background: rgba(220, 187, 124, 0.08);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+.mk .offer:hover {
+  background: rgba(220, 187, 124, 0.16);
+}
+.mk .card-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  width: min(24rem, calc(100vw - 2.5rem));
+}

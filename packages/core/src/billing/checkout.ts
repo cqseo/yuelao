@@ -7,26 +7,30 @@ import type { PaymentProvider } from './provider';
 export interface CheckoutSelection {
   productId: string;
   locale: Locale;
-  currency: 'HKD' | 'TWD';
+  currency: 'HKD' | 'TWD' | 'USD';
   stickId: number | null;
   category: 'him' | 'single' | 'reunion' | null;
+  /** Where the purchase started; only picks which fixed page a cancelled checkout returns to. */
+  from: 'market' | null;
 }
 
 function parseSelection(raw: unknown): CheckoutSelection | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const value = raw as Record<string, unknown>;
   const { productId, locale, currency, stickId, category } = value;
+  if (value.from !== undefined && value.from !== 'market') return null;
+  const from = value.from === 'market' ? 'market' : null;
   if (typeof productId !== 'string' || !['unlock_1', 'pack_3', 'pack_8'].includes(productId)) return null;
   if (locale !== 'zh-Hant' && locale !== 'zh-Hans') return null;
-  if (currency !== 'HKD' && currency !== 'TWD') return null;
+  if (currency !== 'HKD' && currency !== 'TWD' && currency !== 'USD') return null;
   if (productId === 'unlock_1') {
     if (typeof stickId !== 'number' || !Number.isInteger(stickId) || stickId < 1 || stickId > 100)
       return null;
     if (category !== 'him' && category !== 'single' && category !== 'reunion') return null;
-    return { productId, locale, currency, stickId, category };
+    return { productId, locale, currency, stickId, category, from };
   }
   if (stickId !== undefined || category !== undefined) return null;
-  return { productId, locale, currency, stickId: null, category: null };
+  return { productId, locale, currency, stickId: null, category: null, from };
 }
 
 export interface CheckoutDeps {
@@ -164,7 +168,8 @@ export async function createTestCheckout({
   // webhook followed by a single transactional DB grant may unlock it.
   const returnUrl = new URL('/billing/return', siteUrl);
   returnUrl.searchParams.set('order', order.id);
-  const cancelUrl = new URL('/ritual', siteUrl);
+  // Fixed paths only — never a caller-supplied URL.
+  const cancelUrl = new URL(selection.from === 'market' ? '/market#yuelao' : '/ritual', siteUrl);
   const checkout = await provider.createCheckout({
     orderId: order.id,
     siteId: site.id,
