@@ -13,9 +13,11 @@ function BillingReturn() {
   const zh = getLocale() === 'zh-Hans';
   // 從集市的月老殿發起的付款：回程帶回月老殿（那支籤暫存在 sessionStorage）。
   const [pending, setPending] = useState(false);
+  const [market, setMarket] = useState(false);
   useEffect(() => {
     try {
       setPending(sessionStorage.getItem('market-pending') !== null);
+      setMarket(sessionStorage.getItem('market-back') !== null);
     } catch {}
   }, []);
   return (
@@ -34,6 +36,10 @@ function BillingReturn() {
       {pending ? (
         <p>
           <a href="/market#yuelao">{zh ? '回到月老殿，接着刚才那支签' : '回到月老殿，接著剛才那支籤'}</a>
+        </p>
+      ) : market ? (
+        <p>
+          <a href="/market">{zh ? '回到集市' : '回到集市'}</a>
         </p>
       ) : (
         <Link to={localizeHref('/ritual')}>{zh ? '返回月老求签' : '返回月老求籤'}</Link>

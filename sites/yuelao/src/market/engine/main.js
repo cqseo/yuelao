@@ -151,9 +151,13 @@ export function startMarket(root, opts = {}) {
     avatar = createAvatar(coarse);
     world.scene.add(avatar.root);
     crowd = createCrowd(world, coarse ? 6 : 12);
-    try {
-      avatar.apply(JSON.parse(localStorage.getItem('market-look') || '{}'));
-    } catch {}
+    restoreLook();
+    // 擁有的付費外觀要問過帳戶才知道；回來後再套一次上次的選擇
+    shop?.owned().then((ids) => {
+      if (dead) return;
+      for (const id of ids) owned.add(id);
+      if (!wardrobe) restoreLook();
+    });
     await step('正在擺供桌', 62);
     rooms.yuelao = createYuelao(ui);
     await step('正在洗牌', 78);
@@ -578,50 +582,118 @@ export function startMarket(root, opts = {}) {
     emit('market_view', { third });
     $('#view').textContent = third ? '第一人稱' : '第三人稱';
   }
+  // ---------- 外觀：免費款隨便換；付費款可試穿，買了才留得住 ----------
+  const saved = {};
+  const owned = new Set();
+  const shop = opts.shop || null;
+  const itemId = (key, id) => `${key}_${id}`;
+  const usable = (key, o) => o.free || owned.has(itemId(key, o.id));
+  const listOf = (key) => (key === 'outfit' ? OUTFITS : HAIRS);
+  /** 讀回上次的選擇，只套用現在用得了的（免費的，或這個帳號擁有的）。 */
+  function restoreLook() {
+    let want = {};
+    try {
+      want = JSON.parse(localStorage.getItem('market-look') || '{}') || {};
+    } catch {}
+    for (const key of ['outfit', 'hair']) {
+      const o = listOf(key).find((x) => x.id === want[key]);
+      if (o && usable(key, o)) saved[key] = o.id;
+    }
+    avatar.apply({ outfit: saved.outfit || 'moon', hair: saved.hair || 'bun' });
+  }
+  function keep(key, id) {
+    saved[key] = id;
+    try {
+      localStorage.setItem('market-look', JSON.stringify(saved));
+    } catch {}
+  }
+  let trying = null; // 正在試穿、還沒擁有的那一件：{ key, o }
+  let shopNote = '';
   function openWardrobe() {
     if (mode !== 'walk') return;
-    if (!wardrobe) emit('market_wardrobe_open');
+    if (!wardrobe) {
+      emit('market_wardrobe_open');
+      trying = null;
+      shopNote = '';
+    }
     wardrobe = true;
     third = true;
     $('#view').textContent = '第一人稱';
-    const sw = (list, key) =>
-      list
+    const tag = (key, o) => {
+      if (usable(key, o)) return o.free ? '' : '<span>已擁有</span>';
+      return `<span>${shop?.prices[itemId(key, o.id)] || '之後開放'}</span>`;
+    };
+    const sw = (key) =>
+      listOf(key)
         .map(
           (o) =>
-            `<button data-a="${key}:${o.id}" class="${avatar.state[key] === o.id ? 'on' : ''}${o.free ? '' : ' lock'}">${o.robe !== undefined ? `<i style="background:#${o.robe.toString(16).padStart(6, '0')};border-color:#${o.trim.toString(16).padStart(6, '0')}"></i>` : ''}<b>${o.name}</b>${o.free ? '' : '<span>之後開放</span>'}</button>`,
+            `<button data-a="${key}:${o.id}" class="${avatar.state[key] === o.id ? 'on' : ''}${usable(key, o) ? '' : ' lock'}">${o.robe !== undefined ? `<i style="background:#${o.robe.toString(16).padStart(6, '0')};border-color:#${o.trim.toString(16).padStart(6, '0')}"></i>` : ''}<b>${o.name}</b>${tag(key, o)}</button>`,
         )
         .join('');
+    const price = trying && shop?.prices[itemId(trying.key, trying.o.id)];
+    const offer = !trying
+      ? ''
+      : price
+        ? `<button class="offer" data-a="buy">買下「${trying.o.name}」　${price}</button>`
+        : '<p class="note">這一款還沒開賣。</p>';
     ui.panel(
-      `<h2>外觀</h2><p class="kicker">衣服</p><div class="swatches">${sw(OUTFITS, 'outfit')}</div>
-     <p class="kicker">髮型</p><div class="swatches">${sw(HAIRS, 'hair')}</div>
-     <p class="note" id="look-note">帶鎖的款式可以先試穿看看，之後開放購買；離開這個面板會換回原本的。</p>
+      `<h2>外觀</h2><p class="kicker">衣服</p><div class="swatches">${sw('outfit')}</div>
+     <p class="kicker">髮型</p><div class="swatches">${sw('hair')}</div>
+     ${offer}
+     <p class="note" id="look-note" role="status">${shopNote || (trying ? '現在是試穿。沒買的話，離開這個面板會換回原本的。' : '標了價錢的款式可以先試穿。')}</p>
      <button class="seal" data-a="done">好了</button>`,
       (a) => {
         if (a === 'done') return closeWardrobe();
+        if (a === 'buy') return void buyTrying();
         const [key, id] = a.split(':');
+        const o = listOf(key).find((x) => x.id === id);
+        if (!o) return;
         avatar.apply({ [key]: id });
-        const o = (key === 'outfit' ? OUTFITS : HAIRS).find((x) => x.id === id);
-        if (!o.free) emit('market_locked_look_try', { item: id });
-        if (o.free) {
-          saved[key] = id;
-          try {
-            localStorage.setItem('market-look', JSON.stringify(saved));
-          } catch {}
+        shopNote = '';
+        if (usable(key, o)) {
+          keep(key, id);
+          if (trying?.key === key) trying = null;
+        } else {
+          trying = { key, o };
+          emit('market_locked_look_try', { item: id });
         }
         openWardrobe();
       },
+      true,
     );
   }
-  const saved = {};
+  async function buyTrying() {
+    if (!trying || !shop) return;
+    const { key, o } = trying;
+    shopNote = '正在準備';
+    openWardrobe();
+    const r = await shop.buy(itemId(key, o.id));
+    if (!wardrobe || trying?.o !== o) return;
+    if (r.state === 'redirect') {
+      shop.leaving();
+      location.assign(r.url);
+      return;
+    }
+    if (r.state === 'owned') {
+      owned.add(itemId(key, o.id));
+      keep(key, o.id);
+      trying = null;
+      shopNote = '這一款已經是你的了。';
+    } else if (r.state === 'login') {
+      shop.leaving();
+      shopNote = '要先登入才能買，這樣換了裝置也還在。<a href="/login">去登入</a>';
+    } else if (r.state === 'closed') {
+      shopNote = '付費外觀還沒開賣。沒有扣款。';
+    } else {
+      shopNote = '這會兒忙不過來，稍後再試。沒有扣款。';
+    }
+    openWardrobe();
+  }
   function closeWardrobe() {
     wardrobe = false;
+    trying = null;
     ui.panel('');
-    avatar.apply({
-      outfit:
-        saved.outfit ||
-        (OUTFITS.find((o) => o.id === avatar.state.outfit)?.free ? avatar.state.outfit : 'moon'),
-      hair: saved.hair || avatar.state.hair,
-    });
+    avatar.apply({ outfit: saved.outfit || 'moon', hair: saved.hair || 'bun' });
   }
   $('#view').onclick = toggleView;
   $('#look').onclick = () => (wardrobe ? closeWardrobe() : openWardrobe());

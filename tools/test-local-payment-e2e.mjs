@@ -33,11 +33,16 @@ provider.createCustomer = async ({ id }) => {
   assert.equal(id, mainUser.id);
   return 'cus_test_local_e2e_001';
 };
+// Prices are an owner decision in site.config.ts; the test follows the config, not a literal.
+const PACK3 = site.products.find((p) => p.id === 'pack_3').prices['zh-Hant'];
+const ITEM = site.products.find((p) => p.kind === 'item');
+const ITEM_PRICE = ITEM.prices['zh-Hant'];
+let expecting = { id: 'pack_3', price: PACK3 };
 provider.createCheckout = async (request) => {
   checkoutCount++;
-  assert.equal(request.product.id, 'pack_3');
-  assert.equal(request.product.price.amount, 4800);
-  assert.equal(request.product.price.currency, 'HKD');
+  assert.equal(request.product.id, expecting.id);
+  assert.equal(request.product.price.amount, expecting.price.amount);
+  assert.equal(request.product.price.currency, expecting.price.currency);
   assert.ok(request.successUrl.startsWith(`${baseUrl}/billing/return?order=`));
   assert.equal(new URL(request.cancelUrl).origin, baseUrl);
   return {
@@ -66,14 +71,14 @@ function webhook(type, eventId, { live = false, checkoutRef = 'cs_test_local_e2e
     body: payload,
   });
 }
-function payFact(orderId, amount = 4800, overrides = {}) {
+function payFact(orderId, amount = PACK3.amount, overrides = {}) {
   return {
     provider: 'stripe',
     paymentRef: 'pi_local_e2e_001',
     chargeRef: 'pi_local_e2e_001',
     paid: true,
     amount,
-    currency: 'hkd',
+    currency: PACK3.currency.toLowerCase(),
     amountRefunded: 0,
     dispute: null,
     metadataTrusted: true,
@@ -98,7 +103,7 @@ const apiRequest = (path, data) =>
   });
 async function run() {
   await db.query(
-    'TRUNCATE public.paid_ai_readings,public.unlocks,public.entitlements,public.payments,public.orders,public.webhook_events,public.profiles,auth.users RESTART IDENTITY CASCADE',
+    'TRUNCATE public.owned_items,public.paid_ai_readings,public.unlocks,public.entitlements,public.payments,public.orders,public.webhook_events,public.profiles,auth.users RESTART IDENTITY CASCADE',
   );
   for (const user of [mainUser, otherUser]) {
     await db.query('INSERT INTO auth.users(id) VALUES ($1)', [user.id]);
@@ -118,7 +123,7 @@ async function run() {
     request: apiRequest('/api/billing/checkout', {
       productId: 'pack_3',
       locale: 'zh-Hant',
-      currency: 'HKD',
+      currency: PACK3.currency,
     }),
   });
   assert.equal(checkout.status, 201, await checkout.clone().text());
@@ -131,8 +136,8 @@ async function run() {
     [orderId],
   );
   assert.equal(pending.status, 'pending');
-  assert.equal(Number(pending.amount), 4800);
-  assert.equal(pending.currency, 'HKD');
+  assert.equal(Number(pending.amount), PACK3.amount);
+  assert.equal(pending.currency, PACK3.currency);
   assert.equal(pending.checkout_ref, 'cs_test_local_e2e_1');
   console.log(
     'PASS: Checkout created correct server-priced order, persistent Stripe customer and return origin',
@@ -277,7 +282,7 @@ async function run() {
   console.log('PASS: account shows paid order, live pack balance and own private unlock');
 
   provider.fetchPaymentByCharge = async () =>
-    payFact(orderId, 4800, { amountRefunded: 100, fetchedAt: Date.now() + 3000 });
+    payFact(orderId, PACK3.amount, { amountRefunded: 100, fetchedAt: Date.now() + 3000 });
   const refund = await settleStripeWebhook({
     site,
     provider,
@@ -303,7 +308,11 @@ async function run() {
     database: db,
     user: mainUser,
     baseUrl,
-    request: apiRequest('/api/billing/checkout', { productId: 'pack_3', locale: 'zh-Hant', currency: 'HKD' }),
+    request: apiRequest('/api/billing/checkout', {
+      productId: 'pack_3',
+      locale: 'zh-Hant',
+      currency: PACK3.currency,
+    }),
   });
   assert.equal(another.status, 201);
   const underpaidOrder = (await another.json()).orderId;
@@ -340,7 +349,7 @@ async function run() {
     request: apiRequest('/api/billing/checkout', {
       productId: 'pack_3',
       locale: 'zh-Hant',
-      currency: 'HKD',
+      currency: PACK3.currency,
     }),
   });
   assert.equal(third.status, 201);
@@ -385,7 +394,7 @@ async function run() {
     request: apiRequest('/api/billing/checkout', {
       productId: 'pack_3',
       locale: 'zh-Hant',
-      currency: 'HKD',
+      currency: PACK3.currency,
     }),
   });
   assert.equal(fourth.status, 201);
@@ -446,7 +455,110 @@ async function run() {
   assert.equal(privileges.service_claim, true);
   console.log('PASS: anonymous and logged-in clients cannot directly execute money or AI grants');
 
-  console.log('ALL LOCAL CHECKOUT → WEBHOOK → PACK → AI → REFUND CHECKS PASSED');
+  // ---- Owned items (kind: 'item'): checkout → webhook → ownership → no double sale → refund ----
+  expecting = { id: ITEM.id, price: ITEM_PRICE };
+  const itemBody = { productId: ITEM.id, locale: 'zh-Hant', currency: ITEM_PRICE.currency, from: 'market' };
+  const withStick = await createTestCheckout({
+    site,
+    provider,
+    database: db,
+    user: otherUser,
+    baseUrl,
+    request: apiRequest('/api/billing/checkout', { ...itemBody, stickId: 7, category: 'him' }),
+  });
+  assert.equal(withStick.status, 400);
+  const unknown = await createTestCheckout({
+    site,
+    provider,
+    database: db,
+    user: otherUser,
+    baseUrl,
+    request: apiRequest('/api/billing/checkout', { ...itemBody, productId: 'outfit_does_not_exist' }),
+  });
+  assert.equal(unknown.status, 404);
+  console.log('PASS: item checkout rejects a stick selection and unknown product ids');
+
+  provider.createCustomer = async () => 'cus_test_local_e2e_002';
+  const itemCheckout = await createTestCheckout({
+    site,
+    provider,
+    database: db,
+    user: otherUser,
+    baseUrl,
+    request: apiRequest('/api/billing/checkout', itemBody),
+  });
+  assert.equal(itemCheckout.status, 201, await itemCheckout.clone().text());
+  const itemOrder = (await itemCheckout.json()).orderId;
+  const itemRow = await queryOne('SELECT product_kind,amount,currency FROM public.orders WHERE id=$1', [
+    itemOrder,
+  ]);
+  assert.equal(itemRow.product_kind, 'item');
+  assert.equal(Number(itemRow.amount), ITEM_PRICE.amount);
+  const itemFact = (overrides = {}) =>
+    payFact(itemOrder, ITEM_PRICE.amount, {
+      userId: otherUser.id,
+      productId: ITEM.id,
+      paymentRef: 'pi_local_item_001',
+      chargeRef: 'pi_local_item_001',
+      ...overrides,
+    });
+  provider.fetchCheckout = async () => ({ orderId: itemOrder, subscription: null, payment: itemFact() });
+  for (const eventId of ['evt_local_item_paid', 'evt_local_item_paid', 'evt_local_item_paid_again']) {
+    const settled = await settleStripeWebhook({
+      site,
+      provider,
+      supabase: db,
+      request: webhook('checkout.session.completed', eventId),
+    });
+    assert.equal(settled.status, 200, await settled.clone().text());
+  }
+  assert.equal(
+    await count(
+      'SELECT count(*)::integer FROM public.owned_items WHERE user_id=$1 AND item_id=$2 AND NOT revoked',
+      [otherUser.id, ITEM.id],
+    ),
+    1,
+  );
+  const ownerAccount = await (await accountSnapshot(db, otherUser, true, true)).json();
+  assert.deepEqual(ownerAccount.items, [ITEM.id]);
+  assert.deepEqual((await (await accountSnapshot(db, mainUser, true, true)).json()).items, []);
+  console.log(
+    'PASS: paid item is granted exactly once across replayed events and shows only in its owner’s account',
+  );
+
+  const second = await createTestCheckout({
+    site,
+    provider,
+    database: db,
+    user: otherUser,
+    baseUrl,
+    request: apiRequest('/api/billing/checkout', itemBody),
+  });
+  assert.equal(second.status, 409);
+  console.log('PASS: an owned item cannot be bought twice');
+
+  provider.fetchPaymentByCharge = async () =>
+    itemFact({ amountRefunded: ITEM_PRICE.amount, fetchedAt: Date.now() + 5000 });
+  const itemRefund = await settleStripeWebhook({
+    site,
+    provider,
+    supabase: db,
+    request: webhook('charge.refunded', 'evt_local_item_refund'),
+  });
+  assert.equal(itemRefund.status, 200, await itemRefund.clone().text());
+  assert.deepEqual((await (await accountSnapshot(db, otherUser, true, true)).json()).items, []);
+  const rebuy = await createTestCheckout({
+    site,
+    provider,
+    database: db,
+    user: otherUser,
+    baseUrl,
+    request: apiRequest('/api/billing/checkout', itemBody),
+  });
+  assert.equal(rebuy.status, 201);
+  console.log('PASS: refund takes the item back, and it can then be bought again');
+
+  console.log('ALL LOCAL CHECKOUT → WEBHOOK → PACK → AI → REFUND → ITEM CHECKS PASSED');
 }
 try {
   await run();

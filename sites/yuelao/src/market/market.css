@@ -1035,3 +1035,18 @@
   gap: 2rem;
   width: min(24rem, calc(100vw - 2.5rem));
 }
+
+/* 衣櫥裡的購買：金框按鈕佔整行；提示裡的連結看得出是連結 */
+.mk #panel .offer {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+.mk #look-note a {
+  color: var(--gold);
+  text-underline-offset: 4px;
+}
+@media (min-width: 900px) {
+  .mk #panel.scroll {
+    max-height: calc(100vh - 6.5rem);
+  }
+}
