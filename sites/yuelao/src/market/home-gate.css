@@ -1,0 +1,200 @@
+/* 首頁的集市入口：一條通欄的夜色，與 /market 同一套色。設計依據見 DESIGN.md P11「首頁入口」。 */
+.gate {
+  --night: #070812;
+  --paper: #efe5cf;
+  --paper-70: rgba(239, 229, 207, 0.72);
+  --paper-50: rgba(239, 229, 207, 0.5);
+  --line: rgba(220, 187, 124, 0.28);
+  --gold: #dcbb7c;
+  --red: #b5332b;
+  width: 100vw;
+  margin: 0 0 3.3rem calc(50% - 50vw);
+  background: var(--night);
+  color: var(--paper);
+  font-family: var(--font-serif-tc);
+}
+.gate *,
+.gate *::before {
+  box-sizing: border-box;
+}
+.gate-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: min(46rem, 88svh);
+  overflow: hidden;
+}
+.gate-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 42%;
+}
+.gate-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 8, 18, 0.2) 0%, rgba(7, 8, 18, 0) 34%, rgba(7, 8, 18, 0.94) 100%),
+    linear-gradient(90deg, rgba(7, 8, 18, 0.7) 0%, rgba(7, 8, 18, 0) 62%);
+}
+.gate-copy {
+  position: relative;
+  z-index: 1;
+  width: min(64rem, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 5vw, 3rem) clamp(2rem, 6vh, 4rem);
+}
+.gate-copy h1 {
+  margin: 0;
+  font-size: clamp(3rem, 12vw, 6.5rem);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: 0.14em;
+  text-shadow: 0 4px 40px rgba(0, 0, 0, 0.7);
+}
+.gate-lead {
+  max-width: 27rem;
+  margin: 1rem 0 1.75rem;
+  font-size: 1.0625rem;
+  line-height: 1.9;
+  color: var(--paper-70);
+}
+.gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+.gate-enter {
+  display: inline-flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 2.25rem 0 calc(2.25rem + 0.24em);
+  border-radius: 3px;
+  outline: 1px solid rgba(239, 229, 207, 0.5);
+  outline-offset: -5px;
+  background: var(--red);
+  color: var(--paper);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.gate-enter:hover {
+  background: #c53c33;
+}
+.gate-plain,
+.gate-more a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.9375rem;
+  letter-spacing: 0.1em;
+  color: var(--paper-70);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 6px;
+}
+.gate-plain:hover,
+.gate-more a:hover {
+  color: var(--paper);
+}
+.gate a:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+.gate-note {
+  margin: 1.5rem 0 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  color: var(--paper-50);
+}
+
+.gate-rooms {
+  width: min(64rem, 100%);
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 5vw, 3rem) clamp(2.5rem, 6vw, 4rem);
+}
+.gate-rooms h2 {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+}
+.gate-rooms ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 3vw, 2rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gate-rooms li {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+}
+.gate-rooms img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 3px;
+  background: #14121f;
+}
+.gate-rooms h3 {
+  margin: 0.5rem 0 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+.gate-rooms li p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: var(--paper-70);
+}
+.gate-rooms li a,
+.gate-rooms li span {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  letter-spacing: 0.14em;
+}
+.gate-rooms li a {
+  color: var(--gold);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 6px;
+}
+.gate-rooms li a:hover {
+  color: var(--paper);
+}
+.gate-rooms li span {
+  color: var(--paper-50);
+}
+.gate-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  margin: 2rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(239, 229, 207, 0.12);
+}
+@media (max-width: 720px) {
+  .gate-rooms ul {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gate-enter {
+    transition: none;
+  }
+}

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { pageHead } from '@yuelao/core/seo';
 import { useState } from 'react';
+import { HomeGate } from '~/market/HomeGate';
 import { m } from '~/paraglide/messages.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import type { RitualCat } from '~/ritual/physics';
@@ -20,7 +21,7 @@ export const Route = createFileRoute('/')({
       // Canonical 是單棵樹（P7：繁/簡同路徑切換，網址不帶語言）。
       path: localizeHref('/', { locale: getLocale() }),
       // 首頁 OG 圖用同一張廟會夜；URL 跟 site.url 走（現仍是佔位域名，待定）。
-      image: `${site.url}/ritual/temple-fair.jpg`,
+      image: `${site.url}/market/plaza.jpg`,
       jsonLd: [
         {
           '@type': 'WebApplication',
@@ -178,57 +179,11 @@ function HomePage() {
 
   return (
     <>
-      {/* 英雄區：與儀式頁同一幅廟會夜。簽系名、搖一搖、直接解簽、其他問法
-          都壓在同一張 temple-fair.jpg 上；圖未載入時暖底頂著。 */}
-      <section className="serene-home-intro" aria-labelledby="serene-home-title">
-        <div className="serene-home-copy">
-          <span className="serene-eyebrow">THE RED THREAD / 月老 · 心的棲所</span>
-          <h1 id="serene-home-title">
-            {getLocale() === 'zh-Hans' ? (
-              <>
-                有些心事，<em>慢慢说。</em>
-              </>
-            ) : (
-              <>
-                有些心事，<em>慢慢說。</em>
-              </>
-            )}
-          </h1>
-          <p>
-            {getLocale() === 'zh-Hans'
-              ? '不必急着求答案。来这里说一句心里话，收下一封每日心笺，或求一支属于此刻的签。'
-              : '不必急著求答案。來這裡說一句心裡話，收下一封每日心箋，或求一支屬於此刻的籤。'}
-          </p>
-          <div className="serene-home-actions">
-            <Link className="serene-primary" to={localizeHref('/chat')}>
-              {getLocale() === 'zh-Hans' ? '与月老聊聊' : '與月老聊聊'} <span>↗</span>
-            </Link>
-            <Link to={localizeHref('/daily')}>
-              {getLocale() === 'zh-Hans' ? '领取今日心笺' : '領取今日心箋'} <span>↗</span>
-            </Link>
-          </div>
-          <div className="serene-home-foot">
-            <span>01 {getLocale() === 'zh-Hans' ? '说心事' : '說心事'}</span>
-            <span>02 {getLocale() === 'zh-Hans' ? '每日签到' : '每日簽到'}</span>
-            <span>03 {getLocale() === 'zh-Hans' ? '免费求签' : '免費求籤'}</span>
-          </div>
-        </div>
-        <div className="serene-home-art" aria-hidden="true">
-          <span className="serene-art-top">願 · 以 心 相 見</span>
-          <div className="serene-art-loop">
-            <div className="serene-art-seal">緣</div>
-          </div>
-          <p>
-            緣起有時
-            <br />
-            心安一生
-          </p>
-          <span className="serene-art-bottom">月下有約</span>
-        </div>
-      </section>
+      {/* 第一屏：月下集市的入口（一張圖 + 連結，3D 在 /market 才載入）。 */}
+      <HomeGate />
 
       <div className="ask-hero">
-        <img className="ask-hero-img" src="/ritual/temple-fair.jpg" alt="" fetchPriority="high" />
+        <img className="ask-hero-img" src="/ritual/temple-fair.jpg" alt="" loading="lazy" />
         <div className="ask-hero-scrim" aria-hidden="true" />
         <div className="ask-top">
           <div className="ask-system">
