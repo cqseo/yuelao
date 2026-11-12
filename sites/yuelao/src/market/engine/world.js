@@ -63,33 +63,51 @@ export function createWorld(renderer, lowQuality) {
 
   // ---------- sky ----------
   const moonDir = new THREE.Vector3(-0.16, 0.4, -1).normalize();
+  const sunDir = new THREE.Vector3(0.6, -0.5, -0.4).normalize();
+  const keyDir = moonDir.clone(); // 主光此刻的方向：白天跟太陽，夜裡跟月亮
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(400, 32, 20),
     new THREE.ShaderMaterial({
       side: THREE.BackSide,
       depthWrite: false,
       fog: false,
-      uniforms: { uMoon: { value: moonDir }, uT: { value: 0 } },
+      uniforms: {
+        uMoon: { value: moonDir },
+        uSun: { value: sunDir },
+        uDay: { value: 0 },
+        uDusk: { value: 0 },
+        uT: { value: 0 },
+      },
       vertexShader:
         'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position.z = gl_Position.w; }',
       fragmentShader: `
-        varying vec3 vD; uniform vec3 uMoon; uniform float uT;
+        varying vec3 vD; uniform vec3 uMoon; uniform vec3 uSun; uniform float uDay; uniform float uDusk; uniform float uT;
         float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
         float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
         float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<5;i++){ s+=a*n(p); p*=2.03; a*=0.5; } return s; }
         void main(){
           vec3 d = normalize(vD);
           float up = clamp(d.y, 0.0, 1.0);
-          vec3 col = mix(vec3(0.085,0.075,0.16), vec3(0.012,0.016,0.045), pow(up, 0.55));
-          col += vec3(0.32,0.14,0.05) * pow(1.0 - up, 7.0) * 0.55;            // lantern glow on the horizon
+          float night = 1.0 - uDay;
+          vec3 nightCol = mix(vec3(0.085,0.075,0.16), vec3(0.012,0.016,0.045), pow(up, 0.55));
+          vec3 dayCol = mix(vec3(0.78,0.86,0.95), vec3(0.22,0.47,0.84), pow(up, 0.6));
+          vec3 col = mix(nightCol, dayCol, uDay);
+          col += vec3(0.32,0.14,0.05) * pow(1.0 - up, 7.0) * 0.55 * night;       // 夜裡地平線上的燈火
+          float sd = dot(d, uSun);
+          col = mix(col, vec3(1.0,0.5,0.24), pow(1.0 - up, 2.2) * uDusk * (0.55 + 0.45 * pow(max(sd, 0.0), 2.0))); // 晨昏的霞
+          float sunUp = smoothstep(-0.06, 0.04, uSun.y);
+          col += vec3(1.0,0.86,0.62) * pow(max(sd,0.0), 90.0) * 0.5 * sunUp;      // 日暈
+          col += vec3(1.0,0.96,0.86) * smoothstep(0.9989, 0.9994, sd) * 3.0 * sunUp; // 日輪
           float md = dot(d, uMoon);
-          col += vec3(0.75,0.8,1.0) * pow(max(md,0.0), 22.0) * 0.26;            // moon halo
-          col += vec3(1.0,0.96,0.86) * smoothstep(0.9982, 0.9989, md) * 1.0;    // moon disc
+          col += vec3(0.75,0.8,1.0) * pow(max(md,0.0), 22.0) * 0.26 * night;      // 月暈
+          col += vec3(1.0,0.96,0.86) * smoothstep(0.9982, 0.9989, md) * night;    // 月輪
           vec2 sp = d.xz / (d.y + 0.25) * 90.0;
           float st = step(0.9965, h(floor(sp))) * (0.5 + 0.5 * sin(uT * 2.0 + h(floor(sp) + 3.1) * 40.0));
-          col += vec3(0.8,0.85,1.0) * st * up * 0.9;
+          col += vec3(0.8,0.85,1.0) * st * up * 0.9 * night * night;
           float cl = fbm(d.xz / (d.y + 0.35) * 2.2 + vec2(uT * 0.01, 0.0));
-          col = mix(col, vec3(0.16,0.16,0.26) + vec3(0.25,0.27,0.36) * pow(max(md,0.0), 6.0), smoothstep(0.52, 0.95, cl) * 0.55 * smoothstep(0.02, 0.3, up));
+          vec3 cloudNight = vec3(0.16,0.16,0.26) + vec3(0.25,0.27,0.36) * pow(max(md,0.0), 6.0);
+          vec3 cloudDay = mix(vec3(0.97,0.97,0.98), vec3(1.0,0.72,0.5), uDusk * 0.8);
+          col = mix(col, mix(cloudNight, cloudDay, uDay), smoothstep(0.52, 0.95, cl) * 0.55 * smoothstep(0.02, 0.3, up));
           gl_FragColor = vec4(col, 1.0);
         }`,
     }),
@@ -124,7 +142,8 @@ export function createWorld(renderer, lowQuality) {
   }
 
   // ---------- lights ----------
-  scene.add(new THREE.HemisphereLight(0x5a68a8, 0x1c100a, 0.55));
+  const hemi = new THREE.HemisphereLight(0x5a68a8, 0x1c100a, 0.55);
+  scene.add(hemi);
   const moon = new THREE.DirectionalLight(0x9fb2ff, 1.25);
   moon.position.copy(moonDir).multiplyScalar(80);
   if (!lowQuality) {
@@ -139,10 +158,13 @@ export function createWorld(renderer, lowQuality) {
     moon.shadow.normalBias = 0.05;
   }
   scene.add(moon, moon.target);
+  const warmLights = []; // 燈籠與爐火的點光：白天調暗
   const warm = (x, y, z, i = 34, d = 20, c = 0xff9040) => {
     const l = new THREE.PointLight(c, i, d, 1.6);
     l.position.set(x, y, z);
+    l.userData.base = i;
     scene.add(l);
+    warmLights.push(l);
     return l;
   };
 
@@ -691,6 +713,7 @@ export function createWorld(renderer, lowQuality) {
 
   // ---------- 大殿（正北，石台上）、殿前銅爐、化寶爐 ----------
   const HALL_Z = -27;
+  let beam;
   {
     const py = 1.1;
     scene.add(
@@ -726,7 +749,7 @@ export function createWorld(renderer, lowQuality) {
     room.hall.stand = new THREE.Vector3(2.6, 1.65, HALL_Z + 5.7);
     warm(0, 5, HALL_Z + 5.5, 46, 26, 0xffa050);
     // 一束從斜上方打下來的暖光，只照殿門和銅爐：明暗對比都靠它
-    const beam = new THREE.SpotLight(0xffe2a0, 1400, 60, 0.3, 0.7, 1.6);
+    beam = new THREE.SpotLight(0xffe2a0, 1400, 60, 0.3, 0.7, 1.6);
     beam.position.set(12, 26, -6);
     beam.target.position.set(0, 2.5, HALL_Z + 2);
     scene.add(beam, beam.target);
@@ -792,6 +815,7 @@ export function createWorld(renderer, lowQuality) {
   }
 
   // ---------- lanterns (instanced) ----------
+  let lanternGlow;
   {
     const n = lanternSpots.length;
     const map = canvasTex(64, 128, (g, w, h) => {
@@ -854,21 +878,20 @@ export function createWorld(renderer, lowQuality) {
       g.fillStyle = gr;
       g.fillRect(0, 0, w, w);
     });
-    scene.add(
-      new THREE.Points(
-        gg,
-        new THREE.PointsMaterial({
-          map: glowMap,
-          color: 0xff7a30,
-          size: 2.4,
-          transparent: true,
-          opacity: 0.4,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false,
-          fog: false,
-        }),
-      ),
+    lanternGlow = new THREE.Points(
+      gg,
+      new THREE.PointsMaterial({
+        map: glowMap,
+        color: 0xff7a30,
+        size: 2.4,
+        transparent: true,
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        fog: false,
+      }),
     );
+    scene.add(lanternGlow);
   }
 
   // ---------- embers drifting around the walker ----------
@@ -918,6 +941,66 @@ export function createWorld(renderer, lowQuality) {
     return true;
   }
 
+  // ---------- 天色：跟著時辰走 ----------
+  // hour 是 0–24 的小數。白天主光跟太陽、夜裡跟月亮；晨昏各有一小時的霞。
+  const hex3 = (hex) => new THREE.Color(hex);
+  const SKY = {
+    keyNight: hex3(0x9fb2ff),
+    keyDay: hex3(0xfff0d8),
+    keyDusk: hex3(0xffa864),
+    hemiSkyNight: hex3(0x5a68a8),
+    hemiSkyDay: hex3(0xc4dcff),
+    hemiGroundNight: hex3(0x1c100a),
+    hemiGroundDay: hex3(0x8f8272),
+    fogNight: hex3(0x090a14),
+    fogDay: hex3(0xbfd2e8),
+    fogDusk: hex3(0x6a4250),
+  };
+  const smooth = (a, b, x) => {
+    const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return k * k * (3 - 2 * k);
+  };
+  const state = { hour: 21, day: 0, dusk: 0, exposure: 1.05, bloom: 0.42 };
+  function setHour(hour) {
+    const h = ((hour % 24) + 24) % 24;
+    const day = smooth(5.3, 7.3, h) * (1 - smooth(17.3, 19.3, h));
+    const dusk = Math.exp(-(((h - 6.3) / 0.9) ** 2)) + Math.exp(-(((h - 18.3) / 0.9) ** 2));
+    const night = 1 - day;
+    Object.assign(state, { hour: h, day, dusk, exposure: 1.05 - day * 0.2, bloom: 0.42 - day * 0.26 });
+    // 太陽 6 時東升、18 時西落；月亮反過來。兩者都略偏北，影子才不會正對著人。
+    const a = ((h - 6) / 12) * Math.PI;
+    sunDir.set(Math.cos(a) * 0.85, Math.sin(a), -0.38).normalize();
+    moonDir.set(-Math.cos(a) * 0.5 - 0.16, Math.max(0.28, -Math.sin(a) * 0.75 + 0.1), -1).normalize();
+    // 主光：誰在天上跟誰；貼近地平線時抬高一點，影子不至於拉得沒完
+    keyDir.copy(day > 0.5 ? sunDir : moonDir);
+    keyDir.y = Math.max(keyDir.y, 0.22);
+    keyDir.normalize();
+    const u = sky.material.uniforms;
+    u.uDay.value = day;
+    u.uDusk.value = Math.min(1, dusk);
+    moon.color
+      .copy(SKY.keyNight)
+      .lerp(SKY.keyDay, day)
+      .lerp(SKY.keyDusk, Math.min(1, dusk) * 0.6);
+    moon.intensity = 1.25 + day * 2.1 - Math.min(1, dusk) * 0.6 * day;
+    hemi.color.copy(SKY.hemiSkyNight).lerp(SKY.hemiSkyDay, day);
+    hemi.groundColor.copy(SKY.hemiGroundNight).lerp(SKY.hemiGroundDay, day);
+    hemi.intensity = 0.55 + day * 1.15;
+    scene.fog.color
+      .copy(SKY.fogNight)
+      .lerp(SKY.fogDay, day)
+      .lerp(SKY.fogDusk, Math.min(1, dusk) * 0.45);
+    scene.fog.density = 0.02 - day * 0.011;
+    scene.environmentIntensity = 0.55 + day * 0.35;
+    // 燈火：夜裡全亮，白天只留一點
+    const lamp = 0.12 + night * 0.88;
+    for (const l of warmLights) l.intensity = l.userData.base * lamp;
+    if (beam) beam.intensity = 1400 * night;
+    if (lanternGlow) lanternGlow.material.opacity = 0.4 * (0.1 + night * 0.9);
+    embers.material.opacity = 0.85 * night;
+    state.lamp = lamp;
+  }
+
   for (const r of ROOMS) labels.push({ ...r, pos: r.label, room: r });
 
   return {
@@ -958,6 +1041,9 @@ export function createWorld(renderer, lowQuality) {
       ground.visible = true;
       renderer.shadowMap.autoUpdate = auto;
     },
+    /** 天色狀態（唯讀）：hour、day（0 夜–1 晝）、dusk、exposure、bloom。 */
+    sky: state,
+    setHour,
     update(dt, t, pos) {
       sky.material.uniforms.uT.value = t;
       sky.position.copy(pos);
@@ -966,9 +1052,11 @@ export function createWorld(renderer, lowQuality) {
         const sx = Math.round(pos.x / 4) * 4;
         const sz = Math.round(pos.z / 4) * 4;
         moon.target.position.set(sx, 0, sz);
-        moon.position.set(sx, 0, sz).addScaledVector(moonDir, 90);
+        moon.position.set(sx, 0, sz).addScaledVector(keyDir, 90);
       }
-      for (const l of flick) l.intensity = 30 * (0.8 + Math.sin(t * 9) * 0.1 + Math.random() * 0.15);
+      for (const l of flick)
+        l.intensity =
+          l.userData.base * (state.lamp ?? 1) * (0.8 + Math.sin(t * 9) * 0.1 + Math.random() * 0.15);
       talis.rotation.y = t * 0.04;
       for (const c of talis.children) c.position.y = c.userData.y + Math.sin(t * 0.7 + c.userData.ph) * 0.25;
       embers.position.set(pos.x, 0, pos.z);

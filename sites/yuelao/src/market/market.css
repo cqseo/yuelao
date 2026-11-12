@@ -1050,3 +1050,15 @@
     max-height: calc(100vh - 6.5rem);
   }
 }
+
+/* 天色鈕：跟在地點名後面，進房間後收起 */
+.mk #hud #sky {
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border-color: transparent;
+  background: none;
+  color: var(--gold);
+}
+.mk #hud:has(#back:not([hidden])) #sky {
+  display: none;
+}

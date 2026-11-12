@@ -148,6 +148,9 @@ export function startMarket(root, opts = {}) {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     await step('正在蓋房子、掛燈籠', 34);
     world = createWorld(renderer, coarse);
+    world.setHour(skyHour);
+    renderer.toneMappingExposure = world.sky.exposure;
+    skyLabel();
     avatar = createAvatar(coarse);
     world.scene.add(avatar.root);
     crowd = createCrowd(world, coarse ? 6 : 12);
@@ -167,6 +170,7 @@ export function startMarket(root, opts = {}) {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(world.scene, world.camera));
     bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.42, 0.7, 0.82);
+    bloom.strength = world.sky.bloom;
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
     // after OutputPass, so the film curve works on display-range colour
@@ -419,6 +423,7 @@ export function startMarket(root, opts = {}) {
     composer.passes[0].camera = active.camera;
     bloom.strength = 0.28;
     bloom.threshold = 0.9;
+    renderer.toneMappingExposure = 1.05; // 室內不受天色影響
     $('#hud-title').textContent = active.title;
     $('#back').hidden = false;
     active.enter();
@@ -437,8 +442,9 @@ export function startMarket(root, opts = {}) {
     active = null;
     composer.passes[0].scene = world.scene;
     composer.passes[0].camera = world.camera;
-    bloom.strength = 0.42;
+    bloom.strength = world.sky.bloom;
     bloom.threshold = 0.82;
+    renderer.toneMappingExposure = world.sky.exposure;
     // 回到廣場：站在門外，沿著圓環朝大殿那一側看，鏡頭才不會卡進屋子裡
     const px = r.stand.x + r.fx * 0.6;
     const pz = r.stand.z + r.fz * 0.6;
@@ -739,6 +745,40 @@ export function startMarket(root, opts = {}) {
   let slow = 0;
   let frames = 0;
   let lastArea = '';
+  // 天色：預設跟訪客當地的時間；點頂欄的時段可以先看別的時候（再點一輪回到「此刻」）
+  const clockHour = () => {
+    const d = new Date();
+    return d.getHours() + d.getMinutes() / 60;
+  };
+  const SKY_PICKS = [null, 6.4, 12, 18.3, 22];
+  const SKY_NAMES = ['此刻', '清晨', '正午', '黃昏', '深夜'];
+  let skyPick = null;
+  let skyHour = clockHour();
+  let skyAt = performance.now();
+  const skyBtn = $('#sky');
+  const nameOf = (h) =>
+    h < 5
+      ? '深夜'
+      : h < 8
+        ? '清晨'
+        : h < 11
+          ? '上午'
+          : h < 14
+            ? '正午'
+            : h < 17
+              ? '午後'
+              : h < 19.5
+                ? '黃昏'
+                : '夜';
+  function skyLabel() {
+    const i = SKY_PICKS.indexOf(skyPick);
+    skyBtn.textContent = i === 0 ? nameOf(clockHour()) : `${SKY_NAMES[i]}（預覽）`;
+  }
+  skyBtn.onclick = () => {
+    skyPick = SKY_PICKS[(SKY_PICKS.indexOf(skyPick) + 1) % SKY_PICKS.length];
+    emit('market_sky', { pick: skyPick === null ? 'now' : skyPick });
+    skyLabel();
+  };
   function render(dt) {
     if (bloom.enabled) composer.render(dt);
     else renderer.render(active ? active.scene : world.scene, active ? active.camera : world.camera);
@@ -761,6 +801,19 @@ export function startMarket(root, opts = {}) {
       tp += (want - tp) * Math.min(1, dt * 5);
       if (mode !== 'walk') applyCam();
       avatar.update(dt, t, mode === 'walk' || mode === 'moving' ? me.speed : 0);
+      // 天色慢慢追上目標時辰（跟著訪客的時鐘，或手動預覽的時段）
+      const goal = skyPick === null ? clockHour() : skyPick;
+      const gap = ((((goal - skyHour) % 24) + 36) % 24) - 12;
+      if (Math.abs(gap) <= 0.002) skyAt = performance.now();
+      else {
+        // 用真實經過的時間推進，慢的裝置也在幾秒內轉完
+        const nowMs = performance.now();
+        skyHour += gap * Math.min(1, Math.min(0.3, (nowMs - skyAt) / 1000) * 1.6);
+        skyAt = nowMs;
+        world.setHour(skyHour);
+        renderer.toneMappingExposure = world.sky.exposure;
+        bloom.strength = world.sky.bloom;
+      }
       crowd.update(dt, t);
       world.update(dt, t, world.camera.position);
       world.reflect(world.camera);

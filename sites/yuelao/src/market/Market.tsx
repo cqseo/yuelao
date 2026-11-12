@@ -238,6 +238,7 @@ export function Market() {
             回到廣場
           </button>
           <span id="hud-title">月下集市</span>
+          <button type="button" id="sky" aria-label="天色" />
         </div>
         <div className="right">
           <button type="button" id="view">
