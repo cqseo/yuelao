@@ -11,6 +11,7 @@ const tables = new Set([
   'sticks',
   'stick_locales',
   'paid_ai_readings',
+  'owned_items',
 ]);
 
 const signatures = {

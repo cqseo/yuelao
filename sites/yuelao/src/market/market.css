@@ -996,3 +996,169 @@
   justify-content: center;
   width: min(24rem, calc(100vw - 2.5rem));
 }
+
+/* 深度解讀：判詞卡上的主按鈕、面板裡當按鈕用的連結 */
+.mk #card .seal.full {
+  width: min(24rem, calc(100vw - 2.5rem));
+}
+.mk a.linkbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  text-decoration: none;
+}
+
+/* 判詞卡下方：付費項用金框、不搶「再求一支」的硃紅；卡片比螢幕高時從頂端排起 */
+.mk #card {
+  align-content: safe center;
+  gap: 0.9rem;
+}
+.mk .offer {
+  appearance: none;
+  width: min(24rem, calc(100vw - 2.5rem));
+  min-height: 52px;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  background: rgba(220, 187, 124, 0.08);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+.mk .offer:hover {
+  background: rgba(220, 187, 124, 0.16);
+}
+.mk .card-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  width: min(24rem, calc(100vw - 2.5rem));
+}
+
+/* 衣櫥裡的購買：金框按鈕佔整行；提示裡的連結看得出是連結 */
+.mk #panel .offer {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+.mk #look-note a {
+  color: var(--gold);
+  text-underline-offset: 4px;
+}
+@media (min-width: 900px) {
+  .mk #panel.scroll {
+    max-height: calc(100vh - 6.5rem);
+  }
+}
+
+/* 天色鈕：跟在地點名後面，進房間後收起 */
+.mk #hud #sky {
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border-color: transparent;
+  background: none;
+  color: var(--gold);
+}
+.mk #hud:has(#back:not([hidden])) #sky {
+  display: none;
+}
+
+/* 許願池：池邊面板（見 DESIGN.md「許願池」） */
+.mk .chips button.on {
+  border-color: var(--gold);
+  color: var(--paper);
+  background: rgba(220, 187, 124, 0.1);
+}
+.mk #panel .note.small {
+  font-size: 0.75rem;
+  color: var(--paper-50);
+}
+.mk #panel #wish-note:empty {
+  display: none;
+}
+.mk .wishes {
+  display: grid;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+.mk .wish {
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(239, 229, 207, 0.12);
+}
+.mk .wish .body {
+  margin: 0 0 0.4rem;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.mk .wish .meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--paper-50);
+}
+.mk .wish .meta span:first-child {
+  flex: 1;
+}
+.mk .wish .own {
+  color: var(--gold);
+}
+.mk .wish.focus {
+  margin: 0 -0.75rem;
+  padding: 0.75rem;
+  background: rgba(220, 187, 124, 0.08);
+}
+.mk div.wish.mine {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+.mk .wish .bless,
+.mk #panel .tiny {
+  appearance: none;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border: 1px solid rgba(239, 229, 207, 0.18);
+  border-radius: 3px;
+  background: none;
+  font-size: 0.75rem;
+  color: var(--paper-70);
+  white-space: nowrap;
+}
+.mk #panel .tiny {
+  border-color: transparent;
+  color: var(--paper-50);
+}
+.mk .wish .bless.on {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.mk .wish .report {
+  margin: 0.25rem 0 0;
+}
+.mk .care {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  border-left: 2px solid var(--gold);
+  background: rgba(220, 187, 124, 0.06);
+  font-size: 0.875rem;
+  line-height: 1.8;
+}
+.mk .care p {
+  margin: 0 0 0.25rem;
+}
+.mk #panel button.linkbtn {
+  width: 100%;
+  min-height: 44px;
+}
+.mk #panel .note a {
+  color: var(--gold);
+  text-underline-offset: 4px;
+}

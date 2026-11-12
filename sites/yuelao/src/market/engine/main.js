@@ -5,6 +5,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { createAvatar, HAIRS, OUTFITS } from './avatar.js';
+import { createCrowd } from './crowd.js';
+import { createHall } from './hall.js';
+import { createPool } from './pool.js';
 import { createTarot } from './tarot.js';
 import { audio, ease, stepTweens, tween, wait } from './util.js';
 import { createWorld } from './world.js';
@@ -78,6 +81,8 @@ export function startMarket(root, opts = {}) {
     ask: (text, o) => (opts.ask ? opts.ask(text, o) : Promise.reject(new Error('no ask'))),
     askStarters: () => opts.starters || [],
     aiStatus: () => opts.aiStatus?.() || { available: false },
+    look: () => ({ ...avatar.state }),
+    deep: opts.deep || null,
     leave: () => leaveRoom(),
   };
 
@@ -95,11 +100,13 @@ export function startMarket(root, opts = {}) {
   const rooms = {};
   let active = null; // room object, or null while walking the market
   let mode = 'boot';
-  const me = { x: 0, z: 30, yaw: 0, pitch: 0.1, y: 1.9, bob: 0, speed: 0, face: Math.PI };
+  const me = { x: 0, z: 43, yaw: 0, pitch: 0.1, y: 1.9, bob: 0, speed: 0, face: Math.PI };
   let avatar;
+  let crowd;
   let third = true; // third-person view (you see your own character); V or the 視角 button switches
   let tp = 0; // 0 = first person, 1 = third person; eased so the switch glides
   let wardrobe = false;
+  let pool = null; // 許願池面板
   const input = { f: 0, s: 0, run: false };
   const keys = new Set();
 
@@ -138,24 +145,36 @@ export function startMarket(root, opts = {}) {
     });
     renderer.setPixelRatio(Math.min(devicePixelRatio, coarse ? 1.5 : 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = !coarse;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     await step('正在蓋房子、掛燈籠', 34);
     world = createWorld(renderer, coarse);
+    world.setHour(skyHour);
+    renderer.toneMappingExposure = world.sky.exposure;
+    skyLabel();
     avatar = createAvatar(coarse);
     world.scene.add(avatar.root);
-    try {
-      avatar.apply(JSON.parse(localStorage.getItem('market-look') || '{}'));
-    } catch {}
+    crowd = createCrowd(world, coarse ? 6 : 12);
+    restoreLook();
+    // 擁有的付費外觀要問過帳戶才知道；回來後再套一次上次的選擇
+    shop?.owned().then((ids) => {
+      if (dead) return;
+      for (const id of ids) owned.add(id);
+      if (!wardrobe) restoreLook();
+    });
     await step('正在擺供桌', 62);
     rooms.yuelao = createYuelao(ui);
     await step('正在洗牌', 78);
     rooms.tarot = createTarot(ui);
+    rooms.hall = createHall(ui);
+    pool = createPool({ ui, world, api: opts.wishes || null, emit });
+    void pool.refresh();
 
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(world.scene, world.camera));
     bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.42, 0.7, 0.82);
+    bloom.strength = world.sky.bloom;
     composer.addPass(bloom);
     composer.addPass(new OutputPass());
     // after OutputPass, so the film curve works on display-range colour
@@ -167,7 +186,7 @@ export function startMarket(root, opts = {}) {
     on('resize', resize);
     applyCam();
     await step('正在點燈', 90);
-    for (const s of [rooms.yuelao, rooms.tarot]) renderer.compile(s.scene, s.camera);
+    for (const s of Object.values(rooms)) renderer.compile(s.scene, s.camera);
     render(0);
     await step('開市了', 100);
     boot.classList.add('gone');
@@ -180,7 +199,12 @@ export function startMarket(root, opts = {}) {
     if (h) {
       menu.classList.remove('show');
       hud.classList.add('show');
-      Object.assign(me, { x: 0, z: h === 'plaza' ? -36 : 13, pitch: 0, y: 1.65 });
+      Object.assign(me, {
+        x: h === 'plaza' ? 9 : 0,
+        z: h === 'plaza' ? -12 : world.spawn[1],
+        pitch: 0,
+        y: 1.65,
+      });
       mode = 'walk';
       applyCam();
       if (rooms[h])
@@ -242,26 +266,37 @@ export function startMarket(root, opts = {}) {
         ? `<b>${l.name}</b><span>${l.sub}</span>`
         : l.open
           ? `<b>${l.name}</b><span>${l.sub}</span>`
-          : `<b>${l.name}</b><span>籌備中</span>`;
+          : `<b>${l.name}</b><span>${l.note || '籌備中'}</span>`;
       b.disabled = !l.open;
-      if (l.open) b.onclick = () => mode === 'walk' && goTo(l.room);
+      if (l.wish) b.onclick = () => mode === 'walk' && goToPool();
+      else if (l.open) b.onclick = () => mode === 'walk' && goTo(l.room);
       spots.appendChild(b);
       labelEls.push({ l, b });
     }
     for (const r of world.rooms) {
       const b = document.createElement('button');
-      b.innerHTML = `<b>${r.name}</b><span>${r.open ? r.sub : '籌備中'}</span>`;
+      b.innerHTML = `<b>${r.name}</b><span>${r.open ? r.sub : r.note || '籌備中'}</span>`;
       b.disabled = !r.open;
       b.onclick = () => mode === 'walk' && goTo(r);
       rail.appendChild(b);
     }
-    promptEl.onclick = () => near && mode === 'walk' && enterRoom(near);
+    const pb = document.createElement('button');
+    pb.innerHTML = '<b>許願池</b><span>繫一條紅線</span>';
+    pb.onclick = () => mode === 'walk' && goToPool();
+    rail.appendChild(pb);
+    promptEl.onclick = () => {
+      if (mode !== 'walk') return;
+      if (near) enterRoom(near);
+      else if (nearPool) openPool();
+    };
   }
   const v = new THREE.Vector3();
   let near = null;
+  let nearPool = false;
   function placeLabels() {
     const show = mode === 'walk';
-    rail.classList.toggle('show', show);
+    // 開著池邊或衣櫥面板時收起鋪子列，免得壓住面板底部的按鈕
+    rail.classList.toggle('show', show && !wardrobe && !pool?.isOpen);
     const cp = world.camera.position;
     for (const { l, b } of labelEls) {
       v.copy(l.pos).project(world.camera);
@@ -277,8 +312,14 @@ export function startMarket(root, opts = {}) {
     if (show)
       for (const r of world.rooms)
         if (r.open && Math.hypot(r.stand.x - me.x, r.stand.z - me.z) < 3.6) near = r;
-    promptEl.classList.toggle('show', !!near);
+    const fromCentre = Math.hypot(me.x, me.z);
+    nearPool = show && !near && fromCentre < world.pondR + 2.6;
+    // 走離池邊就把許願面板收起來
+    if (pool?.isOpen && show && fromCentre > world.pondR + 9) pool.close();
+    const wantPrompt = !!near || (nearPool && !pool?.isOpen && !wardrobe);
+    promptEl.classList.toggle('show', wantPrompt);
     if (near) promptEl.textContent = `進入${near.name}`;
+    else if (nearPool) promptEl.textContent = '到池邊許願';
   }
 
   // ---------- getting around ----------
@@ -325,7 +366,7 @@ export function startMarket(root, opts = {}) {
     audio.bell(330, 0.2, 5);
     const y0 = me.y;
     tween(2.5, (k) => (me.y = y0 + (1.65 - y0) * k));
-    await walkPath([[0, 12.5]], 4.6);
+    await walkPath([world.spawn], 4.6);
     hud.classList.add('show');
     $('#back').hidden = true;
     mode = 'walk';
@@ -337,22 +378,74 @@ export function startMarket(root, opts = {}) {
     setTimeout(() => mode === 'walk' && ui.hint(''), 8000);
   }
 
-  /** Walk to a room's door (along the street centre line) and go in. */
+  /** 走到某間房門口再進去：從山門外先進廣場；直線會穿過許願池就繞半圈。 */
   async function goTo(r) {
     if (mode !== 'walk') return;
     mode = 'moving';
     ui.hint('');
-    await walkPath([
-      [0, me.z > 16 ? 15 : me.z],
-      [0, r.stand.z],
-      [r.stand.x, r.stand.z],
-    ]);
+    const pts = [];
+    let x = me.x;
+    let z = me.z;
+    if (z > world.spawn[1] + 1) {
+      pts.push(world.spawn);
+      [x, z] = world.spawn;
+    }
+    const dx = r.stand.x - x;
+    const dz = r.stand.z - z;
+    const u = Math.max(0, Math.min(1, -(x * dx + z * dz) / (dx * dx + dz * dz || 1)));
+    let nx = x + dx * u;
+    let nz = z + dz * u;
+    const near = Math.hypot(nx, nz);
+    const clear = world.pondR + 2.5;
+    if (near < clear) {
+      if (near < 0.5) {
+        nx = -dz;
+        nz = dx;
+      }
+      const n = Math.hypot(nx, nz);
+      pts.push([(nx / n) * (clear + 1.5), (nz / n) * (clear + 1.5)]);
+    }
+    pts.push([r.stand.x, r.stand.z]);
+    await walkPath(pts);
     enterRoom(r, false, true);
+  }
+
+  /** 走到池邊離自己最近的那一點，面向許願樹，打開許願面板。 */
+  async function goToPool(focusId) {
+    if (mode !== 'walk') return;
+    mode = 'moving';
+    ui.hint('');
+    const pts = [];
+    let x = me.x;
+    let z = me.z;
+    if (z > world.spawn[1] + 1) {
+      pts.push(world.spawn);
+      [x, z] = world.spawn;
+    }
+    const d = Math.hypot(x, z) || 1;
+    const rim = world.pondR + 1.3;
+    if (d > rim + 0.4) pts.push([(x / d) * rim, (z / d) * rim]);
+    await walkPath(pts, 6);
+    const y0 = me.yaw;
+    const y1 = turn(y0, yawTo(-me.x, -me.z));
+    await tween(0.45, (k) => {
+      me.yaw = y0 + (y1 - y0) * k;
+      me.pitch = me.pitch * (1 - k) + -0.12 * k;
+      applyCam();
+    });
+    mode = 'walk';
+    openPool(focusId);
+  }
+  function openPool(focusId) {
+    if (!pool) return;
+    if (wardrobe) closeWardrobe();
+    pool.show(focusId || null);
   }
 
   async function enterRoom(r, instant, arrived) {
     mode = 'moving';
     if (wardrobe) closeWardrobe();
+    pool?.close();
     ui.hint('');
     promptEl.classList.remove('show');
     if (!instant) {
@@ -384,6 +477,7 @@ export function startMarket(root, opts = {}) {
     composer.passes[0].camera = active.camera;
     bloom.strength = 0.28;
     bloom.threshold = 0.9;
+    renderer.toneMappingExposure = 1.05; // 室內不受天色影響
     $('#hud-title').textContent = active.title;
     $('#back').hidden = false;
     active.enter();
@@ -402,17 +496,20 @@ export function startMarket(root, opts = {}) {
     active = null;
     composer.passes[0].scene = world.scene;
     composer.passes[0].camera = world.camera;
-    bloom.strength = 0.42;
+    bloom.strength = world.sky.bloom;
     bloom.threshold = 0.82;
-    // 回到街上：站在門外，順著街往裡看，鏡頭才不會卡進屋子裡
-    Object.assign(me, {
-      x: r.stand.x + r.fx * 0.6,
-      z: r.stand.z + r.fz * 0.6,
-      yaw: 0,
-      pitch: 0,
-      y: 1.65,
-      face: Math.PI,
-    });
+    renderer.toneMappingExposure = world.sky.exposure;
+    // 回到廣場：站在門外，沿著圓環朝大殿那一側看，鏡頭才不會卡進屋子裡
+    const px = r.stand.x + r.fx * 0.6;
+    const pz = r.stand.z + r.fz * 0.6;
+    let tx = -pz;
+    let tz = px;
+    if (tz > 0) {
+      tx = -tx;
+      tz = -tz;
+    }
+    const yaw = yawTo(tx, tz);
+    Object.assign(me, { x: px, z: pz, yaw, pitch: 0, y: 1.65, face: yaw + Math.PI });
     applyCam();
     $('#back').hidden = true;
     mode = 'walk';
@@ -426,6 +523,12 @@ export function startMarket(root, opts = {}) {
     ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     return ray.intersectObjects(objects, true)[0] || null;
+  }
+  /** 點到樹上的願望牌就回傳那則願望的 id。太遠（32m 以上）不算。 */
+  function plateHit(e) {
+    if (!world.wishPick?.count) return null;
+    const h = hitTest(e, [world.wishPick], world.camera);
+    return h && h.distance < 32 && h.instanceId !== undefined ? world.wishAt(h.instanceId) : null;
   }
   const gl = $('#gl');
   let look = null; // pointer that turns the view
@@ -471,7 +574,7 @@ export function startMarket(root, opts = {}) {
     }
     if (!look || e.pointerId !== look.id) {
       if (mode === 'walk' && e.pointerType !== 'touch')
-        gl.style.cursor = hitTest(e, world.doors, world.camera) ? 'pointer' : 'grab';
+        gl.style.cursor = hitTest(e, world.doors, world.camera) || plateHit(e) !== null ? 'pointer' : 'grab';
       return;
     }
     const dx = e.clientX - look.x;
@@ -479,6 +582,7 @@ export function startMarket(root, opts = {}) {
     look.x = e.clientX;
     look.y = e.clientY;
     look.moved += Math.abs(dx) + Math.abs(dy);
+    if (mode === 'room' && active.onDrag) active.onDrag(dx, dy);
     if (mode === 'walk') {
       const k = e.pointerType === 'touch' ? 0.0055 : 0.0035;
       me.yaw += dx * k;
@@ -497,9 +601,18 @@ export function startMarket(root, opts = {}) {
     if (!look || e.pointerId !== look.id) return;
     if (mode === 'walk' && look.moved < 8) {
       const hit = hitTest(e, world.doors, world.camera);
+      const plate = hit ? null : plateHit(e);
       if (hit && hit.distance < 30) goTo(world.rooms.find((r) => r.id === hit.object.userData.room));
+      else if (plate) {
+        emit('wish_plate_tap');
+        if (Math.hypot(me.x, me.z) < world.pondR + 3) openPool(plate);
+        else goToPool(plate);
+      }
     }
-    if (mode === 'room') active.onUp();
+    if (mode === 'room') {
+      if (look.moved < 8 && active.onTap) active.onTap(hitTest(e, active.pick(), active.camera));
+      active.onUp();
+    }
     look = null;
   };
   gl.addEventListener('pointerup', end);
@@ -518,10 +631,14 @@ export function startMarket(root, opts = {}) {
   };
   on('keydown', (e) => {
     const k = e.key.toLowerCase();
+    if (mode === 'room' && k === 'escape') leaveRoom();
+    if (mode === 'walk' && pool?.isOpen && k === 'escape') pool.close();
+    // 在面板的輸入框裡打字時，不要把按鍵當成走路或開門
+    if (e.target instanceof HTMLInputElement) return;
     if (KEYMAP[k]) keys.add(KEYMAP[k]);
     if (k === 'shift') keys.add('run');
-    if (mode === 'room' && k === 'escape') leaveRoom();
     if (mode === 'walk' && (k === 'enter' || k === 'f') && near) enterRoom(near);
+    else if (mode === 'walk' && (k === 'enter' || k === 'f') && nearPool && !pool?.isOpen) openPool();
     if (mode === 'walk' && k === 'v') toggleView();
   });
   on('keyup', (e) => {
@@ -541,50 +658,119 @@ export function startMarket(root, opts = {}) {
     emit('market_view', { third });
     $('#view').textContent = third ? '第一人稱' : '第三人稱';
   }
+  // ---------- 外觀：免費款隨便換；付費款可試穿，買了才留得住 ----------
+  const saved = {};
+  const owned = new Set();
+  const shop = opts.shop || null;
+  const itemId = (key, id) => `${key}_${id}`;
+  const usable = (key, o) => o.free || owned.has(itemId(key, o.id));
+  const listOf = (key) => (key === 'outfit' ? OUTFITS : HAIRS);
+  /** 讀回上次的選擇，只套用現在用得了的（免費的，或這個帳號擁有的）。 */
+  function restoreLook() {
+    let want = {};
+    try {
+      want = JSON.parse(localStorage.getItem('market-look') || '{}') || {};
+    } catch {}
+    for (const key of ['outfit', 'hair']) {
+      const o = listOf(key).find((x) => x.id === want[key]);
+      if (o && usable(key, o)) saved[key] = o.id;
+    }
+    avatar.apply({ outfit: saved.outfit || 'moon', hair: saved.hair || 'bun' });
+  }
+  function keep(key, id) {
+    saved[key] = id;
+    try {
+      localStorage.setItem('market-look', JSON.stringify(saved));
+    } catch {}
+  }
+  let trying = null; // 正在試穿、還沒擁有的那一件：{ key, o }
+  let shopNote = '';
   function openWardrobe() {
     if (mode !== 'walk') return;
-    if (!wardrobe) emit('market_wardrobe_open');
+    if (pool?.isOpen) pool.close();
+    if (!wardrobe) {
+      emit('market_wardrobe_open');
+      trying = null;
+      shopNote = '';
+    }
     wardrobe = true;
     third = true;
     $('#view').textContent = '第一人稱';
-    const sw = (list, key) =>
-      list
+    const tag = (key, o) => {
+      if (usable(key, o)) return o.free ? '' : '<span>已擁有</span>';
+      return `<span>${shop?.prices[itemId(key, o.id)] || '之後開放'}</span>`;
+    };
+    const sw = (key) =>
+      listOf(key)
         .map(
           (o) =>
-            `<button data-a="${key}:${o.id}" class="${avatar.state[key] === o.id ? 'on' : ''}${o.free ? '' : ' lock'}">${o.robe !== undefined ? `<i style="background:#${o.robe.toString(16).padStart(6, '0')};border-color:#${o.trim.toString(16).padStart(6, '0')}"></i>` : ''}<b>${o.name}</b>${o.free ? '' : '<span>之後開放</span>'}</button>`,
+            `<button data-a="${key}:${o.id}" class="${avatar.state[key] === o.id ? 'on' : ''}${usable(key, o) ? '' : ' lock'}">${o.robe !== undefined ? `<i style="background:#${o.robe.toString(16).padStart(6, '0')};border-color:#${o.trim.toString(16).padStart(6, '0')}"></i>` : ''}<b>${o.name}</b>${tag(key, o)}</button>`,
         )
         .join('');
+    const price = trying && shop?.prices[itemId(trying.key, trying.o.id)];
+    const offer = !trying
+      ? ''
+      : price
+        ? `<button class="offer" data-a="buy">買下「${trying.o.name}」　${price}</button>`
+        : '<p class="note">這一款還沒開賣。</p>';
     ui.panel(
-      `<h2>外觀</h2><p class="kicker">衣服</p><div class="swatches">${sw(OUTFITS, 'outfit')}</div>
-     <p class="kicker">髮型</p><div class="swatches">${sw(HAIRS, 'hair')}</div>
-     <p class="note" id="look-note">帶鎖的款式可以先試穿看看，之後開放購買；離開這個面板會換回原本的。</p>
+      `<h2>外觀</h2><p class="kicker">衣服</p><div class="swatches">${sw('outfit')}</div>
+     <p class="kicker">髮型</p><div class="swatches">${sw('hair')}</div>
+     ${offer}
+     <p class="note" id="look-note" role="status">${shopNote || (trying ? '現在是試穿。沒買的話，離開這個面板會換回原本的。' : '標了價錢的款式可以先試穿。')}</p>
      <button class="seal" data-a="done">好了</button>`,
       (a) => {
         if (a === 'done') return closeWardrobe();
+        if (a === 'buy') return void buyTrying();
         const [key, id] = a.split(':');
+        const o = listOf(key).find((x) => x.id === id);
+        if (!o) return;
         avatar.apply({ [key]: id });
-        const o = (key === 'outfit' ? OUTFITS : HAIRS).find((x) => x.id === id);
-        if (!o.free) emit('market_locked_look_try', { item: id });
-        if (o.free) {
-          saved[key] = id;
-          try {
-            localStorage.setItem('market-look', JSON.stringify(saved));
-          } catch {}
+        shopNote = '';
+        if (usable(key, o)) {
+          keep(key, id);
+          if (trying?.key === key) trying = null;
+        } else {
+          trying = { key, o };
+          emit('market_locked_look_try', { item: id });
         }
         openWardrobe();
       },
+      true,
     );
   }
-  const saved = {};
+  async function buyTrying() {
+    if (!trying || !shop) return;
+    const { key, o } = trying;
+    shopNote = '正在準備';
+    openWardrobe();
+    const r = await shop.buy(itemId(key, o.id));
+    if (!wardrobe || trying?.o !== o) return;
+    if (r.state === 'redirect') {
+      shop.leaving();
+      location.assign(r.url);
+      return;
+    }
+    if (r.state === 'owned') {
+      owned.add(itemId(key, o.id));
+      keep(key, o.id);
+      trying = null;
+      shopNote = '這一款已經是你的了。';
+    } else if (r.state === 'login') {
+      shop.leaving();
+      shopNote = '要先登入才能買，這樣換了裝置也還在。<a href="/login">去登入</a>';
+    } else if (r.state === 'closed') {
+      shopNote = '付費外觀還沒開賣。沒有扣款。';
+    } else {
+      shopNote = '這會兒忙不過來，稍後再試。沒有扣款。';
+    }
+    openWardrobe();
+  }
   function closeWardrobe() {
     wardrobe = false;
+    trying = null;
     ui.panel('');
-    avatar.apply({
-      outfit:
-        saved.outfit ||
-        (OUTFITS.find((o) => o.id === avatar.state.outfit)?.free ? avatar.state.outfit : 'moon'),
-      hair: saved.hair || avatar.state.hair,
-    });
+    avatar.apply({ outfit: saved.outfit || 'moon', hair: saved.hair || 'bun' });
   }
   $('#view').onclick = toggleView;
   $('#look').onclick = () => (wardrobe ? closeWardrobe() : openWardrobe());
@@ -630,6 +816,40 @@ export function startMarket(root, opts = {}) {
   let slow = 0;
   let frames = 0;
   let lastArea = '';
+  // 天色：預設跟訪客當地的時間；點頂欄的時段可以先看別的時候（再點一輪回到「此刻」）
+  const clockHour = () => {
+    const d = new Date();
+    return d.getHours() + d.getMinutes() / 60;
+  };
+  const SKY_PICKS = [null, 6.4, 12, 18.3, 22];
+  const SKY_NAMES = ['此刻', '清晨', '正午', '黃昏', '深夜'];
+  let skyPick = null;
+  let skyHour = clockHour();
+  let skyAt = performance.now();
+  const skyBtn = $('#sky');
+  const nameOf = (h) =>
+    h < 5
+      ? '深夜'
+      : h < 8
+        ? '清晨'
+        : h < 11
+          ? '上午'
+          : h < 14
+            ? '正午'
+            : h < 17
+              ? '午後'
+              : h < 19.5
+                ? '黃昏'
+                : '夜';
+  function skyLabel() {
+    const i = SKY_PICKS.indexOf(skyPick);
+    skyBtn.textContent = i === 0 ? nameOf(clockHour()) : `${SKY_NAMES[i]}（預覽）`;
+  }
+  skyBtn.onclick = () => {
+    skyPick = SKY_PICKS[(SKY_PICKS.indexOf(skyPick) + 1) % SKY_PICKS.length];
+    emit('market_sky', { pick: skyPick === null ? 'now' : skyPick });
+    skyLabel();
+  };
   function render(dt) {
     if (bloom.enabled) composer.render(dt);
     else renderer.render(active ? active.scene : world.scene, active ? active.camera : world.camera);
@@ -652,9 +872,23 @@ export function startMarket(root, opts = {}) {
       tp += (want - tp) * Math.min(1, dt * 5);
       if (mode !== 'walk') applyCam();
       avatar.update(dt, t, mode === 'walk' || mode === 'moving' ? me.speed : 0);
+      // 天色慢慢追上目標時辰（跟著訪客的時鐘，或手動預覽的時段）
+      const goal = skyPick === null ? clockHour() : skyPick;
+      const gap = ((((goal - skyHour) % 24) + 36) % 24) - 12;
+      if (Math.abs(gap) <= 0.002) skyAt = performance.now();
+      else {
+        // 用真實經過的時間推進，慢的裝置也在幾秒內轉完
+        const nowMs = performance.now();
+        skyHour += gap * Math.min(1, Math.min(0.3, (nowMs - skyAt) / 1000) * 1.6);
+        skyAt = nowMs;
+        world.setHour(skyHour);
+        renderer.toneMappingExposure = world.sky.exposure;
+        bloom.strength = world.sky.bloom;
+      }
+      crowd.update(dt, t);
       world.update(dt, t, world.camera.position);
       world.reflect(world.camera);
-      const a = world.area(me.z);
+      const a = world.area(me.x, me.z);
       if (a !== lastArea && mode !== 'room') $('#hud-title').textContent = lastArea = a;
     }
     if (active) lastArea = '';

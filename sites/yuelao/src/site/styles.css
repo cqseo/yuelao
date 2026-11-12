@@ -111,10 +111,18 @@ a {
 }
 
 @media (max-width: 640px) {
+  /* 五個入口在手機上排成一行：不折字，放不下就橫向捲動。 */
   .site-header .site-nav {
     order: 3;
     flex-basis: 100%;
-    gap: 1rem;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .site-nav a {
+    white-space: nowrap;
+    font-size: 0.875rem;
   }
 
   .site-meta .nav-legal {

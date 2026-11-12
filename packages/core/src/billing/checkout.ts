@@ -7,26 +7,31 @@ import type { PaymentProvider } from './provider';
 export interface CheckoutSelection {
   productId: string;
   locale: Locale;
-  currency: 'HKD' | 'TWD';
+  currency: 'HKD' | 'TWD' | 'USD';
   stickId: number | null;
   category: 'him' | 'single' | 'reunion' | null;
+  /** Where the purchase started; only picks which fixed page a cancelled checkout returns to. */
+  from: 'market' | null;
 }
 
 function parseSelection(raw: unknown): CheckoutSelection | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const value = raw as Record<string, unknown>;
   const { productId, locale, currency, stickId, category } = value;
-  if (typeof productId !== 'string' || !['unlock_1', 'pack_3', 'pack_8'].includes(productId)) return null;
+  if (value.from !== undefined && value.from !== 'market') return null;
+  const from = value.from === 'market' ? 'market' : null;
+  // Shape only; whether the product exists is decided against the site config below.
+  if (typeof productId !== 'string' || !/^[a-z][a-z0-9_]{0,39}$/.test(productId)) return null;
   if (locale !== 'zh-Hant' && locale !== 'zh-Hans') return null;
-  if (currency !== 'HKD' && currency !== 'TWD') return null;
-  if (productId === 'unlock_1') {
+  if (currency !== 'HKD' && currency !== 'TWD' && currency !== 'USD') return null;
+  // A stick + category means a single deep-reading unlock; every other product must send neither.
+  if (stickId !== undefined || category !== undefined) {
     if (typeof stickId !== 'number' || !Number.isInteger(stickId) || stickId < 1 || stickId > 100)
       return null;
     if (category !== 'him' && category !== 'single' && category !== 'reunion') return null;
-    return { productId, locale, currency, stickId, category };
+    return { productId, locale, currency, stickId, category, from };
   }
-  if (stickId !== undefined || category !== undefined) return null;
-  return { productId, locale, currency, stickId: null, category: null };
+  return { productId, locale, currency, stickId: null, category: null, from };
 }
 
 export interface CheckoutDeps {
@@ -66,6 +71,10 @@ export async function createTestCheckout({
   const checkoutProduct = checkoutProductForCurrency(product, selection.currency);
   if (!checkoutProduct) return errorResponse(400, 'unsupported_currency');
   if (checkoutProduct.kind === 'subscription') return errorResponse(400, 'subscription_unavailable');
+  // The selection's shape must match the product's kind: unlocks name a stick, nothing else may.
+  if ((product.kind === 'unlock') !== (selection.stickId !== null)) {
+    return errorResponse(400, 'invalid_product_selection');
+  }
 
   // The Worker config is trusted, unlike any caller-provided Origin/returnUrl.
   const siteUrl = new URL(baseUrl);
@@ -94,6 +103,19 @@ export async function createTestCheckout({
       .maybeSingle();
     if (unlockError) return errorResponse(503, 'unlock_lookup_failed');
     if (existing) return errorResponse(409, 'already_unlocked');
+  }
+
+  if (product.kind === 'item') {
+    // One of each item per user: never take a second payment for something already owned.
+    const { data: owned, error: ownedError } = await database
+      .from('owned_items')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('item_id', product.id)
+      .eq('revoked', false)
+      .maybeSingle();
+    if (ownedError) return errorResponse(503, 'ownership_lookup_failed');
+    if (owned) return errorResponse(409, 'already_owned');
   }
 
   // Upsert only creates a missing profile. It never overwrites existing customer ownership.
@@ -164,7 +186,10 @@ export async function createTestCheckout({
   // webhook followed by a single transactional DB grant may unlock it.
   const returnUrl = new URL('/billing/return', siteUrl);
   returnUrl.searchParams.set('order', order.id);
-  const cancelUrl = new URL('/ritual', siteUrl);
+  // Fixed paths only — never a caller-supplied URL.
+  const cancelPath =
+    selection.from !== 'market' ? '/ritual' : product.kind === 'unlock' ? '/market#yuelao' : '/market';
+  const cancelUrl = new URL(cancelPath, siteUrl);
   const checkout = await provider.createCheckout({
     orderId: order.id,
     siteId: site.id,
