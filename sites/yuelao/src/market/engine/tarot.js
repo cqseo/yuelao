@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createNpc } from './npc.js';
 import { audio, canvasTex, ease, FONT, glow, lerp, rand, tween, wait } from './util.js';
 
 // 22 張大阿卡納。牌義是為感情問題寫的短解，樣片用，正式版需懂行的人審。
@@ -231,6 +232,9 @@ export function createTarot(ui) {
   const camera = new THREE.PerspectiveCamera(46, 1, 0.05, 60);
   const HOME = new THREE.Vector3(0, 2.75, 2.05);
   const LOOK = new THREE.Vector3(0, 0.92, -0.2);
+  // 進門先和塔羅師打照面，開始洗牌才低頭看桌面
+  const GREET = new THREE.Vector3(0, 1.9, 2.6);
+  const GREET_LOOK = new THREE.Vector3(0, 1.15, -1.2);
   const TOP = 0.96;
 
   scene.add(new THREE.HemisphereLight(0x8f86ff, 0x120a2a, 0.5));
@@ -390,10 +394,23 @@ export function createTarot(ui) {
     });
   }
 
+  // 掌櫃：塔羅師坐在桌子另一頭
+  const npc = createNpc('tarot');
+  npc.root.position.set(0, 0, -2.0);
+  npc.root.scale.setScalar(1.2);
+  scene.add(npc.root);
+  const npcLight = new THREE.PointLight(0xffe2c4, 5, 5, 1.6);
+  npcLight.position.set(0, 2.3, -1.2);
+  scene.add(npcLight);
+  const say = (text) => {
+    npc.talk();
+    ui.say(npc.name, text);
+  };
+
   function intro() {
     state = 'intro';
-    camera.position.copy(HOME);
-    camera.lookAt(LOOK);
+    camera.position.copy(GREET);
+    camera.lookAt(GREET_LOOK);
     chosen = [];
     flipped = 0;
     stack();
@@ -414,7 +431,18 @@ export function createTarot(ui) {
   async function shuffle() {
     state = 'shuffle';
     ui.panel('');
-    ui.hint('洗牌中');
+    ui.hint('');
+    say('我來洗牌。你只管想著那件事。');
+    const look = GREET_LOOK.clone();
+    tween(
+      1.1,
+      (k) => {
+        camera.position.lerpVectors(GREET, HOME, k);
+        look.lerpVectors(GREET_LOOK, LOOK, k);
+        camera.lookAt(look);
+      },
+      ease.inOut,
+    );
     const order = cards.map((_, i) => i).sort(() => Math.random() - 0.5);
     for (let r = 0; r < 3; r++) {
       audio.tick(2600, 0.12, 0.2);
@@ -454,6 +482,7 @@ export function createTarot(ui) {
       }),
     );
     state = 'choose';
+    say('憑直覺，不要挑。');
     ui.hint(spread.n === 1 ? '憑直覺點一張牌' : `憑直覺點 ${spread.n} 張牌`);
   }
 
@@ -516,6 +545,9 @@ export function createTarot(ui) {
     const face = new THREE.MeshStandardMaterial({ map: faceTex(c.userData.i), roughness: 0.65 });
     c.material = [edge, edge, back, face, edge, edge];
     audio.tick(1900, 0.2, 0.09);
+    say(
+      `${spread.n > 1 ? `${spread.labels[k]}，` : ''}${CARDS[c.userData.i][0]}${c.userData.rev ? '，逆位' : ''}。`,
+    );
     const y0 = c.position.y;
     // face texture is drawn upright for a viewer at +z once the card is turned over about its long axis
     const endY = c.userData.rev ? 0 : Math.PI;
@@ -539,6 +571,7 @@ export function createTarot(ui) {
 
   function reading() {
     state = 'reading';
+    say('牌說完了。它給的是方向，路還是你自己走。');
     ui.hint('');
     ui.panel(
       `<div class="reading">
@@ -549,7 +582,7 @@ export function createTarot(ui) {
           })
           .join('')}
        </div>
-       <div class="card-actions"><button class="seal" data-a="again">再抽一次</button><button class="ghost" data-a="leave">回到街上</button></div>`,
+       <div class="card-actions"><button class="seal" data-a="again">再抽一次</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (a) => (a === 'leave' ? ui.leave() : intro()),
       true,
     );
@@ -561,24 +594,26 @@ export function createTarot(ui) {
     scene,
     camera,
     enter() {
-      const from = HOME.clone().add(new THREE.Vector3(0, -0.6, 2.4));
+      const from = GREET.clone().add(new THREE.Vector3(0, -0.2, 2.2));
       camera.position.copy(from);
-      camera.lookAt(LOOK);
+      camera.lookAt(GREET_LOOK);
       tween(
         1.6,
         (k) => {
-          camera.position.lerpVectors(from, HOME, k);
-          camera.lookAt(LOOK);
+          camera.position.lerpVectors(from, GREET, k);
+          camera.lookAt(GREET_LOOK);
         },
         ease.out,
       );
       audio.bell(587, 0.14, 3.5);
       intro();
+      say('請坐。想清楚一件事，牌才知道要說什麼。');
     },
     exit() {
       state = 'idle';
       ui.panel('');
       ui.hint('');
+      ui.say('', '');
     },
     resize(aspect) {
       camera.fov = aspect < 0.8 ? 70 : aspect < 1.2 ? 58 : 46;
@@ -586,8 +621,11 @@ export function createTarot(ui) {
       if (aspect < 0.8) HOME.set(0, 4.5, 3.2);
       else if (aspect < 1.2) HOME.set(0, 3.4, 2.6);
       else HOME.set(0, 2.75, 2.05);
-      camera.position.copy(HOME);
-      camera.lookAt(LOOK);
+      // 手機畫面被底部面板往上推，打照面時鏡頭要抬高一點、站遠一點
+      GREET.set(0, 1.9, aspect < 0.8 ? 3.4 : 2.6);
+      GREET_LOOK.set(0, aspect < 0.8 ? 1.8 : 1.15, -1.2);
+      camera.position.copy(state === 'intro' || state === 'idle' ? GREET : HOME);
+      camera.lookAt(state === 'intro' || state === 'idle' ? GREET_LOOK : LOOK);
       camera.aspect = aspect;
     },
     pick: () => (state === 'choose' ? cards.filter((c) => !c.userData.sel) : state === 'flip' ? chosen : []),
@@ -602,6 +640,7 @@ export function createTarot(ui) {
     },
     onShake() {},
     update(dt, t) {
+      npc.update(dt, t);
       for (const { f, pl } of flames) {
         const fl = 0.9 + Math.sin(t * 12 + pl.position.x * 3) * 0.06 + Math.random() * 0.06;
         f.scale.setScalar(0.42 * fl);

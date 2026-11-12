@@ -1,14 +1,15 @@
 import * as THREE from 'three';
 
 // 訪客自己的角色（第三人稱時看得到）：程序拼出來的漢服小人，提一盞紙燈籠。
-// 外觀分「衣服」和「髮型」兩組；free 以外的款式先只能預覽，之後開放購買。
+// 外觀分「衣服」和「髮型」兩組，目前全部免費。之後要賣的款式標 free: false，
+// 並在 site.config.ts 加一個 id 為 'outfit_<代號>' 的 item 商品，衣櫥就會標價、可試穿、可購買。
 export const OUTFITS = [
   { id: 'moon', name: '月白', robe: 0xdfe6ea, trim: 0x2b3a5c, sash: 0x2b3a5c, free: true },
   { id: 'red', name: '朱紅', robe: 0xa3261c, trim: 0xd9b46a, sash: 0xd9b46a, free: true },
   { id: 'teal', name: '黛青', robe: 0x24484a, trim: 0xe6dcc4, sash: 0xb5332b, free: true },
-  { id: 'peach', name: '桃夭', robe: 0xf0b7b0, trim: 0xf7ead0, sash: 0xc9a25a, free: false },
-  { id: 'ink', name: '墨金', robe: 0x16161a, trim: 0xc9a25a, sash: 0xc9a25a, free: false },
-  { id: 'bride', name: '霞帔', robe: 0xc21f1a, trim: 0xf0cf7a, sash: 0xf0cf7a, free: false, veil: true },
+  { id: 'peach', name: '桃夭', robe: 0xf0b7b0, trim: 0xf7ead0, sash: 0xc9a25a, free: true },
+  { id: 'ink', name: '墨金', robe: 0x16161a, trim: 0xc9a25a, sash: 0xc9a25a, free: true },
+  { id: 'bride', name: '霞帔', robe: 0xc21f1a, trim: 0xf0cf7a, sash: 0xf0cf7a, free: true, veil: true },
 ];
 export const HAIRS = [
   { id: 'bun', name: '單髻', free: true },
