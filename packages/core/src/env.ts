@@ -28,6 +28,11 @@ export interface CoreEnv {
   /** Explicit model name; server-only, not exposed as a client configuration. */
   OPENAI_CHAT_MODEL?: string;
 
+  /** 許願池：設成 "true" 才開放讀寫；預設關閉。 */
+  WISHES_ENABLED?: string;
+  /** 設成 "true" 才把願望文字送 OpenAI moderation 自動審核；否則每則都停在待審，等人工放行。 */
+  WISH_AUTO_MODERATION?: string;
+
   /** Rybbit collector endpoint (e.g. https://events.example.com/api); the site's /stats/* is proxied here. */
   RYBBIT_UPSTREAM?: string;
 }

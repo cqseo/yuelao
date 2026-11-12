@@ -46,6 +46,11 @@ function latticeTex() {
 
 export function createWorld(renderer, lowQuality) {
   const scene = new THREE.Scene();
+  const _pm = new THREE.Matrix4();
+  const _pv = new THREE.Vector3();
+  const _pq = new THREE.Quaternion();
+  const _pe = new THREE.Euler();
+  const _ps = new THREE.Vector3();
   scene.fog = new THREE.FogExp2(0x090a14, 0.02); // 霧壓暗遠景，讓廣場邊緣融進夜色
   const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 500);
   camera.rotation.order = 'YXZ';
@@ -546,6 +551,11 @@ export function createWorld(renderer, lowQuality) {
 
   // ---------- 許願池：一圈石欄、一池靜水、池心的許願樹 ----------
   const talis = new THREE.Group();
+  // 願望牌：一則公開的願望一塊牌，掛在樹冠下；自己的那塊是金色。點牌子可以看內容。
+  const PLATES = 160;
+  const plateSlots = []; // { id, mine, pos, ph, born }
+  let plates;
+  let plateStrings;
   {
     const g = new THREE.Group();
     g.add(
@@ -633,6 +643,23 @@ export function createWorld(renderer, lowQuality) {
     }
     canopy.castShadow = !lowQuality;
     tree.add(canopy, ribbons);
+    plates = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.46, 0.66, 0.05).translate(0, -0.33, 0),
+      new THREE.MeshStandardMaterial({ roughness: 0.55, emissive: 0x3a0c06, emissiveIntensity: 0.6 }),
+      PLATES,
+    );
+    plates.count = 0;
+    plates.frustumCulled = false;
+    // 點選用：牌子只在樹冠下這一圈，固定的包圍球就夠了，不必每幀重算
+    plates.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 3.6, 0), 6.5);
+    plateStrings = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.025, 0.7, 0.025).translate(0, 0.35, 0),
+      new THREE.MeshBasicMaterial({ color: 0xc0281c }),
+      PLATES,
+    );
+    plateStrings.count = 0;
+    plateStrings.frustumCulled = false;
+    tree.add(plates, plateStrings);
     tree.scale.setScalar(0.72);
     g.add(tree);
     scene.add(g);
@@ -649,8 +676,9 @@ export function createWorld(renderer, lowQuality) {
       name: '許願池',
       sub: '繫一條紅線',
       pos: new THREE.Vector3(0, 2.4, POND_R + 0.8),
-      open: false,
+      open: true,
       plain: true,
+      wish: true,
     });
 
     // 浮在池子上空的符紙，慢慢繞著樹轉
@@ -1041,6 +1069,38 @@ export function createWorld(renderer, lowQuality) {
       ground.visible = true;
       renderer.shadowMap.autoUpdate = auto;
     },
+    /** 點得到的願望牌（InstancedMesh；命中後用 wishAt(instanceId) 取願望 id）。 */
+    wishPick: plates,
+    wishAt: (i) => plateSlots[i]?.id ?? null,
+    /**
+     * 掛上願望牌。list 是 [{ id, mine }]，最新的在前；位置由 id 決定，同一則每次都掛在同一處。
+     * fresh 是剛許下的那一則：從池面升上去。
+     */
+    setWishes(list, fresh) {
+      const keep = new Map(plateSlots.map((p) => [p.id, p]));
+      plateSlots.length = 0;
+      for (const w of list.slice(0, PLATES)) {
+        const old = keep.get(w.id);
+        let h = 2166136261;
+        for (let i = 0; i < w.id.length; i++) h = Math.imul(h ^ w.id.charCodeAt(i), 16777619);
+        const u = (k) => ((h >>> (k * 5)) & 1023) / 1023;
+        const a = u(0) * Math.PI * 2;
+        const r = 1.8 + u(1) * 2.9;
+        plateSlots.push({
+          id: w.id,
+          mine: !!w.mine,
+          pos: new THREE.Vector3(Math.cos(a) * r, 3.7 + u(2) * 0.9 - r * 0.06, Math.sin(a) * r),
+          yaw: -a + Math.PI / 2,
+          ph: u(3) * 6.28,
+          born: old ? old.born : w.id === fresh ? -1 : 0,
+        });
+      }
+      const gold = new THREE.Color(0xe0b25a);
+      const red = new THREE.Color(0xa8241a);
+      for (let i = 0; i < plateSlots.length; i++) plates.setColorAt(i, plateSlots[i].mine ? gold : red);
+      plates.count = plateStrings.count = plateSlots.length;
+      if (plates.instanceColor) plates.instanceColor.needsUpdate = true;
+    },
     /** 天色狀態（唯讀）：hour、day（0 夜–1 晝）、dusk、exposure、bloom。 */
     sky: state,
     setHour,
@@ -1058,6 +1118,22 @@ export function createWorld(renderer, lowQuality) {
         l.intensity =
           l.userData.base * (state.lamp ?? 1) * (0.8 + Math.sin(t * 9) * 0.1 + Math.random() * 0.15);
       talis.rotation.y = t * 0.04;
+      if (plateSlots.length) {
+        for (let i = 0; i < plateSlots.length; i++) {
+          const p = plateSlots[i];
+          if (p.born < 0) p.born = t; // 剛許下：從這一刻開始升起
+          const rise = p.born > 0 ? Math.min(1, (t - p.born) / 2.4) : 1;
+          const k = 1 - (1 - rise) ** 3;
+          _pv.copy(p.pos);
+          _pv.y = -1.2 + (p.pos.y + 1.2) * k;
+          _pe.set(0, p.yaw, Math.sin(t * 0.9 + p.ph) * 0.12 * (1 + (1 - k) * 2));
+          _pm.compose(_pv, _pq.setFromEuler(_pe), _ps.setScalar(0.4 + 0.6 * k));
+          plates.setMatrixAt(i, _pm);
+          plateStrings.setMatrixAt(i, _pm);
+        }
+        plates.instanceMatrix.needsUpdate = true;
+        plateStrings.instanceMatrix.needsUpdate = true;
+      }
       for (const c of talis.children) c.position.y = c.userData.y + Math.sin(t * 0.7 + c.userData.ph) * 0.25;
       embers.position.set(pos.x, 0, pos.z);
       const p = eg.attributes.position.array;

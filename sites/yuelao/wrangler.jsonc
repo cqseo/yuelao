@@ -25,6 +25,8 @@
         "BILLING_ENABLE_TEST_CHECKOUT": "false",
         "AI_ENABLE_TEST_GENERATION": "false",
         "AI_CHAT_ENABLED": "false",
+        "WISHES_ENABLED": "false",
+        "WISH_AUTO_MODERATION": "false",
         "RYBBIT_UPSTREAM": ""
       }
     }
@@ -37,6 +39,10 @@
     "BILLING_ENABLE_TEST_CHECKOUT": "false",
     "AI_ENABLE_TEST_GENERATION": "false",
     "AI_CHAT_ENABLED": "false",
+    // 許願池：使用者寫的字公開可見。wishing_pool 遷移已於 2026-11-12 套用到 Supabase。
+    "WISHES_ENABLED": "true",
+    // "true" 才把願望送 OpenAI moderation 自動放行；否則一律待審，人工用 review_wish 放行。
+    "WISH_AUTO_MODERATION": "false",
     // To enable Rybbit, set this to your Rybbit API URL and add analytics.rybbit to site.config.ts.
     "RYBBIT_UPSTREAM": ""
   }
