@@ -1,0 +1,454 @@
+/* biome-ignore-all lint/style/noDescendingSpecificity: 各段以類名區隔，順序不影響結果 */
+/* 首頁（整頁重做）：通頁夜色，與 /market 同一套色與字。設計依據見 DESIGN.md P11「首頁」。 */
+.mh {
+  --night: #070812;
+  --paper: #efe5cf;
+  --paper-70: rgba(239, 229, 207, 0.72);
+  --paper-50: rgba(239, 229, 207, 0.5);
+  --rule: rgba(239, 229, 207, 0.12);
+  --line: rgba(220, 187, 124, 0.28);
+  --gold: #dcbb7c;
+  --red: #b5332b;
+  --w: min(64rem, 100%);
+  --pad: clamp(1.25rem, 5vw, 3rem);
+  min-height: 100vh;
+  background: var(--night);
+  color: var(--paper);
+  font-family: var(--font-serif-tc);
+  -webkit-font-smoothing: antialiased;
+}
+.mh *,
+.mh *::before {
+  box-sizing: border-box;
+}
+.mh a {
+  color: inherit;
+}
+.mh a:focus-visible,
+.mh button:focus-visible,
+.mh input:focus-visible,
+.mh summary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+/* 頂欄：浮在圖上 */
+.mh-top {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  width: var(--w);
+  margin: 0 auto;
+  padding: 1rem var(--pad);
+}
+.mh-brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+}
+.mh-nav {
+  display: flex;
+  gap: 1.5rem;
+  margin-left: auto;
+}
+.mh-nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.9375rem;
+  letter-spacing: 0.08em;
+  color: var(--paper-70);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mh-nav a:hover {
+  color: var(--paper);
+}
+.mh-locale {
+  display: flex;
+  gap: 0.25rem;
+}
+.mh-locale button {
+  appearance: none;
+  min-height: 44px;
+  padding: 0 0.4rem;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--paper-50);
+  cursor: pointer;
+}
+.mh-locale button[aria-current="true"] {
+  color: var(--gold);
+}
+
+/* 第一屏 */
+.mh-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: min(52rem, 100svh);
+  overflow: hidden;
+}
+.mh-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 42%;
+}
+.mh-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 8, 18, 0.55) 0%, rgba(7, 8, 18, 0) 30%, rgba(7, 8, 18, 0.96) 100%),
+    linear-gradient(90deg, rgba(7, 8, 18, 0.7) 0%, rgba(7, 8, 18, 0) 62%);
+}
+.mh-hero-copy {
+  position: relative;
+  z-index: 1;
+  width: var(--w);
+  margin: 0 auto;
+  padding: 0 var(--pad) clamp(2.5rem, 8vh, 5rem);
+}
+.mh-hero-copy h1 {
+  margin: 0;
+  font-size: clamp(3rem, 12vw, 6.5rem);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: 0.14em;
+  text-shadow: 0 4px 40px rgba(0, 0, 0, 0.7);
+}
+.mh-lead {
+  max-width: 27rem;
+  margin: 1rem 0 1.75rem;
+  font-size: 1.0625rem;
+  line-height: 1.9;
+  color: var(--paper-70);
+}
+.mh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+.mh-enter {
+  display: inline-flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 2.25rem 0 calc(2.25rem + 0.24em);
+  border-radius: 3px;
+  outline: 1px solid rgba(239, 229, 207, 0.5);
+  outline-offset: -5px;
+  background: var(--red);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.mh-enter:hover {
+  background: #c53c33;
+}
+.mh-plain {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.9375rem;
+  letter-spacing: 0.1em;
+  color: var(--paper-70);
+  text-decoration-color: var(--line);
+  text-underline-offset: 6px;
+}
+.mh-plain:hover {
+  color: var(--paper);
+}
+.mh-note {
+  margin: 1.5rem 0 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  color: var(--paper-50);
+}
+
+/* 各段 */
+.mh-sec {
+  width: var(--w);
+  margin: 0 auto;
+  padding: clamp(2.5rem, 7vw, 4.5rem) var(--pad) 0;
+}
+.mh-sec h2 {
+  margin: 0 0 1.75rem;
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+}
+.mh-sec ul,
+.mh-sec ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mh-rooms {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 3vw, 2rem);
+}
+.mh-rooms li {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+}
+.mh-rooms img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 3px;
+  background: #14121f;
+}
+.mh-rooms h3 {
+  margin: 0.5rem 0 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+.mh-rooms p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: var(--paper-70);
+}
+.mh-rooms li > a,
+.mh-rooms li > span {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  letter-spacing: 0.14em;
+}
+.mh-rooms li > a {
+  color: var(--gold);
+  text-decoration-color: var(--line);
+  text-underline-offset: 6px;
+}
+.mh-rooms li > a:hover {
+  color: var(--paper);
+}
+.mh-rooms li > span {
+  color: var(--paper-50);
+}
+
+/* 三步：真的有先後，所以編號 */
+.mh-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 3vw, 2rem);
+  counter-reset: step;
+}
+.mh-steps li {
+  counter-increment: step;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.mh-steps li::before {
+  content: counter(step, trad-chinese-informal);
+  display: block;
+  font-size: 2rem;
+  font-weight: 300;
+  line-height: 1.2;
+  color: var(--gold);
+}
+.mh-steps h3 {
+  margin: 0.5rem 0 0.4rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.mh-steps p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.85;
+  color: var(--paper-70);
+}
+
+/* 其他去處：一行一個，整行可點 */
+.mh-ways li {
+  border-top: 1px solid var(--rule);
+}
+.mh-ways li:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+.mh-ways a {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  align-items: baseline;
+  gap: 1rem;
+  min-height: 60px;
+  padding: 1rem 0;
+  text-decoration: none;
+}
+.mh-ways b {
+  font-size: 1.125rem;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+}
+.mh-ways span {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--paper-70);
+}
+.mh-ways a:hover span {
+  color: var(--paper);
+}
+.mh-lookup {
+  max-width: 27rem;
+  margin-top: 2rem;
+}
+.mh-lookup label {
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+}
+.mh-lookup p {
+  margin: 0.4rem 0 0.9rem;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--paper-50);
+}
+.mh-lookup div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+.mh-lookup input {
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(239, 229, 207, 0.04);
+  font: inherit;
+  font-size: 1rem;
+  color: var(--paper);
+}
+.mh-lookup input::placeholder {
+  color: var(--paper-50);
+}
+.mh-lookup button {
+  appearance: none;
+  min-height: 48px;
+  padding: 0 1.25rem;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  background: none;
+  font: inherit;
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+  color: var(--paper);
+  cursor: pointer;
+}
+.mh-lookup button:hover {
+  background: rgba(220, 187, 124, 0.1);
+}
+.mh-lookup .mh-err {
+  margin: 0.6rem 0 0;
+  color: #f0a79f;
+}
+
+.mh-faq details {
+  border-top: 1px solid var(--rule);
+}
+.mh-faq details:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+.mh-faq summary {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  font-size: 1.0625rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.mh-faq details p {
+  max-width: 40rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.9;
+  color: var(--paper-70);
+}
+
+.mh-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  width: var(--w);
+  margin: clamp(3rem, 8vw, 5rem) auto 0;
+  padding: 1.5rem var(--pad) 2.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  color: var(--paper-50);
+}
+.mh-foot nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+}
+.mh-foot a {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.mh-foot a:hover {
+  color: var(--paper);
+}
+
+@media (max-width: 720px) {
+  .mh-top {
+    flex-wrap: wrap;
+    gap: 0 1rem;
+    padding-bottom: 0;
+  }
+  .mh-locale {
+    margin-left: auto;
+  }
+  .mh-nav {
+    order: 3;
+    flex-basis: 100%;
+    gap: 1.1rem;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .mh-nav a {
+    font-size: 0.875rem;
+  }
+  .mh-rooms,
+  .mh-steps {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .mh-steps {
+    gap: 1.5rem;
+  }
+  .mh-ways a {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mh-enter {
+    transition: none;
+  }
+}
