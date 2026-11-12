@@ -1050,3 +1050,115 @@
     max-height: calc(100vh - 6.5rem);
   }
 }
+
+/* 天色鈕：跟在地點名後面，進房間後收起 */
+.mk #hud #sky {
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border-color: transparent;
+  background: none;
+  color: var(--gold);
+}
+.mk #hud:has(#back:not([hidden])) #sky {
+  display: none;
+}
+
+/* 許願池：池邊面板（見 DESIGN.md「許願池」） */
+.mk .chips button.on {
+  border-color: var(--gold);
+  color: var(--paper);
+  background: rgba(220, 187, 124, 0.1);
+}
+.mk #panel .note.small {
+  font-size: 0.75rem;
+  color: var(--paper-50);
+}
+.mk #panel #wish-note:empty {
+  display: none;
+}
+.mk .wishes {
+  display: grid;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+.mk .wish {
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(239, 229, 207, 0.12);
+}
+.mk .wish .body {
+  margin: 0 0 0.4rem;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.mk .wish .meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--paper-50);
+}
+.mk .wish .meta span:first-child {
+  flex: 1;
+}
+.mk .wish .own {
+  color: var(--gold);
+}
+.mk .wish.focus {
+  margin: 0 -0.75rem;
+  padding: 0.75rem;
+  background: rgba(220, 187, 124, 0.08);
+}
+.mk div.wish.mine {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+.mk .wish .bless,
+.mk #panel .tiny {
+  appearance: none;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border: 1px solid rgba(239, 229, 207, 0.18);
+  border-radius: 3px;
+  background: none;
+  font-size: 0.75rem;
+  color: var(--paper-70);
+  white-space: nowrap;
+}
+.mk #panel .tiny {
+  border-color: transparent;
+  color: var(--paper-50);
+}
+.mk .wish .bless.on {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.mk .wish .report {
+  margin: 0.25rem 0 0;
+}
+.mk .care {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  border-left: 2px solid var(--gold);
+  background: rgba(220, 187, 124, 0.06);
+  font-size: 0.875rem;
+  line-height: 1.8;
+}
+.mk .care p {
+  margin: 0 0 0.25rem;
+}
+.mk #panel button.linkbtn {
+  width: 100%;
+  min-height: 44px;
+}
+.mk #panel .note a {
+  color: var(--gold);
+  text-underline-offset: 4px;
+}
