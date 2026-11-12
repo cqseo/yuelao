@@ -7,11 +7,15 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "upload_source_maps": true,
+  // 大殿同拜：一間殿一個 Durable Object（只同步位置與動作，不存資料）。
+  "durable_objects": { "bindings": [{ "name": "HALL", "class_name": "HallRoom" }] },
+  "migrations": [{ "tag": "v1-hall", "new_sqlite_classes": ["HallRoom"] }],
   // Staging creates a separate Worker, with no live DB, API keys or payment secrets.
   "env": {
     "staging": {
       "name": "yuelao-v2-staging-20261109",
       "workers_dev": true,
+      "durable_objects": { "bindings": [{ "name": "HALL", "class_name": "HallRoom" }] },
       "vars": {
         "SITE_STAGING": "true",
         "APP_URL": "https://yuelao-v2-staging-20261109.cqseo.workers.dev",
@@ -21,6 +25,8 @@
         "BILLING_ENABLE_TEST_CHECKOUT": "false",
         "AI_ENABLE_TEST_GENERATION": "false",
         "AI_CHAT_ENABLED": "false",
+        "WISHES_ENABLED": "false",
+        "WISH_AUTO_MODERATION": "false",
         "RYBBIT_UPSTREAM": ""
       }
     }
@@ -33,6 +39,10 @@
     "BILLING_ENABLE_TEST_CHECKOUT": "false",
     "AI_ENABLE_TEST_GENERATION": "false",
     "AI_CHAT_ENABLED": "false",
+    // 許願池：使用者寫的字公開可見。wishing_pool 遷移已於 2026-11-12 套用到 Supabase。
+    "WISHES_ENABLED": "true",
+    // "true" 才把願望送 OpenAI moderation 自動放行；否則一律待審，人工用 review_wish 放行。
+    "WISH_AUTO_MODERATION": "false",
     // To enable Rybbit, set this to your Rybbit API URL and add analytics.rybbit to site.config.ts.
     "RYBBIT_UPSTREAM": ""
   }

@@ -218,7 +218,66 @@ function buildReader() {
   };
 }
 
+/** 知客：灰袍、光頭、掛一串念珠，站在殿門邊招呼。 */
+function buildKeeper() {
+  const root = new THREE.Group();
+  const body = new THREE.Group();
+  root.add(body);
+  const grey = std({ color: 0x6f6a60, roughness: 0.85, side: THREE.DoubleSide });
+  const ochre = std({ color: 0xb07a22, roughness: 0.7 });
+  const skin = std({ color: 0xe6c4a8, roughness: 0.75 });
+  const lower = robe(grey, 0.2, 0.45, 1.02);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.23, 0.46, 16), grey);
+  torso.position.y = 1.23;
+  const sashM = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.035, 6, 20), ochre);
+  sashM.rotation.set(Math.PI / 2 - 0.5, 0.6, 0);
+  sashM.position.y = 1.25;
+  const head = new THREE.Group();
+  head.position.y = 1.62;
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.145, 20, 16), skin);
+  face.scale.set(0.95, 1.05, 0.98);
+  head.add(face);
+  const dark = new THREE.MeshBasicMaterial({ color: 0x241712 });
+  for (const s of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), dark);
+    eye.scale.set(1.5, 0.5, 0.5);
+    eye.position.set(s * 0.052, 0.01, 0.136);
+    head.add(eye);
+  }
+  const beads = new THREE.Mesh(
+    new THREE.TorusGeometry(0.15, 0.014, 6, 24),
+    std({ color: 0x3a2416, roughness: 0.5 }),
+  );
+  beads.rotation.x = Math.PI / 2 - 0.9;
+  beads.position.set(0, 1.3, 0.1);
+  const arms = [-1, 1].map((s) => {
+    const a = sleeve(grey, grey, skin, s, 0.5);
+    a.position.set(s * 0.24, 1.42, 0);
+    a.rotation.x = -0.95;
+    a.rotation.z = s * -0.35; // 合十
+    a.scale.set(0.7, 1, 0.7);
+    body.add(a);
+    return a;
+  });
+  body.add(lower, torso, sashM, head, beads);
+  let nod = 0;
+  return {
+    root,
+    talk() {
+      nod = 1;
+    },
+    update(dt, t) {
+      nod = Math.max(0, nod - dt * 1.3);
+      body.position.y = Math.sin(t * 1.2) * 0.005;
+      body.rotation.x = Math.sin(nod * Math.PI) * 0.22; // 開口時欠身
+      head.rotation.y = Math.sin(t * 0.4) * 0.06;
+      arms[0].rotation.x = -0.95 - Math.sin(nod * Math.PI) * 0.1;
+    },
+  };
+}
+
 export const NPCS = {
+  keeper: { name: '知客', build: buildKeeper },
   yuelao: { name: '月老', build: buildYuelao },
   tarot: { name: '塔羅師', build: buildReader },
 };
