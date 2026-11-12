@@ -7,11 +7,15 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "upload_source_maps": true,
+  // 大殿同拜：一間殿一個 Durable Object（只同步位置與動作，不存資料）。
+  "durable_objects": { "bindings": [{ "name": "HALL", "class_name": "HallRoom" }] },
+  "migrations": [{ "tag": "v1-hall", "new_sqlite_classes": ["HallRoom"] }],
   // Staging creates a separate Worker, with no live DB, API keys or payment secrets.
   "env": {
     "staging": {
       "name": "yuelao-v2-staging-20261109",
       "workers_dev": true,
+      "durable_objects": { "bindings": [{ "name": "HALL", "class_name": "HallRoom" }] },
       "vars": {
         "SITE_STAGING": "true",
         "APP_URL": "https://yuelao-v2-staging-20261109.cqseo.workers.dev",

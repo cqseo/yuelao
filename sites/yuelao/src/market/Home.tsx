@@ -43,6 +43,7 @@ const ROOMS = [
     img: '/market/hall.jpg',
     name: () => m.home_market_room_hall(),
     desc: () => m.home_market_room_hall_desc(),
+    hash: 'hall',
   },
 ];
 

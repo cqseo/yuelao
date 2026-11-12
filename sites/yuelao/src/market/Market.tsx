@@ -122,7 +122,7 @@ export function Market() {
             改用一般版求籤
           </a>
         </div>
-        <small>今晚開張：月老殿、塔羅館</small>
+        <small>今晚開張：月老殿、塔羅館、大殿</small>
       </section>
       <section id="panel" />
       <section id="card" />

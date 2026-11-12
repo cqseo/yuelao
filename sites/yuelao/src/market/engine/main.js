@@ -6,6 +6,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { createAvatar, HAIRS, OUTFITS } from './avatar.js';
 import { createCrowd } from './crowd.js';
+import { createHall } from './hall.js';
 import { createTarot } from './tarot.js';
 import { audio, ease, stepTweens, tween, wait } from './util.js';
 import { createWorld } from './world.js';
@@ -79,6 +80,7 @@ export function startMarket(root, opts = {}) {
     ask: (text, o) => (opts.ask ? opts.ask(text, o) : Promise.reject(new Error('no ask'))),
     askStarters: () => opts.starters || [],
     aiStatus: () => opts.aiStatus?.() || { available: false },
+    look: () => ({ ...avatar.state }),
     leave: () => leaveRoom(),
   };
 
@@ -155,6 +157,7 @@ export function startMarket(root, opts = {}) {
     rooms.yuelao = createYuelao(ui);
     await step('正在洗牌', 78);
     rooms.tarot = createTarot(ui);
+    rooms.hall = createHall(ui);
 
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(world.scene, world.camera));
@@ -170,7 +173,7 @@ export function startMarket(root, opts = {}) {
     on('resize', resize);
     applyCam();
     await step('正在點燈', 90);
-    for (const s of [rooms.yuelao, rooms.tarot]) renderer.compile(s.scene, s.camera);
+    for (const s of Object.values(rooms)) renderer.compile(s.scene, s.camera);
     render(0);
     await step('開市了', 100);
     boot.classList.add('gone');
@@ -508,6 +511,7 @@ export function startMarket(root, opts = {}) {
     look.x = e.clientX;
     look.y = e.clientY;
     look.moved += Math.abs(dx) + Math.abs(dy);
+    if (mode === 'room' && active.onDrag) active.onDrag(dx, dy);
     if (mode === 'walk') {
       const k = e.pointerType === 'touch' ? 0.0055 : 0.0035;
       me.yaw += dx * k;
@@ -528,7 +532,10 @@ export function startMarket(root, opts = {}) {
       const hit = hitTest(e, world.doors, world.camera);
       if (hit && hit.distance < 30) goTo(world.rooms.find((r) => r.id === hit.object.userData.room));
     }
-    if (mode === 'room') active.onUp();
+    if (mode === 'room') {
+      if (look.moved < 8 && active.onTap) active.onTap(hitTest(e, active.pick(), active.camera));
+      active.onUp();
+    }
     look = null;
   };
   gl.addEventListener('pointerup', end);

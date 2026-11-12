@@ -11,7 +11,7 @@ const GATE_Z = 30;
 export const ROOMS = [
   { id: 'yuelao', name: '月老殿', sub: '求籤問緣', open: true, tint: 0xffb060, cloth: '#7b161b' },
   { id: 'tarot', name: '塔羅館', sub: '三張牌陣', open: true, tint: 0xa98bff, cloth: '#2a1b55' },
-  { id: 'hall', name: '大殿', sub: '點香拜拜', open: false },
+  { id: 'hall', name: '大殿', sub: '多人同拜', open: true, tint: 0xffc070, cloth: '#5a1612' },
   { id: 'bazi', name: '算命攤', sub: '八字命盤', open: false },
   { id: 'sutra', name: '抄經閣', sub: '描紅抄經', open: false },
   { id: 'burn', name: '化寶爐', sub: '燒疏文', open: false },
@@ -714,12 +714,16 @@ export function createWorld(renderer, lowQuality) {
         d: 11,
         h: 5.4,
         sign: '大殿',
-        banner: '籌備中',
+        banner: '多人同拜',
         grand: true,
         lit: true,
+        open: true,
+        tint: room.hall.tint,
         cloth: '#5a1612',
       }),
     );
+    // 門口的落腳點放在台階下（石台本身不能走）
+    room.hall.stand = new THREE.Vector3(2.6, 1.65, HALL_Z + 5.7);
     warm(0, 5, HALL_Z + 5.5, 46, 26, 0xffa050);
     // 一束從斜上方打下來的暖光，只照殿門和銅爐：明暗對比都靠它
     const beam = new THREE.SpotLight(0xffe2a0, 1400, 60, 0.3, 0.7, 1.6);
