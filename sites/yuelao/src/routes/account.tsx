@@ -59,7 +59,8 @@ function Account() {
   const t = (hant: string, hans: string) => (zh ? hans : hant);
   const [data, setData] = useState<AccountData | null>(null);
   const [view, setView] = useState<'loading' | 'ready' | 'login' | 'error'>('loading');
-  const [currency, setCurrency] = useState<'HKD' | 'TWD'>('HKD');
+  // 全站統一以美元結帳（2026-11-12）；舊訂單可能是港幣或新台幣，顯示時照原幣種。
+  const currency = 'USD';
   const [redeemStick, setRedeemStick] = useState('1');
   const [redeemCategory, setRedeemCategory] = useState<'him' | 'single' | 'reunion'>('him');
   const [busy, setBusy] = useState(false);
@@ -190,7 +191,7 @@ function Account() {
   }
 
   const money = (amount: number, code: string) =>
-    `${code === 'HKD' ? 'HK$' : code === 'TWD' ? 'NT$' : code} ${(amount / 100).toFixed(0)}`;
+    `${code === 'HKD' ? 'HK$' : code === 'TWD' ? 'NT$' : code === 'USD' ? 'US$' : code} ${(amount / 100).toFixed(amount % 100 === 0 ? 0 : 2)}`;
   const day = (iso: string) => new Date(iso).toLocaleDateString(zh ? 'zh-CN' : 'zh-TW');
 
   return (
@@ -244,17 +245,6 @@ function Account() {
                 '测试支付仅供开发验收；未启用时不会创建订单或收费。',
               )}
             </p>
-            <label className="account-currency" htmlFor="payment-currency">
-              {t('付款幣種', '支付币种')}
-              <select
-                id="payment-currency"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as 'HKD' | 'TWD')}
-              >
-                <option value="HKD">{t('港幣 HKD', '港币 HKD')}</option>
-                <option value="TWD">{t('新台幣 TWD', '新台币 TWD')}</option>
-              </select>
-            </label>
             <div className="account-offers">
               {site.products
                 .filter((product) => product.kind === 'pack')

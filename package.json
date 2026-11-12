@@ -21,7 +21,9 @@
     "test:ai:quota": "bash tools/run-ai-chat-quota.sh",
     "test:db:retrofit": "bash tools/test-db-retrofit.sh",
     "test:auth:otp": "tsx tools/test-auth-otp.ts",
-    "test:stripe:webhook": "tsx tools/test-stripe-webhook.ts"
+    "test:stripe:webhook": "tsx tools/test-stripe-webhook.ts",
+    "test:wishes": "tsx tools/test-wishes.ts",
+    "test:wishes:db": "bash tools/run-wishing-pool.sh"
   },
   "type": "module"
 }

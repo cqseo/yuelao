@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 
 export const Route = createFileRoute('/billing/return')({
@@ -10,6 +11,15 @@ export const Route = createFileRoute('/billing/return')({
 
 function BillingReturn() {
   const zh = getLocale() === 'zh-Hans';
+  // 從集市的月老殿發起的付款：回程帶回月老殿（那支籤暫存在 sessionStorage）。
+  const [pending, setPending] = useState(false);
+  const [market, setMarket] = useState(false);
+  useEffect(() => {
+    try {
+      setPending(sessionStorage.getItem('market-pending') !== null);
+      setMarket(sessionStorage.getItem('market-back') !== null);
+    } catch {}
+  }, []);
   return (
     <section className="legal">
       <h1>{zh ? '支付正在核实' : '付款正在核實'}</h1>
@@ -23,7 +33,17 @@ function BillingReturn() {
           ? '如果付款已经成功但内容没有解锁，请保留支付平台的收据，稍后在账户中查看交易记录。'
           : '如果付款已經成功但內容沒有解鎖，請保留支付平台的收據，稍後在帳戶中查看交易紀錄。'}
       </p>
-      <Link to={localizeHref('/ritual')}>{zh ? '返回月老求签' : '返回月老求籤'}</Link>
+      {pending ? (
+        <p>
+          <a href="/market#yuelao">{zh ? '回到月老殿，接着刚才那支签' : '回到月老殿，接著剛才那支籤'}</a>
+        </p>
+      ) : market ? (
+        <p>
+          <a href="/market">{zh ? '回到集市' : '回到集市'}</a>
+        </p>
+      ) : (
+        <Link to={localizeHref('/ritual')}>{zh ? '返回月老求签' : '返回月老求籤'}</Link>
+      )}
     </section>
   );
 }
