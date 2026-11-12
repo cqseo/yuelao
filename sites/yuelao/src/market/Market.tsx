@@ -1,4 +1,4 @@
-import { findProduct, formatPrice, priceForLocale } from '@yuelao/core/site';
+import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
 import { useEffect, useRef } from 'react';
 import { track } from '~/lib/track';
 import { getLocale } from '~/paraglide/runtime.js';
@@ -85,7 +85,8 @@ export function Market() {
     } catch {}
     const shop = {
       prices: Object.fromEntries(
-        site.products
+        // 目錄目前沒有 item 商品（外觀免費）；之後加了就會出現在這裡
+        (site.products as readonly Product[])
           .filter((p) => p.kind === 'item')
           .map((p) => [p.id, formatPrice(priceForLocale(p, locale), locale)]),
       ),
