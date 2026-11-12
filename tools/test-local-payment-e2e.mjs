@@ -35,7 +35,18 @@ provider.createCustomer = async ({ id }) => {
 };
 // Prices are an owner decision in site.config.ts; the test follows the config, not a literal.
 const PACK3 = site.products.find((p) => p.id === 'pack_3').prices['zh-Hant'];
-const ITEM = site.products.find((p) => p.kind === 'item');
+// The live catalogue sells no item yet (outfits are free), so the item flow runs against the
+// real config plus one QA-only item.
+const ITEM = {
+  id: 'qa_item',
+  kind: 'item',
+  name: 'QA item',
+  prices: {
+    'zh-Hant': { amount: 399, currency: PACK3.currency },
+    'zh-Hans': { amount: 399, currency: PACK3.currency },
+  },
+};
+const itemSite = { ...site, products: [...site.products, ITEM] };
 const ITEM_PRICE = ITEM.prices['zh-Hant'];
 let expecting = { id: 'pack_3', price: PACK3 };
 provider.createCheckout = async (request) => {
@@ -459,7 +470,7 @@ async function run() {
   expecting = { id: ITEM.id, price: ITEM_PRICE };
   const itemBody = { productId: ITEM.id, locale: 'zh-Hant', currency: ITEM_PRICE.currency, from: 'market' };
   const withStick = await createTestCheckout({
-    site,
+    site: itemSite,
     provider,
     database: db,
     user: otherUser,
@@ -468,7 +479,7 @@ async function run() {
   });
   assert.equal(withStick.status, 400);
   const unknown = await createTestCheckout({
-    site,
+    site: itemSite,
     provider,
     database: db,
     user: otherUser,
@@ -480,7 +491,7 @@ async function run() {
 
   provider.createCustomer = async () => 'cus_test_local_e2e_002';
   const itemCheckout = await createTestCheckout({
-    site,
+    site: itemSite,
     provider,
     database: db,
     user: otherUser,
@@ -505,7 +516,7 @@ async function run() {
   provider.fetchCheckout = async () => ({ orderId: itemOrder, subscription: null, payment: itemFact() });
   for (const eventId of ['evt_local_item_paid', 'evt_local_item_paid', 'evt_local_item_paid_again']) {
     const settled = await settleStripeWebhook({
-      site,
+      site: itemSite,
       provider,
       supabase: db,
       request: webhook('checkout.session.completed', eventId),
@@ -527,7 +538,7 @@ async function run() {
   );
 
   const second = await createTestCheckout({
-    site,
+    site: itemSite,
     provider,
     database: db,
     user: otherUser,
@@ -540,7 +551,7 @@ async function run() {
   provider.fetchPaymentByCharge = async () =>
     itemFact({ amountRefunded: ITEM_PRICE.amount, fetchedAt: Date.now() + 5000 });
   const itemRefund = await settleStripeWebhook({
-    site,
+    site: itemSite,
     provider,
     supabase: db,
     request: webhook('charge.refunded', 'evt_local_item_refund'),
@@ -548,7 +559,7 @@ async function run() {
   assert.equal(itemRefund.status, 200, await itemRefund.clone().text());
   assert.deepEqual((await (await accountSnapshot(db, otherUser, true, true)).json()).items, []);
   const rebuy = await createTestCheckout({
-    site,
+    site: itemSite,
     provider,
     database: db,
     user: otherUser,
