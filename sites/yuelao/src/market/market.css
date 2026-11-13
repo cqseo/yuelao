@@ -1213,3 +1213,34 @@
 .mk #panel .seal + .ghost {
   margin-top: 0.5rem;
 }
+
+/* 抄經閣：七日簽到印格（見 DESIGN.md「抄經閣」） */
+.mk .stamps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.25rem 0 1rem;
+}
+.mk .stamps span {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: var(--paper-50);
+}
+.mk .stamps span.on {
+  border-color: #a8241a;
+  background: #a8241a;
+  color: #f3dfc0;
+}
+.mk .stamps b {
+  margin-left: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}

@@ -13,7 +13,7 @@ export const ROOMS = [
   { id: 'tarot', name: '塔羅館', sub: '三張牌陣', open: true, tint: 0xa98bff, cloth: '#2a1b55' },
   { id: 'hall', name: '大殿', sub: '多人同拜', open: true, tint: 0xffc070, cloth: '#5a1612' },
   { id: 'bazi', name: '算命攤', sub: '八字命盤', open: false },
-  { id: 'sutra', name: '抄經閣', sub: '描紅抄經', open: false },
+  { id: 'sutra', name: '抄經閣', sub: '每日心箋', open: true, tint: 0xffd59a, cloth: '#3b2414' },
   { id: 'burn', name: '化寶爐', sub: '燒疏文', open: false },
   { id: 'rent', name: '旺鋪招租', sub: '虛位以待', open: false, note: '虛位以待' },
 ];

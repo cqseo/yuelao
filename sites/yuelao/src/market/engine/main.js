@@ -8,6 +8,7 @@ import { createAvatar, HAIRS, OUTFITS } from './avatar.js';
 import { createCrowd } from './crowd.js';
 import { createHall } from './hall.js';
 import { createPool } from './pool.js';
+import { createSutra } from './sutra.js';
 import { createTarot } from './tarot.js';
 import { audio, ease, stepTweens, tween, wait } from './util.js';
 import { createWorld } from './world.js';
@@ -84,6 +85,7 @@ export function startMarket(root, opts = {}) {
     look: () => ({ ...avatar.state }),
     deep: opts.deep || null,
     leave: () => leaveRoom(),
+    emit: (name, props) => emit(name, props),
   };
 
   const step = async (text, pct) => {
@@ -168,6 +170,7 @@ export function startMarket(root, opts = {}) {
     await step('正在洗牌', 78);
     rooms.tarot = createTarot(ui);
     rooms.hall = createHall(ui);
+    rooms.sutra = createSutra(ui);
     pool = createPool({ ui, world, api: opts.wishes || null, emit });
     void pool.refresh();
 
@@ -201,7 +204,7 @@ export function startMarket(root, opts = {}) {
       void enterMarket();
       return;
     }
-    // #street, #plaza, #yuelao, #ask, #tarot, #wish jump straight in (首頁的鋪子卡片也用這些)
+    // #street, #plaza, #yuelao, #ask, #tarot, #hall, #sutra, #wish jump straight in (首頁的鋪子卡片也用這些)
     const h = location.hash.slice(1);
     if (h) {
       menu.classList.remove('show');
