@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import {
   aiGenerationEnabled,
+  extractChatText,
   generatePaidReading,
   generateWithOpenAI,
   parseGenerationInput,
+  relayBaseUrl,
 } from '../packages/core/src/ai-reading';
+import { testCheckoutAllowed } from '../packages/core/src/billing/allowlist';
 
 const report = [
   '籤詩意象：這支籤的象徵，是把不確定感轉化成具體的溝通問題，不是對未來的保證。',
@@ -82,6 +85,84 @@ const output = await generateWithOpenAI(
 );
 assert.equal(output, report);
 console.log('PASS: OpenAI response parsed, store=false, system safety prompt and no real network calls');
+
+// 中轉站（OpenAI 相容 chat/completions）
+assert.equal(relayBaseUrl('https://relay.example.com/v1/'), 'https://relay.example.com/v1');
+assert.equal(relayBaseUrl('http://relay.example.com/v1'), null);
+assert.equal(relayBaseUrl('https://user:pw@relay.example.com/v1'), null);
+assert.equal(relayBaseUrl('https://relay.example.com/v1?key=x'), null);
+assert.equal(relayBaseUrl('not a url'), null);
+assert.equal(relayBaseUrl(''), null);
+const relayEnv = {
+  AI_ENABLE_TEST_GENERATION: 'true',
+  OPENAI_API_KEY: 'relay-key-without-sk-prefix-123456',
+  OPENAI_MODEL: 'gpt-4o-mini',
+  OPENAI_BASE_URL: 'https://relay.example.com/v1',
+};
+assert.equal(aiGenerationEnabled(relayEnv as never), true);
+assert.equal(
+  aiGenerationEnabled({ ...relayEnv, OPENAI_BASE_URL: 'http://relay.example.com/v1' } as never),
+  false,
+);
+assert.equal(aiGenerationEnabled({ ...relayEnv, OPENAI_API_KEY: 'short' } as never), false);
+assert.equal(aiGenerationEnabled({ ...relayEnv, OPENAI_BASE_URL: undefined } as never), false);
+console.log(
+  'PASS: relay URL must be https without credentials; relay keys need no sk- prefix; bad URL keeps AI off',
+);
+
+let relayCalls = 0;
+const relayFetch: typeof fetch = async (url, options) => {
+  relayCalls++;
+  assert.equal(url, 'https://relay.example.com/v1/chat/completions');
+  assert.equal(
+    (options!.headers as Record<string, string>).authorization,
+    `Bearer ${relayEnv.OPENAI_API_KEY}`,
+  );
+  const body = JSON.parse(options?.body as string);
+  assert.equal(body.model, 'gpt-4o-mini');
+  assert.equal(body.max_tokens, 1600);
+  assert.equal(body.messages[0].role, 'system');
+  assert.equal(body.messages[0].content.includes('不診斷'), true);
+  assert.equal(body.messages[1].content.includes(input.question), true);
+  return new Response(
+    JSON.stringify({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: report } }] }),
+    {
+      status: 200,
+    },
+  );
+};
+const relayOut = await generateWithOpenAI(
+  input,
+  { no: '第一籤', grade: '中平籤', poem: '詩文', verdict: '白話判詞' },
+  relayEnv.OPENAI_API_KEY,
+  relayEnv.OPENAI_MODEL,
+  relayFetch,
+  relayBaseUrl(relayEnv.OPENAI_BASE_URL),
+);
+assert.equal(relayOut, report);
+assert.equal(relayCalls, 1);
+assert.throws(() =>
+  extractChatText({ choices: [{ finish_reason: 'length', message: { content: report } }] }),
+);
+assert.throws(() => extractChatText({ choices: [{ finish_reason: 'stop', message: { content: '太短' } }] }));
+assert.throws(() => extractChatText({ choices: [] }));
+assert.equal(
+  extractChatText({ choices: [{ message: { content: [{ type: 'text', text: report }] } }] }),
+  report,
+);
+await assert.rejects(
+  generateWithOpenAI(
+    input,
+    { no: '1', grade: 'g', poem: 'p', verdict: 'v' },
+    relayEnv.OPENAI_API_KEY,
+    'gpt-4o-mini',
+    async () => new Response('{}', { status: 502 }),
+    'https://relay.example.com/v1',
+  ),
+);
+console.log(
+  'PASS: relay uses chat/completions with the same safety prompt; truncated, short, empty or failed replies are rejected',
+);
 
 const user = { id: '00000000-0000-4000-8000-000000000001', email: 'qa@example.invalid' };
 const claimId = '00000000-0000-4000-8000-000000000020';
@@ -193,3 +274,10 @@ const failed = await generatePaidReading({
 assert.equal(failed.status, 503);
 assert.equal(failCount, 1);
 console.log('PASS: failed provider request releases generation claim for retry');
+
+assert.equal(testCheckoutAllowed(undefined, 'a@b.co'), false);
+assert.equal(testCheckoutAllowed('', 'a@b.co'), false);
+assert.equal(testCheckoutAllowed(' Owner@QQ.com , other@x.io', 'owner@qq.com'), true);
+assert.equal(testCheckoutAllowed('owner@qq.com', 'stranger@qq.com'), false);
+assert.equal(testCheckoutAllowed('owner@qq.com', undefined), false);
+console.log('PASS: test checkout is limited to allowlisted emails and fails closed');

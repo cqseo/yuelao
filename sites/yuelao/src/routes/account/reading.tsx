@@ -169,8 +169,8 @@ function Reading() {
               <label className="reading-consent">
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
                 {t(
-                  '我同意將自願填寫的問題送至 AI 服務生成解讀，並將結果存入自己的帳戶。問題文字不會寫入本站資料庫。',
-                  '我同意将自愿填写的问题发送给 AI 服务生成解读，并将结果保存至我的账户。问题原文不会存入本站数据库。',
+                  '我同意將自願填寫的問題送至第三方 AI 模型服務（可能經由 API 中轉服務）生成解讀，並將結果存入自己的帳戶。問題文字不會寫入本站資料庫。',
+                  '我同意将自愿填写的问题发送给第三方 AI 模型服务（可能经由 API 中转服务）生成解读，并将结果保存至我的账户。问题原文不会存入本站数据库。',
                 )}
               </label>
               <button disabled={!consent || busy} type="submit">

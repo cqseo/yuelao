@@ -17,12 +17,16 @@ export interface CoreEnv {
   STRIPE_WEBHOOK_SECRET?: string;
   /** Test checkouts are disabled unless explicitly set to "true". */
   BILLING_ENABLE_TEST_CHECKOUT?: string;
+  /** 測試結帳只開給這些信箱（逗號分隔）；沒設就誰都不開。 */
+  BILLING_TEST_ALLOWED_EMAILS?: string;
   /** AI delivery is disabled until staging review and explicit opt-in. */
   AI_ENABLE_TEST_GENERATION?: string;
   /** Secret: configured only in Worker secrets, never public code. */
   OPENAI_API_KEY?: string;
   /** Explicit allowlisted model ID for the Responses API. */
   OPENAI_MODEL?: string;
+  /** OpenAI 相容中轉站的網址（https，例如 https://relay.example.com/v1）。設了就改走 chat/completions；不設走 OpenAI 官方。 */
+  OPENAI_BASE_URL?: string;
   /** Private AI chat, intentionally disabled until a paid-model budget is accepted. */
   AI_CHAT_ENABLED?: string;
   /** Explicit model name; server-only, not exposed as a client configuration. */
