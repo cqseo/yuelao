@@ -139,6 +139,7 @@ export function createCore(site: SiteConfig) {
           secretKey: ctx.env.STRIPE_SECRET_KEY,
           webhookSecret: ctx.env.STRIPE_WEBHOOK_SECRET,
           automaticTax: site.billing.automaticTax,
+          taxCode: site.billing.taxCode,
         });
         return createTestCheckout({
           request,
@@ -160,6 +161,7 @@ export function createCore(site: SiteConfig) {
           secretKey: required(ctx.env, 'STRIPE_SECRET_KEY'),
           webhookSecret: required(ctx.env, 'STRIPE_WEBHOOK_SECRET'),
           automaticTax: site.billing.automaticTax,
+          taxCode: site.billing.taxCode,
         });
         return settleStripeWebhook({
           site,

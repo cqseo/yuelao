@@ -19,6 +19,8 @@ export interface StripeOptions {
   secretKey: string;
   webhookSecret: string;
   automaticTax: boolean;
+  /** 產品稅務分類碼，放進每筆 price_data.product_data（見 SiteConfig.billing.taxCode）。 */
+  taxCode?: string;
 }
 
 /** Both ordinary and restricted test-mode Stripe keys are allowed. */
@@ -204,7 +206,10 @@ export class StripeProvider implements PaymentProvider {
             price_data: {
               currency: product.price.currency,
               unit_amount: product.price.amount,
-              product_data: { name: product.name },
+              product_data: {
+                name: product.name,
+                ...(this.options.taxCode ? { tax_code: this.options.taxCode } : {}),
+              },
               ...(subscription ? { recurring: { interval: product.interval } } : {}),
             },
           },
