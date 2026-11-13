@@ -25,7 +25,8 @@
     "test:wishes": "tsx tools/test-wishes.ts",
     "test:wishes:db": "bash tools/run-wishing-pool.sh",
     "test:profiles:db": "bash tools/run-profiles-on-signup.sh",
-    "test:checkout": "tsx tools/test-checkout-failure.ts"
+    "test:checkout": "tsx tools/test-checkout-failure.ts",
+    "test:plaza": "tsx tools/test-plaza.ts"
   },
   "type": "module"
 }

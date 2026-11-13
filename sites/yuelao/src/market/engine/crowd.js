@@ -27,7 +27,15 @@ export function createCrowd(world, count) {
     world.scene.add(a.root);
     folk.push({ a, to: spot(), speed: rand(1.0, 1.6), wait: rand(0, 6), t0: rand(10) });
   }
+  let shown = folk.length;
   return {
+    /** 真人多了就少放幾個路人：只畫前 n 個。 */
+    limit(n) {
+      shown = Math.max(0, Math.min(folk.length, n));
+      folk.forEach((f, i) => {
+        f.a.root.visible = i < shown;
+      });
+    },
     /**
      * 主角在 (x, z) 做了個動作：附近幾個路人停下來、轉身回一個。
      * 揮手回揮手，作揖、合十回作揖，比心回揮手。
@@ -35,6 +43,7 @@ export function createCrowd(world, count) {
     react(x, z, kind) {
       const reply = kind === 'pray' ? 'bow' : kind === 'heart' ? 'wave' : kind;
       const near = folk
+        .filter((f) => f.a.root.visible)
         .map((f) => ({ f, d: Math.hypot(f.a.root.position.x - x, f.a.root.position.z - z) }))
         .filter((o) => o.d < 10)
         .sort((a, b) => a.d - b.d)
@@ -47,6 +56,7 @@ export function createCrowd(world, count) {
     },
     update(dt, t) {
       for (const f of folk) {
+        if (!f.a.root.visible) continue;
         const p = f.a.root.position;
         if (f.react) {
           let turn = Math.atan2(f.react.x - p.x, f.react.z - p.z) - f.a.root.rotation.y;

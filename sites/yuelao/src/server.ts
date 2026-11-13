@@ -3,6 +3,7 @@ import { proxyRybbit } from '@yuelao/core/analytics';
 import { paraglideMiddleware } from '~/paraglide/server.js';
 
 export { HallRoom } from './hall-room';
+export { PlazaRoom } from './plaza-room';
 
 // Worker entry: pages and API go to TanStack Start.
 //
@@ -25,6 +26,7 @@ export { HallRoom } from './hall-room';
 // Permissions-Policy that disables accelerometer/gyroscope.
 // 最多開幾間殿（每間 60 人）；滿了客戶端會試下一間。
 const MAX_HALLS = 50;
+const MAX_PLAZAS = 50;
 
 const SECURITY_HEADERS: Record<string, string> = {
   'content-security-policy':
@@ -84,6 +86,15 @@ export default {
       }
       const n = Math.min(MAX_HALLS, Math.max(1, Number(url.searchParams.get('n')) || 1));
       return env.HALL.get(env.HALL.idFromName(`hall-${n}`)).fetch(request);
+    }
+    // 廣場同遊：同一套規矩，一個廣場分身一個 Durable Object。
+    if (url.pathname === '/api/plaza/ws') {
+      const origin = request.headers.get('origin');
+      if (request.headers.get('upgrade') !== 'websocket' || (origin && new URL(origin).host !== url.host)) {
+        return withSecurityHeaders(new Response('bad request', { status: 400 }), staging);
+      }
+      const n = Math.min(MAX_PLAZAS, Math.max(1, Number(url.searchParams.get('n')) || 1));
+      return env.PLAZA.get(env.PLAZA.idFromName(`plaza-${n}`)).fetch(request);
     }
     // Rybbit analytics goes through this site's /stats/ and is proxied upstream here.
     const stats = await proxyRybbit(request, env.RYBBIT_UPSTREAM);
