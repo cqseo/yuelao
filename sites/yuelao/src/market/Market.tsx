@@ -325,7 +325,6 @@ export function Market() {
     <div className="mk" ref={root}>
       <canvas id="gl" />
       <div id="spots" />
-      <nav id="rail" aria-label="鋪子" />
       <button type="button" id="prompt" className="seal" />
       <div id="stick">
         <i />

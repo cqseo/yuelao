@@ -346,72 +346,154 @@
   color: var(--paper-50);
 }
 
-/* room rail: every room on the street, one tap away */
-.mk #rail {
+/* 互動／動作：左下、右下兩顆圓鈕（參考心安宮），點開是一張小選單 */
+.mk .orb {
   position: fixed;
   z-index: 14;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  width: 4.25rem;
+  height: 4.25rem;
   display: flex;
-  gap: 0.5rem;
-  padding: 2.5rem 1rem calc(1rem + env(safe-area-inset-bottom));
-  overflow-x: auto;
-  scrollbar-width: none;
-  touch-action: pan-x;
-  background: linear-gradient(180deg, rgba(7, 8, 18, 0), rgba(7, 8, 18, 0.85) 55%);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  color: var(--paper);
+  font: inherit;
+  font-size: 0.82rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.5s ease;
+  transition:
+    opacity 0.25s ease,
+    border-color 0.2s ease;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
 }
-.mk #rail::-webkit-scrollbar {
-  display: none;
+.mk .orb i {
+  font-style: normal;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--gold);
 }
-.mk #rail.show {
+.mk .orb span {
+  margin-right: -0.15em;
+}
+.mk .orb.show {
   opacity: 1;
   pointer-events: auto;
 }
-.mk #rail::before,
-.mk #rail::after {
-  content: "";
-  flex: 1 0 0;
-}
-.mk #rail button {
-  appearance: none;
-  flex: none;
-  display: grid;
-  gap: 2px;
-  min-width: 6.75rem;
-  min-height: 60px;
-  padding: 0.55rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: var(--panel);
-  text-align: left;
-}
-.mk #rail button b {
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-}
-.mk #rail button span {
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  color: var(--gold);
-}
-.mk #rail button:hover:not(:disabled) {
+.mk .orb.on,
+.mk .orb:hover {
   border-color: var(--gold);
 }
-.mk #rail button:disabled {
+.mk #act-btn {
+  left: calc(1.25rem + env(safe-area-inset-left));
+}
+.mk #emote-btn {
+  right: calc(1.25rem + env(safe-area-inset-right));
+}
+.mk .sheet {
+  position: fixed;
+  z-index: 15;
+  bottom: calc(6.75rem + env(safe-area-inset-bottom));
+  width: min(19rem, calc(100vw - 2.5rem));
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 50px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.mk .sheet.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+.mk #act-menu {
+  left: calc(1.25rem + env(safe-area-inset-left));
+}
+.mk #emote-menu {
+  right: calc(1.25rem + env(safe-area-inset-right));
+  width: min(15rem, calc(100vw - 2.5rem));
+}
+.mk .sheet .tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+.mk .sheet .tabs button {
+  flex: 1;
+  padding: 0.45rem 0 0.55rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--paper-70);
+  font: inherit;
+  font-size: 0.92rem;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+}
+.mk .sheet .tabs button.on {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+.mk .sheet .grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.mk .sheet .grid.four {
+  grid-template-columns: 1fr 1fr;
+}
+.mk .sheet .grid button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 3.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(12, 10, 22, 0.55);
+  color: var(--paper);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mk .sheet .grid button b {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.mk .sheet .grid button span {
+  font-size: 0.75rem;
+  color: var(--gold);
+}
+.mk .sheet .grid.four button {
+  align-items: center;
+  justify-content: center;
+}
+.mk .sheet .grid button:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+.mk .sheet .grid button:disabled {
   border-color: rgba(239, 229, 207, 0.1);
-  background: rgba(12, 10, 22, 0.5);
   cursor: default;
 }
-.mk #rail button:disabled b {
+.mk .sheet .grid button:disabled b,
+.mk .sheet .grid button:disabled span {
   font-weight: 400;
-  color: var(--paper-50);
-}
-.mk #rail button:disabled span {
   color: var(--paper-50);
 }
 
@@ -420,7 +502,7 @@
   position: fixed;
   z-index: 15;
   left: 50%;
-  bottom: calc(7.5rem + env(safe-area-inset-bottom));
+  bottom: calc(7.75rem + env(safe-area-inset-bottom));
   transform: translate(-50%, 12px);
   opacity: 0;
   pointer-events: none;
@@ -452,10 +534,10 @@
 }
 /* 觸控：走動時搖桿固定在左下角、一直看得到（底座圈內走，推出圈外跑） */
 .mk #stick.fixed {
-  left: calc(1.25rem + env(safe-area-inset-left));
+  left: 50%;
   top: auto;
-  bottom: calc(8rem + env(safe-area-inset-bottom));
-  margin: 0;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  margin: 0 0 0 -56px;
   opacity: 0.55;
 }
 .mk #stick.fixed.show {
