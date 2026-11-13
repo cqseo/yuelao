@@ -750,6 +750,12 @@ export function createYuelao(ui) {
           return;
         }
         verdict();
+        if (back.why === 'ritual') {
+          // 從一般版求籤頁按「深度解讀」過來：直接打開深度解讀
+          ui.card('');
+          openDeep();
+          return;
+        }
         say('你回來了。這支籤還在。');
         return;
       }

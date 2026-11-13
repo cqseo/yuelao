@@ -192,15 +192,28 @@ export async function createTestCheckout({
   if (selection.from !== 'market') returnUrl.searchParams.set('order', order.id);
   const cancelPath = selection.from !== 'market' ? '/ritual' : marketPath;
   const cancelUrl = new URL(cancelPath, siteUrl);
-  const checkout = await provider.createCheckout({
-    orderId: order.id,
-    siteId: site.id,
-    product: checkoutProduct,
-    userId: user.id,
-    customerRef,
-    successUrl: returnUrl.toString(),
-    cancelUrl: cancelUrl.toString(),
-  });
+  let checkout: { url: string; checkoutRef: string };
+  try {
+    checkout = await provider.createCheckout({
+      orderId: order.id,
+      siteId: site.id,
+      product: checkoutProduct,
+      userId: user.id,
+      customerRef,
+      successUrl: returnUrl.toString(),
+      cancelUrl: cancelUrl.toString(),
+    });
+  } catch {
+    // Stripe 沒建出結帳頁：這張訂單不可能被付款，直接作廢，不要永遠卡在 pending。
+    await database
+      .from('orders')
+      .update({ status: 'failed' })
+      .eq('id', order.id)
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .is('checkout_ref', null);
+    return errorResponse(503, 'checkout_unavailable');
+  }
   const { error: updateError } = await database
     .from('orders')
     .update({ checkout_ref: checkout.checkoutRef })
