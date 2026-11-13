@@ -32,10 +32,58 @@ type GenerationData = {
   database: SupabaseClient;
   apiKey: string;
   model: string;
+  /** 設了就走 OpenAI 相容的中轉站（chat/completions）；沒設走 OpenAI 官方（responses）。 */
+  baseUrl?: string;
   fetchImpl?: typeof fetch;
 };
 
-const validModel = (model: string) => /^[a-zA-Z0-9_.-]{3,80}$/.test(model);
+const validModel = (model: string) => /^[a-zA-Z0-9_.:/-]{3,80}$/.test(model);
+/** 官方金鑰以 sk- 開頭；中轉站的金鑰格式不一，只要求夠長、沒有空白。 */
+const validKey = (key: unknown, relay: boolean): key is string =>
+  typeof key === 'string' && (relay ? /^\S{20,300}$/.test(key) : key.startsWith('sk-'));
+
+/**
+ * 中轉站網址：只收 https、不帶帳密、查詢字串或片段，結尾不留斜線（例如 https://relay.example.com/v1）。
+ * 不合格就回 null，等於沒設定，生成會保持關閉而不是送錯地方。
+ */
+export function relayBaseUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const u = new URL(value.trim());
+    if (u.protocol !== 'https:' || u.username || u.password || u.search || u.hash) return null;
+    return u.toString().replace(/\/+$/, '');
+  } catch {
+    return null;
+  }
+}
+
+function checkLength(text: string): string {
+  const t = text.trim();
+  if (t.length < 100 || t.length > 8000) throw new Error('ai_output_length');
+  return t;
+}
+
+/** chat/completions 的回覆：取第一個選項的文字；沒寫完（被截斷）也算失敗。 */
+export function extractChatText(raw: unknown): string {
+  if (!raw || typeof raw !== 'object') throw new Error('ai_empty');
+  const choice = (raw as { choices?: unknown }).choices;
+  const first = Array.isArray(choice) ? (choice[0] as Record<string, unknown> | undefined) : undefined;
+  if (!first || (first.finish_reason !== undefined && first.finish_reason !== 'stop'))
+    throw new Error('ai_incomplete');
+  const content = (first.message as { content?: unknown } | undefined)?.content;
+  if (typeof content === 'string') return checkLength(content);
+  if (Array.isArray(content))
+    return checkLength(
+      content
+        .map((p) =>
+          p && typeof p === 'object' && typeof (p as { text?: unknown }).text === 'string'
+            ? (p as { text: string }).text
+            : '',
+        )
+        .join('\n'),
+    );
+  throw new Error('ai_empty');
+}
 const isUuid = (s: unknown): s is string =>
   typeof s === 'string' && /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(s);
 
@@ -59,9 +107,7 @@ function extractText(raw: unknown): string {
       }
     }
   }
-  const text = chunks.join('\n').trim();
-  if (text.length < 100 || text.length > 8000) throw new Error('ai_output_length');
-  return text;
+  return checkLength(chunks.join('\n'));
 }
 
 export async function generateWithOpenAI(
@@ -70,19 +116,39 @@ export async function generateWithOpenAI(
   apiKey: string,
   model: string,
   fetchImpl: typeof fetch = fetch,
+  baseUrl: string | null = null,
 ): Promise<string> {
-  if (!apiKey.startsWith('sk-') || !validModel(model)) throw new Error('ai_not_configured');
+  if (!validKey(apiKey, !!baseUrl) || !validModel(model)) throw new Error('ai_not_configured');
+  const userInput = JSON.stringify({
+    outputLanguage: input.locale === 'zh-Hans' ? '簡體中文' : '繁體中文',
+    category: input.category,
+    stick: { number: stick.no, grade: stick.grade, poem: stick.poem, freeVerdict: stick.verdict },
+    userQuestionUntrusted: input.question || '沒有提供個人情況，請只作象徵性建議',
+  });
+  if (baseUrl) {
+    // OpenAI 相容中轉站：用最通用的 chat/completions。
+    const res = await fetchImpl(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1600,
+        messages: [
+          { role: 'system', content: READING_INSTRUCTIONS },
+          { role: 'user', content: userInput },
+        ],
+      }),
+      signal: AbortSignal.timeout(45000),
+    });
+    if (!res.ok) throw new Error('ai_provider_failed');
+    return extractChatText(await res.json());
+  }
   const payload = {
     model,
     store: false, // No response object is saved to the provider's application state.
     max_output_tokens: 1600,
     instructions: READING_INSTRUCTIONS,
-    input: JSON.stringify({
-      outputLanguage: input.locale === 'zh-Hans' ? '簡體中文' : '繁體中文',
-      category: input.category,
-      stick: { number: stick.no, grade: stick.grade, poem: stick.poem, freeVerdict: stick.verdict },
-      userQuestionUntrusted: input.question || '沒有提供個人情況，請只作象徵性建議',
-    }),
+    input: userInput,
   };
   const response = await fetchImpl('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -112,10 +178,11 @@ export function parseGenerationInput(value: unknown): ReadingGenerationInput | n
 }
 
 export function aiGenerationEnabled(env: CoreEnv): boolean {
+  // 設了 OPENAI_BASE_URL 卻不合格（例如 http://）就整個關閉，不退回官方網址。
+  if (env.OPENAI_BASE_URL && !relayBaseUrl(env.OPENAI_BASE_URL)) return false;
   return (
     env.AI_ENABLE_TEST_GENERATION === 'true' &&
-    typeof env.OPENAI_API_KEY === 'string' &&
-    env.OPENAI_API_KEY.startsWith('sk-') &&
+    validKey(env.OPENAI_API_KEY, !!env.OPENAI_BASE_URL) &&
     typeof env.OPENAI_MODEL === 'string' &&
     validModel(env.OPENAI_MODEL)
   );
@@ -127,6 +194,7 @@ export async function generatePaidReading({
   database,
   apiKey,
   model,
+  baseUrl,
   fetchImpl,
 }: GenerationData): Promise<Response> {
   const { data: claim, error: claimError } = await database.rpc('claim_paid_ai_reading', {
@@ -175,6 +243,7 @@ export async function generatePaidReading({
       apiKey,
       model,
       fetchImpl,
+      baseUrl ?? null,
     );
 
     const { data: stored, error: saveError } = await database.rpc('finish_paid_ai_reading', {
@@ -228,5 +297,6 @@ export async function generatePaidReadingRequest(
     database,
     apiKey: env.OPENAI_API_KEY!,
     model: env.OPENAI_MODEL!,
+    baseUrl: relayBaseUrl(env.OPENAI_BASE_URL) ?? undefined,
   });
 }

@@ -23,6 +23,8 @@ export interface CoreEnv {
   OPENAI_API_KEY?: string;
   /** Explicit allowlisted model ID for the Responses API. */
   OPENAI_MODEL?: string;
+  /** OpenAI 相容中轉站的網址（https，例如 https://relay.example.com/v1）。設了就改走 chat/completions；不設走 OpenAI 官方。 */
+  OPENAI_BASE_URL?: string;
   /** Private AI chat, intentionally disabled until a paid-model budget is accepted. */
   AI_CHAT_ENABLED?: string;
   /** Explicit model name; server-only, not exposed as a client configuration. */
