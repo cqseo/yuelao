@@ -168,7 +168,7 @@ function statue(mat) {
   const g = new THREE.Group();
   const robe = new THREE.MeshStandardMaterial({ color: 0xb3221a, roughness: 0.55 });
   const trim = new THREE.MeshStandardMaterial({ color: 0xe0b45a, metalness: 0.6, roughness: 0.35 });
-  const skin = new THREE.MeshStandardMaterial({ color: 0xf0cdb0, roughness: 0.6 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xe2b48e, roughness: 0.65 });
   const white = new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: 0.8 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x1b1210, roughness: 0.5 });
   const sh = (m) => {
@@ -237,11 +237,12 @@ function statue(mat) {
   head.add(mous);
   for (const s of [-1, 1]) {
     const brow = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.22, 4, 8), white);
-    brow.position.set(s * 0.15, 0.1, 0.35);
+    brow.position.set(s * 0.15, 0.12, 0.37);
     brow.rotation.z = s * -1.9;
     head.add(brow);
-    const eye = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.014, 4, 10, Math.PI), dark);
-    eye.position.set(s * 0.14, 0.02, 0.38);
+    // 笑瞇瞇的眼睛：一道往下彎的弧
+    const eye = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.018, 6, 12, Math.PI), dark);
+    eye.position.set(s * 0.14, 0.0, 0.392);
     head.add(eye);
     const cheek = new THREE.Mesh(
       new THREE.CircleGeometry(0.06, 12),
@@ -592,8 +593,8 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
   // 殿內要亮：一盞大的暖光照全殿，一盞打在神像臉上
   // 不交給 warm()：那些燈白天會調暗，殿內白天也要亮
   for (const [lx, ly, lz, i, d, c] of [
-    [0, 3.6, -D / 2 + 1, 60, 14, 0xffd8b0],
-    [0, 3.2, tz + 1.6, 26, 7, 0xffe6c8],
+    [0, 3.6, -D / 2 + 1, 34, 14, 0xffd8b0],
+    [0, 3.2, tz + 1.6, 12, 7, 0xffe6c8],
   ]) {
     const l = new THREE.PointLight(c, i, d, 1.6);
     l.position.copy(toWorld(lx, ly, lz));

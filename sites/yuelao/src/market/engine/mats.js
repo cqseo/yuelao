@@ -85,7 +85,7 @@ function stoneSet() {
     // 2026-11-13：石板改成淺暖灰（原本深褐），白天看得清地面、人站在上面也分得出來
     g.fillStyle = '#6e665c';
     g.fillRect(0, 0, S, S);
-    paint(g, (k) => `rgb(${156 + k * 26},${150 + k * 24},${140 + k * 22})`);
+    paint(g, (k) => `rgb(${132 + k * 26},${127 + k * 24},${118 + k * 22})`);
     speckle(g, S, 16000, 0.1);
   });
   return { map, normalMap: normalFromHeight(hc, 3.2) };
