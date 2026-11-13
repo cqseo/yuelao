@@ -191,6 +191,8 @@ export function startMarket(root, opts = {}) {
       coarse,
       look: () => ({ outfit: avatar.state.outfit, hair: avatar.state.hair }),
       fx: { act: remoteAct },
+      onStation: (st) => onStation(st),
+      onGo: (st) => onGo(st),
       onCount(n) {
         // 真人來了就撤掉幾個佈景路人，人一多廣場只剩真人
         crowd.limit(Math.max(coarse ? 1 : 2, crowdBase - Math.max(0, n - 1) * 2));
@@ -337,7 +339,8 @@ export function startMarket(root, opts = {}) {
     inter ??= createInteract({ root, halls: world.rooms, run: runAction, emote: doEmote });
     promptEl.onclick = () => {
       if (mode !== 'walk') return;
-      if (avatar.holding) standUp();
+      if (queued) leaveQueue('不排了。');
+      else if (avatar.holding) standUp();
       else if (near) enterRoom(near);
       else if (nearPool) openPool();
       else if (nearBurner) offerIncense();
@@ -349,7 +352,12 @@ export function startMarket(root, opts = {}) {
   let nearBurner = false;
   let lastIncense = -99;
   /** 銅香爐前上香：人物鞠躬、爐裡插上三炷香冒煙。純儀式，不存任何東西。 */
+  /** 爐前的「上香」按鈕：有人在用或在排就去排隊，否則直接上。 */
   function offerIncense() {
+    if (shared()) runAction('incense');
+    else incenseNow();
+  }
+  function incenseNow() {
     const t = clock.elapsedTime;
     if (t - lastIncense < 3) return;
     lastIncense = t;
@@ -406,6 +414,7 @@ export function startMarket(root, opts = {}) {
     if (!avatar.holding) return;
     avatar.hold(null);
     net.hold('');
+    release('cushion');
     // 從池沿上站起來，往外跨一步，免得卡在池子裡
     const r = Math.hypot(me.x, me.z);
     if (r < world.pondR + 0.3) {
@@ -436,6 +445,102 @@ export function startMarket(root, opts = {}) {
     const n = Math.hypot(sx, sz) || d;
     return [(sx / n) * (world.pondR + gap), (sz / n) * (world.pondR + gap)];
   };
+  // ---------- 排隊（參考心安宮）：殿前銅爐一次一人、兩個蒲團一次兩人 ----------
+  // 廣場上有別人時才排；輪到了伺服器會通知（go），用完就放開。鋪子不排隊。
+  const ST_NAME = { burner: '上香', cushion: '跪拜' };
+  const ST_CAP = { burner: 1, cushion: 2 };
+  let queued = null; // { st, pos }
+  let using = '';
+  /** 隊伍站位：爐前右側排一列（上香），左側排一列（跪拜）。 */
+  function queueSpot(st, k) {
+    const side = st === 'burner' ? 3.6 : -3.6;
+    return [world.burner.x + side, world.burner.z + 4.2 + k * 1.3];
+  }
+  const shared = () => net.live && net.count > 1;
+  function needQueue(st) {
+    if (!shared()) return false;
+    const s = net.station(st);
+    return s.use.length >= ST_CAP[st] || s.queue.length > 0;
+  }
+  function joinQueue(st) {
+    queued = { st, pos: -1 };
+    net.queue(st);
+    emit('market_queue', { st });
+    showQueue();
+  }
+  function leaveQueue(why) {
+    if (!queued) return;
+    queued = null;
+    net.queue('');
+    if (why && mode === 'walk') {
+      ui.hint(why);
+      setTimeout(() => mode === 'walk' && ui.hint(''), 3000);
+    }
+  }
+  function release(st) {
+    if (using !== st) return;
+    using = '';
+    net.queue('');
+  }
+  function showQueue() {
+    if (!queued) return;
+    const s = net.station(queued.st);
+    const k = s.queue.indexOf(net.id);
+    const name = ST_NAME[queued.st];
+    ui.hint(
+      k <= 0
+        ? `排隊${name}：下一位就是你。想走開就按「不排了」。`
+        : `排隊${name}：前面還有 ${k} 位。想走開就按「不排了」。`,
+    );
+    // 往前挪到自己在隊伍裡的位置
+    if (k >= 0 && k !== queued.pos && mode === 'walk' && !autoPath) {
+      queued.pos = k;
+      const [x, z] = queueSpot(queued.st, k);
+      if (Math.hypot(x - me.x, z - me.z) > 0.3) autoPath = [[x, z]];
+    }
+  }
+  /** 等目前的走位或動畫做完再執行（輪到時角色可能還在往隊伍走）。 */
+  function whenWalking(fn, tries = 30) {
+    if (mode === 'walk') fn();
+    else if (mode === 'moving' && tries > 0) setTimeout(() => whenWalking(fn, tries - 1), 200);
+  }
+  function onStation(st) {
+    if (queued?.st === st) showQueue();
+  }
+  function onGo(st) {
+    if (queued?.st !== st) {
+      // 已經不排了才輪到：直接讓出去
+      net.queue('');
+      return;
+    }
+    queued = null;
+    using = st;
+    ui.hint(`輪到你${ST_NAME[st]}了`);
+    audio.tick(660, 0.05, 0.05);
+    whenWalking(() => go(st === 'burner' ? doIncense : doKneel));
+  }
+  async function doIncense() {
+    await walkTo(world.burner.x, world.burner.z + 3.1);
+    await faceTo(world.burner.x, world.burner.z);
+    mode = 'walk';
+    incenseNow();
+    // 拜完讓給下一位
+    setTimeout(() => release('burner'), 4500);
+  }
+  async function doKneel() {
+    // 兩個蒲團：照使用順序分左右；一個人時挑近的那個
+    const s = net.station('cushion');
+    const idx = s.use.indexOf(net.id);
+    const left = idx >= 0 && s.use.length > 1 ? idx === 0 : me.x < world.burner.x;
+    const cx = world.burner.x + (left ? -1.6 : 1.6);
+    await walkTo(cx, world.burner.z + 3.4);
+    await faceTo(cx, world.burner.z - 6);
+    avatar.hold('kneel');
+    net.hold('kneel');
+    audio.bell(262, 0.1, 4);
+    ui.hint('跪下來，靜一靜。想起身就按「起身」，或直接走開。');
+    setTimeout(() => ui.hint(''), 4000);
+  }
   function runAction(id) {
     if (mode !== 'walk') return;
     emit('market_action', { id });
@@ -457,25 +562,26 @@ export function startMarket(root, opts = {}) {
       openWardrobe();
       return;
     }
-    if (id === 'incense')
-      return go(async () => {
-        await walkTo(world.burner.x, world.burner.z + 3.1);
-        await faceTo(world.burner.x, world.burner.z);
-        mode = 'walk';
-        offerIncense();
-      });
-    if (id === 'kneel')
-      return go(async () => {
-        // 兩個蒲團挑近的那個
-        const cx = world.burner.x + (me.x < world.burner.x ? -1.6 : 1.6);
-        await walkTo(cx, world.burner.z + 3.4);
-        await faceTo(cx, world.burner.z - 6);
-        avatar.hold('kneel');
-        net.hold('kneel');
-        audio.bell(262, 0.1, 4);
-        ui.hint('跪下來，靜一靜。想起身就按「起身」，或直接走開。');
-        setTimeout(() => ui.hint(''), 4000);
-      });
+    if (id === 'incense' || id === 'kneel') {
+      const st = id === 'incense' ? 'burner' : 'cushion';
+      // 有別人在場就照規矩排：空著的話伺服器馬上讓你用（go），不然走到隊伍裡等
+      if (shared()) {
+        if (queued?.st === st || using === st) return;
+        if (queued) leaveQueue();
+        // 先走到殿前再排：人還在大老遠，不該先占著爐子讓別人等
+        const [qx, qz] = queueSpot(st, 0);
+        if (Math.hypot(qx - me.x, qz - me.z) > 6)
+          return go(async () => {
+            await walkTo(qx, qz + 2.5);
+            mode = 'walk';
+            joinQueue(st);
+          });
+        standUp();
+        joinQueue(st);
+        return;
+      }
+      return go(st === 'burner' ? doIncense : doKneel);
+    }
     if (id === 'sit')
       return go(async () => {
         const [x, z] = poolEdge(0.4);
@@ -612,12 +718,16 @@ export function startMarket(root, opts = {}) {
       show && !near && !nearPool && Math.hypot(world.burner.x - me.x, world.burner.z - me.z) < world.burner.r;
     const panel = !!pool?.isOpen || !!wardrobe;
     const sitting = show && !!avatar.holding;
-    const wantPrompt = !panel && (sitting || !!near || nearPool || nearBurner);
+    const inLine = show && !!queued;
+    const wantPrompt = !panel && (inLine || sitting || !!near || nearPool || nearBurner);
     promptEl.classList.toggle('show', wantPrompt);
-    if (sitting) promptEl.textContent = '起身';
+    if (inLine) promptEl.textContent = '不排了';
+    else if (sitting) promptEl.textContent = '起身';
     else if (near) promptEl.textContent = `進入${near.name}`;
     else if (nearPool) promptEl.textContent = '到池邊許願';
-    else if (nearBurner) promptEl.textContent = clock.elapsedTime - lastIncense < 3 ? '心意已到' : '上香';
+    else if (nearBurner)
+      promptEl.textContent =
+        clock.elapsedTime - lastIncense < 3 ? '心意已到' : needQueue('burner') ? '排隊上香' : '上香';
     // 觸控：走動時搖桿一直在左下；開了面板就收起
     stickEl.classList.toggle('fixed', coarse && show && !panel);
   }
@@ -775,6 +885,9 @@ export function startMarket(root, opts = {}) {
         ease.lin,
       );
     } else fade.classList.add('on');
+    leaveQueue();
+    release('burner');
+    release('cushion');
     net.hold('away');
     active = rooms[r.id];
     active.from = r;
@@ -892,6 +1005,10 @@ export function startMarket(root, opts = {}) {
     }
     if (d < 0.6 || !world.walkable(groundHit.x, groundHit.z)) return false;
     standUp();
+    if (queued) {
+      const [qx, qz] = queueSpot(queued.st, Math.max(0, queued.pos));
+      if (Math.hypot(qx - groundHit.x, qz - groundHit.z) > 3) leaveQueue('走出隊伍，不排了。');
+    }
     autoPath = planTo(groundHit.x, groundHit.z);
     autoStuck = 0;
     if (!marker) {
@@ -1174,6 +1291,10 @@ export function startMarket(root, opts = {}) {
     const len = Math.hypot(f, s);
     if (len > 0.02) {
       if (avatar.holding) standUp(); // 坐著、跪著時一動就起身
+      if (queued) {
+        const [qx, qz] = queueSpot(queued.st, Math.max(0, queued.pos));
+        if (Math.hypot(qx - me.x, qz - me.z) > 3) leaveQueue('走出隊伍，不排了。');
+      }
       if (autoPath) autoPath = null; // 自己動手就取消自動走
       markWalked();
     } else if (autoPath) {

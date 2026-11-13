@@ -9,13 +9,17 @@ const SEND_GAP = 0.12; // 秒
 /**
  * @param {{ scene: import('three').Scene, coarse: boolean, look: () => {outfit:string, hair:string},
  *   fx: { act: (a: string, x: number, z: number, avatar: any) => void },
- *   onCount: (n: number, room: number) => void }} o
+ *   onCount: (n: number, room: number) => void,
+ *   onStation?: (st: string, state: {use: string[], queue: string[]}) => void,
+ *   onGo?: (st: string) => void }} o
  */
-export function createPlazaNet({ scene, coarse, look, fx, onCount }) {
+export function createPlazaNet({ scene, coarse, look, fx, onCount, onStation, onGo }) {
   let ws = null;
   let live = false;
   let want = false; // 是否應該連著（進了集市才連）
   let room = 0;
+  let myId = '';
+  const stations = {}; // st → { use, queue }
   let retry = 0;
   let retryTimer = 0;
   const peers = new Map();
@@ -47,13 +51,22 @@ export function createPlazaNet({ scene, coarse, look, fx, onCount }) {
         live = true;
         retry = 0;
         room = msg.room;
+        myId = msg.id;
         for (const p of msg.peers) join(p);
+        for (const s of msg.stations || []) {
+          stations[s.st] = { use: s.use, queue: s.queue };
+          onStation?.(s.st, stations[s.st]);
+        }
         send({ t: 'hi', look: look() });
         last.at = 0;
         last.x = 1e9; // 下一幀就把自己的位置送出去
         if (hold) setTimeout(() => send({ t: 's', s: hold }), 450);
         count();
-      } else if (msg.t === 'j') join(msg.p);
+      } else if (msg.t === 'qs') {
+        stations[msg.st] = { use: msg.use, queue: msg.queue };
+        onStation?.(msg.st, stations[msg.st]);
+      } else if (msg.t === 'go') onGo?.(msg.st);
+      else if (msg.t === 'j') join(msg.p);
       else if (msg.t === 'l') {
         drop(msg.id);
         count();
@@ -137,6 +150,19 @@ export function createPlazaNet({ scene, coarse, look, fx, onCount }) {
   return {
     get count() {
       return live ? peers.size + 1 : 0;
+    },
+    get live() {
+      return live;
+    },
+    get id() {
+      return myId;
+    },
+    station(st) {
+      return stations[st] || { use: [], queue: [] };
+    },
+    /** 排某個設施（'burner'、'cushion'）；傳 '' 表示不排了／用完了。 */
+    queue(st) {
+      send({ t: 'q', st });
     },
     start() {
       if (want) return;
