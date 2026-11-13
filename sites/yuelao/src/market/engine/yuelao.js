@@ -8,6 +8,16 @@ const CATS = [
   { key: 'single', word: '脫單', desc: '還沒有對象，正緣在哪裡' },
   { key: 'reunion', word: '複合', desc: '已經分開了，他會不會回來' },
 ];
+// 2026-11-13：不再先選「他／脫單／複合」三個方向。改成先寫下想問的事、再選現在的情況
+// （參考占了麼的求籤頁）。籤詩判詞仍分三類，由「情況」對應過去；問的事一路帶到深度解讀，不用再寫一次。
+const SITS = [
+  { key: 'single', word: '單身', cat: 'single' },
+  { key: 'crush', word: '曖昧中', cat: 'him' },
+  { key: 'dating', word: '交往中', cat: 'him' },
+  { key: 'reunion', word: '想復合', cat: 'reunion' },
+  { key: 'married', word: '已婚／談婚論嫁', cat: 'him' },
+];
+const Q_MAX = 100;
 
 // 月老殿：供桌、月窗、紅線、籤筒與筊杯。流程：選問法 → 搖籤 → 掉籤 → 擲筊 → 判詞。
 export function createYuelao(ui) {
@@ -285,20 +295,57 @@ export function createYuelao(ui) {
     hero.rotation.set(0, 0, 0);
   }
 
+  let sit = 'single';
+  try {
+    sit = sessionStorage.getItem('yuelao:sit') || 'single';
+  } catch {}
+  const sitWord = () => (SITS.find((x) => x.key === sit) || SITS[0]).word;
   function showPick() {
     state = 'pick';
     energy = 0;
     resetHero();
     ui.hint('');
-    ui.panel(
-      `<h2>你想問月老什麼？</h2>
-       <div class="choices">${CATS.map((c) => `<button data-a="${c.key}"><b>${c.word}</b><span>${c.desc}</span></button>`).join('')}</div>`,
-      (a) => {
-        cat = a;
-        say(PICK_LINES[a]);
-        showShake();
-      },
-    );
+    say('來了。心裡那件事，寫下來給我看看。');
+    const render = (note = '') =>
+      ui.panel(
+        `<h2>你想問月老什麼</h2>
+         <label class="ask-q"><textarea id="ask-q" maxlength="${Q_MAX}" rows="3" placeholder="例：我和他還有機會嗎">${esc(draftQ)}</textarea>
+           <span class="ask-meta"><span>一件具體的事，說清楚一點</span><span id="ask-n">${[...draftQ].length}/${Q_MAX}</span></span></label>
+         <p class="kicker">你現在的情況</p>
+         <div class="chips sits">${SITS.map(
+           (x) =>
+             `<button type="button" data-a="sit:${x.key}" class="${x.key === sit ? 'on' : ''}">${x.word}</button>`,
+         ).join('')}</div>
+         <p class="note small">照你現在的位置選，判詞和解讀會照著寫。</p>
+         ${note ? `<p class="note" role="status">${note}</p>` : ''}
+         <button class="seal" data-a="go">求籤</button>`,
+        (a) => {
+          if (a.startsWith('sit:')) {
+            sit = a.slice(4);
+            try {
+              sessionStorage.setItem('yuelao:sit', sit);
+            } catch {}
+            return render();
+          }
+          if (a === 'go') {
+            const q = draftQ.replace(/\s+/g, ' ').trim();
+            if ([...q].length < 2) return render('先寫下想問的事，一句話就好。');
+            draftQ = q;
+            cat = (SITS.find((x) => x.key === sit) || SITS[0]).cat;
+            say(PICK_LINES[cat]);
+            showShake();
+          }
+        },
+        true,
+      );
+    render();
+    const ta = document.getElementById('ask-q');
+    if (ta)
+      ta.oninput = () => {
+        draftQ = [...ta.value].slice(0, Q_MAX).join('');
+        const n = document.getElementById('ask-n');
+        if (n) n.textContent = `${[...draftQ].length}/${Q_MAX}`;
+      };
   }
 
   function showShake() {
@@ -448,7 +495,8 @@ export function createYuelao(ui) {
     const c = CATS.find((x) => x.key === cat);
     ui.card(
       `<div class="paper">
-         <p class="p-cat">問．${c.word}</p>
+         <p class="p-cat${draftQ ? ' q' : ''}">${draftQ ? `問．${esc(draftQ)}` : `問．${c.word}`}</p>
+         ${draftQ ? `<p class="p-sit">${sitWord()}</p>` : ''}
          <p class="p-no">${stick.no}</p>
          <h2 class="p-grade">${stick.grade}</h2>
          <p class="p-poem">${stick.poem.replace(/\n/g, '<br>')}</p>
@@ -510,8 +558,12 @@ export function createYuelao(ui) {
       `<p class="kicker">${stick.no}　深度解讀</p>
        <h2>月老親筆，替這支籤細細批一份</h2>
        <p class="note">從籤詩、你問的這一類，到眼前可以做的一步。寫好就在這裡看，也會存在「我的」。</p>
-       <label class="deep-q"><span>想問的事（選填，400 字內）</span>
-         <textarea id="deep-q" maxlength="400" rows="3" placeholder="例：我們最近很少聊天，我該怎麼開口？">${esc(draftQ)}</textarea></label>
+       ${
+         draftQ
+           ? `<div class="deep-asked"><span>你問的是</span><p>「${esc(draftQ)}」</p><small>${sitWord()}</small></div>`
+           : `<label class="deep-q"><span>想問的事（選填，100 字內）</span>
+         <textarea id="deep-q" maxlength="${Q_MAX}" rows="3" placeholder="例：我和他還有機會嗎">${esc(draftQ)}</textarea></label>`
+       }
        <p class="note small">付款即表示同意：你寫的問題會送至第三方 AI 模型服務（可能經由 API 中轉服務）生成解讀，問題原文不存入本站。<a href="/privacy" target="_blank" rel="noopener">隱私說明</a></p>
        ${note ? `<p class="note" role="status">${note}</p>` : ''}
        <button class="seal" data-a="pay">付款，請月老批讀　${ui.deep.price}</button>
@@ -523,7 +575,7 @@ export function createYuelao(ui) {
       true,
     );
     const q = document.getElementById('deep-q');
-    if (q) q.oninput = () => (draftQ = q.value.slice(0, 400));
+    if (q) q.oninput = () => (draftQ = [...q.value].slice(0, Q_MAX).join(''));
   }
 
   async function pay() {
@@ -591,7 +643,9 @@ export function createYuelao(ui) {
     const talking = setInterval(() => npc.talk(), 2600);
     npc.talk();
     try {
-      let status = await ui.deep.generate(stick.id, cat, question || '');
+      // 把「現在的情況」一起帶給月老，解讀才會照著寫
+      const asked = question ? `［${sitWord()}］${question}` : `［${sitWord()}］`;
+      let status = await ui.deep.generate(stick.id, cat, asked);
       if (run !== deepRun || state !== 'deep') return;
       // 另一個分頁已經在寫：等它寫完
       for (let i = 0; status === 'processing' && i < 30; i++) {

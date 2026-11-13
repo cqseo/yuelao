@@ -1353,3 +1353,65 @@
   letter-spacing: 0.08em;
   color: var(--gold);
 }
+
+/* 求籤前先寫下想問的事（2026-11-13，參考占了麼） */
+.mk .ask-q {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+}
+.mk .ask-q textarea {
+  min-height: 5rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(7, 8, 18, 0.5);
+  font: inherit;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--paper);
+  resize: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.mk .ask-q textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+.mk .ask-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--paper-50);
+}
+.mk .chips.sits {
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+.mk .deep-asked {
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border-left: 2px solid var(--gold);
+  background: rgba(220, 187, 124, 0.07);
+}
+.mk .deep-asked span,
+.mk .deep-asked small {
+  font-size: 0.75rem;
+  color: var(--paper-50);
+}
+.mk .deep-asked p {
+  margin: 0.2rem 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--paper);
+}
+.mk .paper .p-sit {
+  margin: -0.2rem 0 0.4rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  opacity: 0.6;
+}
+.mk .p-cat.q {
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}

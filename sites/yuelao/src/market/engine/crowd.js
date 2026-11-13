@@ -86,6 +86,7 @@ export function createCrowd(world, count) {
         }
         p.x = nx;
         p.z = nz;
+        p.y = world.groundY ? world.groundY(nx, nz, false) : 0; // 走上殿的台基
         let turn = Math.atan2(dx, dz) - f.a.root.rotation.y;
         turn = Math.atan2(Math.sin(turn), Math.cos(turn));
         f.a.root.rotation.y += turn * Math.min(1, dt * 6);
