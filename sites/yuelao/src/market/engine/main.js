@@ -110,6 +110,22 @@ export function startMarket(root, opts = {}) {
   let wardrobe = false;
   let pool = null; // 許願池面板
   const input = { f: 0, s: 0, run: false };
+  // 點地面自動走：一串路點，摇桿或按鍵一動就取消
+  let autoPath = null;
+  let autoStuck = 0;
+  // 第一次來的人：操作提示留到真的走過一次才收起
+  let walkedOnce = false;
+  try {
+    walkedOnce = localStorage.getItem('market-walked') === '1';
+  } catch {}
+  function markWalked() {
+    if (walkedOnce) return;
+    walkedOnce = true;
+    try {
+      localStorage.setItem('market-walked', '1');
+    } catch {}
+    setTimeout(() => mode === 'walk' && ui.hint(''), 1500);
+  }
   const keys = new Set();
 
   // film pass: vignette, a little grain, slightly lifted contrast
@@ -304,11 +320,29 @@ export function startMarket(root, opts = {}) {
       if (mode !== 'walk') return;
       if (near) enterRoom(near);
       else if (nearPool) openPool();
+      else if (nearBurner) offerIncense();
     };
   }
   const v = new THREE.Vector3();
   let near = null;
   let nearPool = false;
+  let nearBurner = false;
+  let lastIncense = -99;
+  /** 銅香爐前上香：人物鞠躬、爐裡插上三炷香冒煙。純儀式，不存任何東西。 */
+  function offerIncense() {
+    const t = clock.elapsedTime;
+    if (t - lastIncense < 3) return;
+    lastIncense = t;
+    autoPath = null;
+    // 面向香爐
+    me.face = Math.atan2(world.burner.x - me.x, world.burner.z - me.z);
+    avatar.bow();
+    world.offerIncense(t);
+    audio.bell(330, 0.12, 3);
+    emit('market_incense');
+    ui.hint('三炷清香，心意已到');
+    setTimeout(() => mode === 'walk' && ui.hint(''), 3500);
+  }
   function placeLabels() {
     const show = mode === 'walk';
     // 開著池邊或衣櫥面板時收起鋪子列，免得壓住面板底部的按鈕
@@ -332,10 +366,16 @@ export function startMarket(root, opts = {}) {
     nearPool = show && !near && fromCentre < world.pondR + 2.6;
     // 走離池邊就把許願面板收起來
     if (pool?.isOpen && show && fromCentre > world.pondR + 9) pool.close();
-    const wantPrompt = !!near || (nearPool && !pool?.isOpen && !wardrobe);
+    nearBurner =
+      show && !near && !nearPool && Math.hypot(world.burner.x - me.x, world.burner.z - me.z) < world.burner.r;
+    const panel = !!pool?.isOpen || !!wardrobe;
+    const wantPrompt = !panel && (!!near || nearPool || nearBurner);
     promptEl.classList.toggle('show', wantPrompt);
     if (near) promptEl.textContent = `進入${near.name}`;
     else if (nearPool) promptEl.textContent = '到池邊許願';
+    else if (nearBurner) promptEl.textContent = clock.elapsedTime - lastIncense < 3 ? '心意已到' : '上香';
+    // 觸控：走動時搖桿一直在左下；開了面板就收起
+    stickEl.classList.toggle('fixed', coarse && show && !panel);
   }
 
   // ---------- getting around ----------
@@ -388,10 +428,11 @@ export function startMarket(root, opts = {}) {
     mode = 'walk';
     ui.hint(
       coarse
-        ? '左下推搖桿走動，右邊滑動轉視角；也可以直接點下方的鋪子'
-        : 'WASD 走動，拖曳轉視角，V 切換視角；也可以直接點下方的鋪子',
+        ? '推左下的搖桿走動（推到圈外會跑）；點地面就走過去，右邊滑動轉視角'
+        : 'WASD 走動（Shift 跑），點地面就走過去，拖曳轉視角；走近會出現可以做的事，按 F',
     );
-    setTimeout(() => mode === 'walk' && ui.hint(''), 8000);
+    // 老客人 8 秒後收起；第一次來的人等真的走動過再收
+    if (walkedOnce) setTimeout(() => mode === 'walk' && ui.hint(''), 8000);
   }
 
   /** 走到某間房門口再進去：從山門外先進廣場；直線會穿過許願池就繞半圈。 */
@@ -546,6 +587,75 @@ export function startMarket(root, opts = {}) {
     const h = hitTest(e, [world.wishPick], world.camera);
     return h && h.distance < 32 && h.instanceId !== undefined ? world.wishAt(h.instanceId) : null;
   }
+  /** 搖桿：圈內走、推出底座（約 60px）就跑。 */
+  function moveStick(e) {
+    const dx = e.clientX - stick.x;
+    const dy = e.clientY - stick.y;
+    const len = Math.hypot(dx, dy);
+    const k = Math.min(1, len / 46);
+    input.s = len ? (dx / len) * k : 0;
+    input.f = len ? (-dy / len) * k : 0;
+    input.run = len > 62;
+    stickEl.classList.toggle('run', input.run);
+    stickEl.firstElementChild.style.transform = `translate(${(len ? dx / len : 0) * Math.min(len, 62)}px,${(len ? dy / len : 0) * Math.min(len, 62)}px)`;
+  }
+  // ---------- 點地面自動走 ----------
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const groundHit = new THREE.Vector3();
+  let marker = null;
+  /** 從目前位置走到 (x, z)：直線會穿過許願池就先繞到池邊。 */
+  function planTo(x, z) {
+    const pts = [];
+    const dx = x - me.x;
+    const dz = z - me.z;
+    const u = Math.max(0, Math.min(1, -(me.x * dx + me.z * dz) / (dx * dx + dz * dz || 1)));
+    const nx = me.x + dx * u;
+    const nz = me.z + dz * u;
+    const near = Math.hypot(nx, nz);
+    const clear = world.pondR + 1.2;
+    if (near < clear) {
+      // 往路線偏的那一側繞；剛好穿過圓心就往右繞
+      let ox = nx;
+      let oz = nz;
+      if (near < 0.3) {
+        ox = -dz;
+        oz = dx;
+      }
+      const n = Math.hypot(ox, oz) || 1;
+      pts.push([(ox / n) * (clear + 0.8), (oz / n) * (clear + 0.8)]);
+    }
+    pts.push([x, z]);
+    return pts;
+  }
+  function tapGround(e) {
+    ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    ray.setFromCamera(ndc, world.camera);
+    if (!ray.ray.intersectPlane(groundPlane, groundHit)) return false;
+    let d = Math.hypot(groundHit.x - me.x, groundHit.z - me.z);
+    // 點得太遠（接近地平線）就先往那個方向走一段
+    if (d > 30) {
+      groundHit.x = me.x + ((groundHit.x - me.x) / d) * 30;
+      groundHit.z = me.z + ((groundHit.z - me.z) / d) * 30;
+      d = 30;
+    }
+    if (d < 0.6 || !world.walkable(groundHit.x, groundHit.z)) return false;
+    autoPath = planTo(groundHit.x, groundHit.z);
+    autoStuck = 0;
+    if (!marker) {
+      marker = new THREE.Mesh(
+        new THREE.RingGeometry(0.28, 0.4, 32),
+        new THREE.MeshBasicMaterial({ color: 0xdcbb7c, transparent: true, opacity: 0.9, toneMapped: false }),
+      );
+      marker.rotation.x = -Math.PI / 2;
+      world.scene.add(marker);
+    }
+    marker.position.set(groundHit.x, 0.04, groundHit.z);
+    marker.visible = true;
+    marker.userData.t = 0;
+    emit('market_tap_walk');
+    markWalked();
+    return true;
+  }
   const gl = $('#gl');
   let look = null; // pointer that turns the view
   let stick = null; // pointer that drives the joystick (touch only)
@@ -557,16 +667,26 @@ export function startMarket(root, opts = {}) {
       return;
     }
     if (mode !== 'walk') return;
-    if (
-      e.pointerType === 'touch' &&
-      !stick &&
-      e.clientX < innerWidth * 0.45 &&
-      e.clientY > innerHeight * 0.4
-    ) {
-      stick = { id: e.pointerId, x: e.clientX, y: e.clientY };
-      stickEl.style.left = `${e.clientX}px`;
-      stickEl.style.top = `${e.clientY}px`;
+    // 觸控：左下那塊按下就是搖桿。搖桿底座固定在左下角、一直看得到；
+    // 中心取底座中心（不是手指落點），推出底座外圈就跑。
+    const sr = stickEl.getBoundingClientRect();
+    const fixed = stickEl.classList.contains('fixed') && sr.width > 0;
+    const scx = sr.left + sr.width / 2;
+    const scy = sr.top + sr.height / 2;
+    const onBase = fixed
+      ? Math.hypot(e.clientX - scx, e.clientY - scy) < 96
+      : e.clientX < innerWidth * 0.45 && e.clientY > innerHeight * 0.4;
+    if (e.pointerType === 'touch' && !stick && onBase) {
+      const cx = fixed ? scx : e.clientX;
+      const cy = fixed ? scy : e.clientY;
+      stick = { id: e.pointerId, x: cx, y: cy };
+      if (!fixed) {
+        stickEl.style.left = `${e.clientX}px`;
+        stickEl.style.top = `${e.clientY}px`;
+      }
       stickEl.classList.add('show');
+      autoPath = null;
+      moveStick(e);
       return;
     }
     if (!look) look = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0 };
@@ -578,14 +698,7 @@ export function startMarket(root, opts = {}) {
       gl.style.cursor = hit ? 'pointer' : '';
     }
     if (stick && e.pointerId === stick.id) {
-      const dx = e.clientX - stick.x;
-      const dy = e.clientY - stick.y;
-      const len = Math.hypot(dx, dy);
-      const k = Math.min(1, len / 56);
-      input.s = len ? (dx / len) * k : 0;
-      input.f = len ? (-dy / len) * k : 0;
-      input.run = len > 84;
-      stickEl.firstElementChild.style.transform = `translate(${(len ? dx / len : 0) * k * 34}px,${(len ? dy / len : 0) * k * 34}px)`;
+      moveStick(e);
       return;
     }
     if (!look || e.pointerId !== look.id) {
@@ -610,7 +723,7 @@ export function startMarket(root, opts = {}) {
       stick = null;
       input.f = input.s = 0;
       input.run = false;
-      stickEl.classList.remove('show');
+      stickEl.classList.remove('show', 'run');
       stickEl.firstElementChild.style.transform = '';
       return;
     }
@@ -623,7 +736,7 @@ export function startMarket(root, opts = {}) {
         emit('wish_plate_tap');
         if (Math.hypot(me.x, me.z) < world.pondR + 3) openPool(plate);
         else goToPool(plate);
-      }
+      } else if (!wardrobe && !pool?.isOpen) tapGround(e);
     }
     if (mode === 'room') {
       if (look.moved < 8 && active.onTap) active.onTap(hitTest(e, active.pick(), active.camera));
@@ -655,6 +768,7 @@ export function startMarket(root, opts = {}) {
     if (k === 'shift') keys.add('run');
     if (mode === 'walk' && (k === 'enter' || k === 'f') && near) enterRoom(near);
     else if (mode === 'walk' && (k === 'enter' || k === 'f') && nearPool && !pool?.isOpen) openPool();
+    else if (mode === 'walk' && (k === 'enter' || k === 'f') && nearBurner && !wardrobe) offerIncense();
     if (mode === 'walk' && k === 'v') toggleView();
   });
   on('keyup', (e) => {
@@ -802,6 +916,39 @@ export function startMarket(root, opts = {}) {
     let s = input.s + (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0);
     me.yaw += ((keys.has('tl') ? 1 : 0) - (keys.has('tr') ? 1 : 0)) * dt * 1.9;
     const len = Math.hypot(f, s);
+    if (len > 0.02) {
+      if (autoPath) autoPath = null; // 自己動手就取消自動走
+      markWalked();
+    } else if (autoPath) {
+      // 沿著路點走；被擋住超過半秒就停下
+      const [tx, tz] = autoPath[0];
+      const ddx = tx - me.x;
+      const ddz = tz - me.z;
+      const dist = Math.hypot(ddx, ddz);
+      if (dist < 0.35) {
+        autoPath.shift();
+        if (!autoPath.length) autoPath = null;
+      } else {
+        const sp = Math.min(dist, 4.6 * dt);
+        const mx = (ddx / dist) * sp;
+        const mz = (ddz / dist) * sp;
+        const ox = me.x;
+        const oz = me.z;
+        if (world.walkable(me.x + mx, me.z)) me.x += mx;
+        if (world.walkable(me.x, me.z + mz)) me.z += mz;
+        const moved = Math.hypot(me.x - ox, me.z - oz);
+        autoStuck = moved < sp * 0.2 ? autoStuck + dt : 0;
+        if (autoStuck > 0.5) autoPath = null;
+        me.bob += dt * 10;
+        me.speed = 4.2;
+        me.face += (turn(me.face, Math.atan2(mx, mz)) - me.face) * Math.min(1, dt * 10);
+        // 第一人稱時鏡頭也慢慢轉向走的方向
+        if (!third) me.yaw += (turn(me.yaw, yawTo(mx, mz)) - me.yaw) * Math.min(1, dt * 4);
+      }
+      if (!autoPath && marker) marker.visible = false;
+      applyCam();
+      return;
+    }
     if (len > 1) {
       f /= len;
       s /= len;
@@ -903,6 +1050,12 @@ export function startMarket(root, opts = {}) {
       }
       crowd.update(dt, t);
       world.update(dt, t, world.camera.position);
+      if (marker?.visible) {
+        marker.userData.t += dt;
+        const s = 1 + Math.sin(marker.userData.t * 6) * 0.12;
+        marker.scale.set(s, s, s);
+        if (mode !== 'walk') marker.visible = false;
+      }
       world.reflect(world.camera);
       const a = world.area(me.x, me.z);
       if (a !== lastArea && mode !== 'room') $('#hud-title').textContent = lastArea = a;

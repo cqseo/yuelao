@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createMaterials, roofGeometry } from './mats.js';
-import { canvasTex, rand, textPlane } from './util.js';
+import { canvasTex, glow, rand, textPlane } from './util.js';
 
 // 月下集市：山門外 → 牌樓 → 圓形廣場。廣場正中是許願池（池心一棵許願樹），正北是
 // 大殿，東西兩側各三間鋪子圍成一圈、門都朝著池子。可以自由走動；可進的房間門口有提示。
@@ -164,6 +164,10 @@ export function createWorld(renderer, lowQuality) {
   }
   scene.add(moon, moon.target);
   const warmLights = []; // 燈籠與爐火的點光：白天調暗
+  // 殿前銅爐：訪客上香時插上的香與升起的煙（見 offerIncense）
+  let burnerGroup = null;
+  const incense = []; // { stick, tip, born }
+  const smokes = []; // { s, born, vx, vz }
   const warm = (x, y, z, i = 34, d = 20, c = 0xff9040) => {
     const l = new THREE.PointLight(c, i, d, 1.6);
     l.position.set(x, y, z);
@@ -798,6 +802,7 @@ export function createWorld(renderer, lowQuality) {
     c.position.set(0, 0, -18.5);
     scene.add(c);
     flick.push(warm(0, 2.4, -18.5, 22, 9, 0xff4a1c));
+    burnerGroup = c;
   }
   const FURNACE = [10.5, -19.5];
   {
@@ -1069,6 +1074,34 @@ export function createWorld(renderer, lowQuality) {
       ground.visible = true;
       renderer.shadowMap.autoUpdate = auto;
     },
+    /** 殿前銅爐的位置與可上香的距離。 */
+    burner: { x: 0, z: -18.5, r: 3.6 },
+    /** 上香：銅爐裡插上三炷新香（香頭發紅），升起一陣煙。新香燒一分鐘後收走，最多留 9 炷。 */
+    offerIncense(t) {
+      if (!burnerGroup) return;
+      for (let i = 0; i < 3; i++) {
+        const stick = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.014, 0.014, 0.85, 5),
+          new THREE.MeshBasicMaterial({ color: 0xa8804f }),
+        );
+        stick.position.set(-0.18 + i * 0.18 + rand(-0.03, 0.03), 2.08, rand(-0.12, 0.12));
+        stick.rotation.z = rand(-0.06, 0.06);
+        const tip = glow(0xff6a28, 0.16, 1);
+        tip.position.set(stick.position.x, 2.5, stick.position.z);
+        burnerGroup.add(stick, tip);
+        incense.push({ stick, tip, born: t });
+      }
+      while (incense.length > 9) {
+        const old = incense.shift();
+        burnerGroup.remove(old.stick, old.tip);
+      }
+      for (let i = 0; i < 10; i++) {
+        const s = glow(0xe8ded0, rand(0.5, 0.9), 0);
+        s.position.set(rand(-0.25, 0.25), 2.6, -18.5 + rand(-0.25, 0.25));
+        scene.add(s);
+        smokes.push({ s, born: t + i * 0.18, vx: rand(-0.12, 0.12), vz: rand(-0.12, 0.12) });
+      }
+    },
     /** 點得到的願望牌（InstancedMesh；命中後用 wishAt(instanceId) 取願望 id）。 */
     wishPick: plates,
     wishAt: (i) => plateSlots[i]?.id ?? null,
@@ -1118,6 +1151,30 @@ export function createWorld(renderer, lowQuality) {
         l.intensity =
           l.userData.base * (state.lamp ?? 1) * (0.8 + Math.sin(t * 9) * 0.1 + Math.random() * 0.15);
       talis.rotation.y = t * 0.04;
+      for (let i = smokes.length - 1; i >= 0; i--) {
+        const m = smokes[i];
+        const age = t - m.born;
+        if (age < 0) continue;
+        if (age > 4) {
+          scene.remove(m.s);
+          m.s.material.dispose();
+          smokes.splice(i, 1);
+          continue;
+        }
+        m.s.position.y = 2.6 + age * 0.9;
+        m.s.position.x += m.vx * dt;
+        m.s.position.z += m.vz * dt;
+        m.s.scale.setScalar(0.5 + age * 0.45);
+        m.s.material.opacity = Math.sin((age / 4) * Math.PI) * 0.35;
+      }
+      for (let i = incense.length - 1; i >= 0; i--) {
+        const n = incense[i];
+        n.tip.material.opacity = 0.75 + Math.sin(t * 5 + i) * 0.25;
+        if (t - n.born > 60 && burnerGroup) {
+          burnerGroup.remove(n.stick, n.tip);
+          incense.splice(i, 1);
+        }
+      }
       if (plateSlots.length) {
         for (let i = 0; i < plateSlots.length; i++) {
           const p = plateSlots[i];
