@@ -306,7 +306,7 @@ export function createYuelao(ui) {
     resetHero();
     ui.hint('');
     say('來了。心裡那件事，寫下來給我看看。');
-    const render = (note = '') =>
+    const render = (note = '') => {
       ui.panel(
         `<h2>你想問月老什麼</h2>
          <label class="ask-q"><textarea id="ask-q" maxlength="${Q_MAX}" rows="3" placeholder="例：我和他還有機會嗎">${esc(draftQ)}</textarea>
@@ -338,14 +338,16 @@ export function createYuelao(ui) {
         },
         true,
       );
+      // 每次重畫都重新接上輸入框（重畫會換一個新的 textarea）
+      const ta = document.getElementById('ask-q');
+      if (ta)
+        ta.oninput = () => {
+          draftQ = [...ta.value].slice(0, Q_MAX).join('');
+          const n = document.getElementById('ask-n');
+          if (n) n.textContent = `${[...draftQ].length}/${Q_MAX}`;
+        };
+    };
     render();
-    const ta = document.getElementById('ask-q');
-    if (ta)
-      ta.oninput = () => {
-        draftQ = [...ta.value].slice(0, Q_MAX).join('');
-        const n = document.getElementById('ask-n');
-        if (n) n.textContent = `${[...draftQ].length}/${Q_MAX}`;
-      };
   }
 
   function showShake() {
