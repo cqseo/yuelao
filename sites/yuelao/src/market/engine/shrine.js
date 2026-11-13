@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { roofGeometry } from './mats.js';
 import { canvasTex, glow, rand, textPlane } from './util.js';
 
@@ -6,9 +7,6 @@ import { canvasTex, glow, rand, textPlane } from './util.js';
 // 殿內有花鳥屏風、坐著的月老像、供桌（燭台、供果、香爐、籤筒）、三個蒲團和紅線架。
 // 走到供桌前出現「求籤」，走上蒲團出現「跪拜」。
 // 尺寸都用殿的本地座標：正面開口在 z = 0，往後 z 是負的。
-const W = 9.6;
-const D = 8.4;
-const H = 4.6;
 const B = 0.3; // 台基高
 
 /** 屏風：深紅漆底、金色滿月、祥雲、兩側梅花與牡丹、金框。全用 canvas 畫，不載圖。 */
@@ -164,9 +162,12 @@ function screenTex() {
 /**
  * 坐像：紅袍、白鬚、壽星帽，左手拄杖、右手牽一縷紅線。比例刻意 Q 一點，和訪客的角色同一種語言。
  */
-function statue(mat) {
+function statue(mat, gold = false) {
   const g = new THREE.Group();
-  const robe = new THREE.MeshStandardMaterial({ color: 0xb3221a, roughness: 0.55 });
+  // 大殿的是鎏金像，月老殿的是彩繪紅袍
+  const robe = gold
+    ? new THREE.MeshStandardMaterial({ color: 0xd2a246, metalness: 0.85, roughness: 0.32 })
+    : new THREE.MeshStandardMaterial({ color: 0xb3221a, roughness: 0.55 });
   const trim = new THREE.MeshStandardMaterial({ color: 0xe0b45a, metalness: 0.6, roughness: 0.35 });
   const skin = new THREE.MeshStandardMaterial({ color: 0xe2b48e, roughness: 0.65 });
   const white = new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: 0.8 });
@@ -296,7 +297,14 @@ function statue(mat) {
  *   shadow: (m: THREE.Object3D, cast?: boolean, recv?: boolean) => THREE.Object3D,
  *   warm: (x:number,y:number,z:number,i?:number,d?:number,c?:number) => void }} o
  */
-export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
+export function createShrine(o) {
+  const { scene, mat, x, z, rot, shadow, warm } = o;
+  const W = o.w ?? 9.6;
+  const D = o.d ?? 8.4;
+  const H = o.h ?? 4.6;
+  const plaqueText = o.plaque ?? '月老殿';
+  const outer = o.outer ?? ['願天下有情人', '都成了眷屬'];
+  const inner = o.inner ?? ['良緣天成', '和合美滿'];
   const g = new THREE.Group();
   const box = (w, h, d, m) => shadow(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m));
   // 台基與殿內地坪
@@ -386,13 +394,18 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
         .translateZ(-(i * D) / 4),
     );
   // 匾額
-  const plaque = textPlane('月老殿', 1.15, { bg: '#130905', fg: '#f3d691', border: '#b88a3c', size: 150 });
+  const plaque = textPlane(plaqueText, o.plaqueSize ?? 1.15, {
+    bg: '#130905',
+    fg: '#f3d691',
+    border: '#b88a3c',
+    size: 150,
+  });
   plaque.position.set(0, B + H - 0.95, 0.36);
   g.add(plaque);
   // 正面兩根柱子上的對聯（朝外）
   for (const [cx, txt] of [
-    [-W / 2 + 0.3, '願天下有情人'],
-    [W / 2 - 0.3, '都成了眷屬'],
+    [-W / 2 + 0.3, outer[0]],
+    [W / 2 - 0.3, outer[1]],
   ]) {
     // 對聯貼在最外側兩根柱子上，別擋住看進殿裡的視線
     const c = textPlane(txt, 2.3, { vertical: true, bg: '#7b161b', fg: '#f6e4b6', size: 100, weight: 700 });
@@ -403,21 +416,33 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
   // ---------- 殿內 ----------
   const zBack = -D + 0.15;
   // 屏風
+  // 屏風比例 1.6:1（AI 生成的屏風圖就是這個比例）；殿大屏風跟著大，但不頂到天花
+  const sh2 = Math.min(H - 0.9, 4.7);
+  const sw = Math.min(W - 3.2, sh2 * 1.6);
+  const sh = sw / 1.6;
   const scr = new THREE.Mesh(
-    new THREE.PlaneGeometry(6.4, 4),
+    new THREE.PlaneGeometry(sw, sh),
     new THREE.MeshStandardMaterial({ map: screenTex(), roughness: 0.5 }),
   );
-  scr.position.set(0, B + 2.25, zBack + 0.05);
+  scr.position.set(0, B + 0.3 + sh / 2, zBack + 0.05);
   g.add(scr);
+  // 有 AI 畫好的屏風圖就換上；載不到就留著 canvas 畫的
+  if (o.screen)
+    new THREE.TextureLoader().load(o.screen, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      scr.material.map = tex;
+      scr.material.needsUpdate = true;
+    });
   g.add(
-    box(6.7, 0.18, 0.12, mat.gold)
-      .translateY(B + 4.3)
+    box(sw + 0.3, 0.18, 0.12, mat.gold)
+      .translateY(B + 0.4 + sh)
       .translateZ(zBack + 0.08),
   );
   // 兩側直聯
   for (const [cx, txt] of [
-    [-3.75, '良緣天成'],
-    [3.75, '和合美滿'],
+    [-(sw / 2 + 0.55), inner[0]],
+    [sw / 2 + 0.55, inner[1]],
   ]) {
     const c = textPlane(txt, 2.2, {
       vertical: true,
@@ -441,9 +466,26 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
       .translateY(B + 0.92)
       .translateZ(zBack + 1.05),
   );
-  const god = statue(mat);
+  const god = statue(mat, !!o.gold);
   god.position.set(0, B + 0.97, zBack + 1.1);
-  god.scale.setScalar(1.05);
+  god.scale.setScalar(o.statueScale ?? 1.05);
+  // 有 AI 生成的神像模型（GLB）就換上：量好高度、底部貼齊神台、置中；載不到就留著拼出來的像
+  if (o.model)
+    new GLTFLoader().load(o.model, (gltf) => {
+      const m = gltf.scene;
+      const bb = new THREE.Box3().setFromObject(m);
+      const size = bb.getSize(new THREE.Vector3());
+      const k = 2.9 / (size.y || 1);
+      m.scale.setScalar(k);
+      const c = bb.getCenter(new THREE.Vector3());
+      m.position.set(-c.x * k, -bb.min.y * k, -c.z * k);
+      m.traverse((n) => {
+        n.userData.room = god.userData.room;
+        if (n.isMesh) n.castShadow = true;
+      });
+      while (god.children.length) god.remove(god.children[0]);
+      god.add(m);
+    });
   g.add(god);
   // 供桌
   const tz = zBack + 2.75;
@@ -458,7 +500,12 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
       .translateZ(tz),
   );
   // 桌圍：紅底金字
-  const apron = textPlane('有求必應', 0.55, { bg: '#8a1a1a', fg: '#f3d691', size: 110, weight: 700 });
+  const apron = textPlane(o.apron ?? '有求必應', 0.55, {
+    bg: '#8a1a1a',
+    fg: '#f3d691',
+    size: 110,
+    weight: 700,
+  });
   apron.position.set(0, B + 0.55, tz + 0.52);
   g.add(apron);
   // 燭台（燭火會微微亮）
@@ -524,8 +571,8 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
     ),
   );
   tube.position.set(1.15, B + 1.25, tz + 0.25);
-  g.add(tube);
-  for (let i = 0; i < 9; i++) {
+  if (o.tube !== false) g.add(tube);
+  for (let i = 0; i < (o.tube === false ? 0 : 9); i++) {
     const s = new THREE.Mesh(
       new THREE.BoxGeometry(0.025, 0.42, 0.006),
       new THREE.MeshStandardMaterial({ color: 0xd9b26a }),
@@ -564,7 +611,7 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
   }
   rack.position.set(W / 2 - 1.3, B, -D + 4.2);
   rack.rotation.y = -Math.PI / 2;
-  g.add(rack);
+  if (o.rack !== false) g.add(rack);
 
   g.position.set(x, 0, z);
   g.rotation.y = rot;
@@ -603,6 +650,9 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
   void warm;
 
   let t = 0;
+  // 上香：供桌小香爐升起一陣煙（白色光點往上飄、散開）
+  const smokes = [];
+  const smokeAt = toWorld(0, B + 1.7, tz);
   return {
     /** 殿內不能走的地方。 */
     inside(wx, wz) {
@@ -626,8 +676,36 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
     pick: god,
     fx: sin,
     fz: cos,
+    /** 在供桌前上香：冒一陣煙。 */
+    offer() {
+      for (let i = 0; i < 8; i++) {
+        const s = glow(0xf2ece0, 0.3, 0.5);
+        s.position.copy(smokeAt);
+        scene.add(s);
+        smokes.push({ s, age: -i * 0.25 });
+      }
+    },
+    /** 供桌前（上香、求籤時站的地方）。 */
+    altarFront: toWorld(0, 0, tz + 1.0),
     update(dt) {
       t += dt;
+      for (let i = smokes.length - 1; i >= 0; i--) {
+        const m = smokes[i];
+        m.age += dt;
+        if (m.age < 0) {
+          m.s.visible = false;
+          continue;
+        }
+        m.s.visible = true;
+        m.s.position.y = smokeAt.y + m.age * 0.55;
+        m.s.position.x = smokeAt.x + Math.sin(m.age * 2 + i) * 0.12 * m.age;
+        m.s.scale.setScalar(0.3 + m.age * 0.25);
+        m.s.material.opacity = Math.max(0, 0.5 * (1 - m.age / 3.5));
+        if (m.age > 3.5) {
+          scene.remove(m.s);
+          smokes.splice(i, 1);
+        }
+      }
       for (const [i, f] of flames.entries())
         f.scale.setScalar(0.42 + Math.sin(t * 9 + i * 2) * 0.04 + Math.sin(t * 23 + i) * 0.02);
     },

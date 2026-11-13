@@ -4,7 +4,7 @@
 export const PLAZA_CAP = 40;
 // 廣場半徑 26.5，加上殿前（z 到 -26）與山門外（z 到 46）
 const BOUND = { x: 28, zMin: -26, zMax: 46 };
-export const PLAZA_ACTIONS = new Set(['wave', 'bow', 'pray', 'heart', 'incense', 'feed']);
+export const PLAZA_ACTIONS = new Set(['wave', 'bow', 'pray', 'heart', 'incense', 'feed', 'offer']);
 export const PLAZA_HOLDS = new Set(['', 'sit', 'kneel', 'away']);
 const MOVE_GAP_MS = 80;
 const ACT_GAP_MS = 400;
