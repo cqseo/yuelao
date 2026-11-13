@@ -567,8 +567,16 @@ export function startMarket(root, opts = {}) {
       // 有別人在場就照規矩排：空著的話伺服器馬上讓你用（go），不然走到隊伍裡等
       if (shared()) {
         if (queued?.st === st || using === st) return;
-        standUp();
         if (queued) leaveQueue();
+        // 先走到殿前再排：人還在大老遠，不該先占著爐子讓別人等
+        const [qx, qz] = queueSpot(st, 0);
+        if (Math.hypot(qx - me.x, qz - me.z) > 6)
+          return go(async () => {
+            await walkTo(qx, qz + 2.5);
+            mode = 'walk';
+            joinQueue(st);
+          });
+        standUp();
         joinQueue(st);
         return;
       }
