@@ -99,16 +99,15 @@ function Layout() {
           <Link to="/" aria-current={location.pathname === '/' ? 'true' : undefined}>
             {m.common_nav_home()}
           </Link>
-          <Link to={localizeHref('/market')}>{m.common_nav_market()}</Link>
+          <a href="/market#enter">{m.common_nav_market()}</a>
           <Link
             to={localizeHref('/tests')}
             aria-current={location.pathname.startsWith('/tests') ? 'true' : undefined}
           >
             {locale === 'zh-Hans' ? '情感测试' : '情感測驗'}
           </Link>
-          <Link to={localizeHref('/chat')} aria-current={location.pathname === '/chat' ? 'true' : undefined}>
-            {locale === 'zh-Hans' ? '问月老' : '問月老'}
-          </Link>
+          {/* 問月老在 3D 月老殿裡；/chat 一般版仍在，供搜尋引擎與跑不動 3D 的裝置 */}
+          <a href="/market#ask">{locale === 'zh-Hans' ? '问月老' : '問月老'}</a>
           <Link
             to={localizeHref('/daily')}
             aria-current={location.pathname === '/daily' ? 'true' : undefined}

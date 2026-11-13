@@ -201,7 +201,7 @@ export function startMarket(root, opts = {}) {
       void enterMarket();
       return;
     }
-    // #street, #plaza, #yuelao, #tarot, #wish jump straight in (首頁的鋪子卡片也用這些)
+    // #street, #plaza, #yuelao, #ask, #tarot, #wish jump straight in (首頁的鋪子卡片也用這些)
     const h = location.hash.slice(1);
     if (h) {
       menu.classList.remove('show');
@@ -217,9 +217,12 @@ export function startMarket(root, opts = {}) {
       mode = 'walk';
       applyCam();
       if (h === 'wish') openPool();
-      if (rooms[h])
+      // #ask：進月老殿直接打開「問月老」
+      const roomId = h === 'ask' ? 'yuelao' : h;
+      if (h === 'ask') rooms.yuelao.intent = 'ask';
+      if (rooms[roomId])
         enterRoom(
-          world.rooms.find((x) => x.id === h),
+          world.rooms.find((x) => x.id === roomId),
           true,
         );
     }

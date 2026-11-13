@@ -661,8 +661,8 @@ export function createYuelao(ui) {
            : ''
        }
        <form class="ask" id="ask-form"><input id="ask-input" maxlength="200" autocomplete="off" placeholder="把想問的寫下來" aria-label="想問月老的事" /><button class="seal" type="submit">問</button></form>
-       <button class="ghost" data-a="card">回到判詞</button>`,
-      (a) => a === 'card' && verdict(),
+       <button class="ghost" data-a="card">${stick ? '回到判詞' : '求一支籤'}</button>`,
+      (a) => a === 'card' && (stick ? verdict() : showPick()),
       true,
     );
     const log = document.getElementById('ask-log');
@@ -716,8 +716,10 @@ export function createYuelao(ui) {
     };
   }
 
-  return {
+  const hall = {
     id: 'yuelao',
+    /** 進門後要直接做的事：'ask'＝打開問月老（main.js 依網址 #ask 設定）。 */
+    intent: null,
     title: '月老殿',
     scene,
     camera,
@@ -757,6 +759,13 @@ export function createYuelao(ui) {
           return;
         }
         say('你回來了。這支籤還在。');
+        return;
+      }
+      // 從頂欄「問月老」直接來（/market#ask）：先開口問，不必先求籤
+      if (hall.intent === 'ask') {
+        hall.intent = null;
+        showAsk();
+        say('坐。想問什麼，直說。');
         return;
       }
       showPick();
@@ -836,4 +845,5 @@ export function createYuelao(ui) {
       }
     },
   };
+  return hall;
 }
