@@ -32,6 +32,13 @@ export default defineSite({
       prices: usd(299),
     },
     {
+      // 塔羅館（塔羅／雷諾曼三張）的完整解讀，單次購買；不扣次數包。
+      id: 'spread_1',
+      kind: 'spread',
+      name: '完整解讀 · 塔羅館單次',
+      prices: usd(299),
+    },
+    {
       id: 'pack_3',
       kind: 'pack',
       name: '問事包 · 3 次',

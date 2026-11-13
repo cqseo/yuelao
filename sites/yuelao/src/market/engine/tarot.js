@@ -261,6 +261,14 @@ export function createTarot(ui) {
   let drawn = [];
   let faces = [];
   let question = '';
+  let day = today(); // 抽牌那天；付款回來重算同一組牌要用同一天
+  function computeDrawn() {
+    drawn =
+      deck === 'lnm'
+        ? drawThree(question, sit, day).map((c) => ({ ...c, card: c }))
+        : drawTarot(question, sit, day);
+    faces = drawn.map((d) => loadFace(imgUrl(deck, d), d.card.name));
+  }
   let sit = 'single';
   try {
     sit = sessionStorage.getItem('yuelao:sit') || 'single';
@@ -347,12 +355,9 @@ export function createTarot(ui) {
             const q = question.replace(/\s+/g, ' ').trim();
             if ([...q].length < 2) return render('先寫下想問的事，一句話就好。');
             question = q;
-            drawn =
-              deck === 'lnm'
-                ? drawThree(q, sit, today()).map((c) => ({ ...c, card: c }))
-                : drawTarot(q, sit, today());
+            day = today();
             // 洗牌的這幾秒先把三張牌面載好
-            faces = drawn.map((d) => loadFace(imgUrl(deck, d), d.card.name));
+            computeDrawn();
             shuffle();
           }
         },
@@ -553,15 +558,237 @@ export function createTarot(ui) {
         <p class="asked">問．${esc(question)}<span>${sitWord()}．${DECKS[deck].name}</span></p>
         ${thumbs}
         ${body}
+        ${unlockBlock()}
        </div>
        <div class="card-actions"><button class="seal" data-a="again">換一件事問</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (x) => {
+        if (x === 'deep') {
+          // 已經解鎖就直接看／動筆；沒有就直接去付款（說明都在牌義下方，不另開一頁）
+          if (deepState && deepState.state !== 'none') return openDeep();
+          state = 'deep';
+          return void pay();
+        }
         if (x === 'leave') return ui.leave();
         question = '';
         intro();
       },
       true,
     );
+    refreshDeep();
+  }
+
+  // ── 完整解讀（付費）。金額、訂單、解鎖全在伺服器；這裡只負責問、等、帶路。 ──
+  // 七段和伺服器的寫法一一對應，改了要一起改 packages/core/src/spread-reading.ts
+  const DEEP_SECTIONS = [
+    ['三張牌湊在一起', '一句話說這三張在講什麼'],
+    ['每一張落在這裡', '每張牌在它的位置上對這件事說什麼'],
+    ['兩兩之間', '兩張放在一起，意思怎麼變'],
+    ['對著你的問題', '這一節只寫你問的那件事'],
+    ['眼下該做與不該做', '具體到你這幾天的處境'],
+    ['時間上的提示', '大概多快、在哪個階段'],
+    ['留給你的一句話', '塔羅師最後想對你說的'],
+  ];
+  let deepState = null; // { state: 'none'|'unlocked'|'ready', body? }
+  let deepRun = 0;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const deepTitle = () => `${DECKS[deck].name}．完整解讀`;
+  async function spreadKey() {
+    const ids =
+      deck === 'lnm'
+        ? drawn.map((d) => String(d.n).padStart(2, '0'))
+        : drawn.map((d) => `${d.card.img}${d.rev ? '~' : ''}`);
+    const src = `${day}|${sit}|${question.replace(/\s+/g, '')}`;
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(src));
+    const hex = [...new Uint8Array(buf)]
+      .slice(0, 8)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    return `${deck}:${ids.join(',')}|${hex}`;
+  }
+  function unlockBlock() {
+    if (!ui.spread?.price) return '';
+    const [a, b, c] = drawn;
+    const teaser =
+      deck === 'lnm'
+        ? `${flowLine(a, b, c)}${c.love}`
+        : `${a.card.name}、${b.card.name}、${c.card.name}放在一起看，${(c.rev ? c.card.rev : c.card.up).replace(/。$/, '')}，而這和你問的事有關的地方在於……`;
+    return `<section class="unlock" id="unlock">
+        <h3>解鎖完整解讀</h3>
+        <p class="deep-teaser">${esc(teaser)}</p>
+        <p class="unlock-note">上面是每張牌各自的意思。完整解讀把三張連起來，七段都只寫你問的那件事。</p>
+        <button class="offer" id="deep-btn" data-a="deep">解鎖完整解讀　${ui.spread.price}</button>
+        <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
+        <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
+      </section>`;
+  }
+  function refreshDeep() {
+    deepState = null;
+    if (!ui.spread) return;
+    const run = deepRun;
+    void spreadKey().then((key) =>
+      ui.spread.check(key).then((r) => {
+        if (state !== 'reading' || run !== deepRun) return;
+        deepState = r;
+        const btn = document.getElementById('deep-btn');
+        if (btn && r.state !== 'none')
+          btn.textContent = r.state === 'ready' ? '看完整解讀（已解鎖）' : '請塔羅師動筆（已解鎖）';
+      }),
+    );
+  }
+  const backToReading = `<button class="ghost" data-a="back">回到牌面</button>`;
+  const onBack = (a) => a === 'back' && reading();
+  function openDeep() {
+    state = 'deep';
+    if (deepState?.state === 'ready') return showDeep(deepState.body);
+    return startGenerate();
+  }
+  async function pay() {
+    say('稍等，我準備一下。');
+    ui.panel(`<p class="note" role="status">正在準備付款</p>`);
+    const key = await spreadKey();
+    const r = await ui.spread.buy(key);
+    if (state !== 'deep') return;
+    const keep = (why) => ui.spread.save({ deck, question, sit, day, why });
+    if (r.state === 'redirect') {
+      keep('pay');
+      say('付完了回到這裡，牌還在桌上，我就動筆。');
+      location.assign(r.url);
+    } else if (r.state === 'login') {
+      keep('login');
+      say('先登入，我才記得這一把牌是誰抽的。');
+      ui.panel(
+        `<h2>登入後再請塔羅師動筆</h2>
+         <p class="note">登入完會回到塔羅館，這一把牌和你寫的話都還在。</p>
+         <a class="seal linkbtn" href="/login">去登入</a>${backToReading}`,
+        onBack,
+      );
+    } else if (r.state === 'owned') {
+      startGenerate();
+    } else {
+      say(r.state === 'closed' ? '完整解讀還沒開張，過些日子再來。' : '這會兒忙不過來，稍後再試一次。');
+      ui.panel(
+        `<p class="note">${r.state === 'closed' ? '付費的完整解讀尚未開放。牌義照常可以看。' : '沒有扣款。可以稍後再試。'}</p>${backToReading}`,
+        onBack,
+      );
+    }
+  }
+  /** 付款回來：等伺服器確認解鎖（Stripe 通知通常幾秒內到），確認了就直接動筆。 */
+  async function waitPaid() {
+    const run = ++deepRun;
+    state = 'deep';
+    say('你回來了。我確認一下。');
+    ui.panel(
+      `<p class="kicker">${deepTitle()}</p><p class="note" role="status">正在確認付款，通常幾秒鐘。</p>`,
+    );
+    const key = await spreadKey();
+    for (let i = 0; i < 45; i++) {
+      const r = await ui.spread.check(key);
+      if (run !== deepRun || state !== 'deep') return;
+      if (r.state === 'ready') return showDeep(r.body);
+      if (r.state === 'unlocked') return startGenerate();
+      await sleep(2000);
+      if (run !== deepRun || state !== 'deep') return;
+    }
+    say('付款的消息還沒傳到。');
+    ui.panel(
+      `<p class="kicker">${deepTitle()}</p>
+       <p class="note">付款確認還沒到。不用重新付款，等一下再查。</p>
+       <button class="seal" data-a="again">再查一次</button>${backToReading}`,
+      (a) => (a === 'again' ? void waitPaid() : onBack(a)),
+    );
+  }
+  /** 已解鎖：請伺服器動筆，寫好了直接在這裡看。 */
+  async function startGenerate() {
+    const run = ++deepRun;
+    state = 'deep';
+    say('我來把三張連起來看，稍候。');
+    ui.panel(
+      `<p class="kicker">${deepTitle()}</p><p class="note" role="status">塔羅師正在解讀，大約半分鐘。</p>`,
+    );
+    const talking = setInterval(() => npc.talk(), 2600);
+    npc.talk();
+    try {
+      const key = await spreadKey();
+      let status = await ui.spread.generate(key, question, sit);
+      if (run !== deepRun || state !== 'deep') return;
+      for (let i = 0; status === 'processing' && i < 30; i++) {
+        await sleep(3000);
+        if (run !== deepRun || state !== 'deep') return;
+        const r = await ui.spread.check(key);
+        if (r.state === 'ready') return showDeep(r.body);
+      }
+      if (status === 'ready') {
+        const r = await ui.spread.check(key);
+        if (run !== deepRun || state !== 'deep') return;
+        if (r.state === 'ready') return showDeep(r.body);
+        status = 'failed';
+      }
+      say('這次沒看成，再來一次。');
+      ui.panel(
+        `<p class="kicker">${deepTitle()}</p>
+         <p class="note">這次沒寫成。你已經付過款，再試不會重複扣款。</p>
+         <button class="seal" data-a="retry">再試一次</button>${backToReading}`,
+        (a) => (a === 'retry' ? void startGenerate() : onBack(a)),
+      );
+    } finally {
+      clearInterval(talking);
+    }
+  }
+  function showDeep(body) {
+    state = 'deep';
+    say('寫好了，慢慢看。');
+    ui.panel(
+      `<p class="kicker">${deepTitle()}</p>
+       <p class="asked deep-q">問．${esc(question)}</p>
+       <div class="deep-body" id="deep-body"></div>
+       <p class="note small">牌義解讀供自我反思，不是預言。</p>${backToReading}`,
+      onBack,
+      true,
+    );
+    // 伺服器回來的內文只當純文字；【小標】那一行單獨成段
+    const box = document.getElementById('deep-body');
+    for (const block of String(body).split(/\n{2,}/)) {
+      const text = block.trim();
+      if (!text) continue;
+      const p = document.createElement('p');
+      const head = text.match(/^【[^】]{1,12}】/);
+      if (head) {
+        const b = document.createElement('b');
+        b.textContent = head[0];
+        p.appendChild(b);
+        p.appendChild(document.createTextNode(text.slice(head[0].length).replace(/^\n/, '')));
+      } else p.textContent = text;
+      box.appendChild(p);
+    }
+  }
+  /** 付款／登入回來：桌上直接擺好那三張（已翻開），不再演洗牌。 */
+  async function layOut() {
+    stack();
+    chosen = cards.slice(0, 3);
+    flipped = 3;
+    const sz = CW / DECKS[deck].aspect / CH;
+    for (let k = 0; k < 3; k++) {
+      const c = chosen[k];
+      const d = drawn[k];
+      c.userData.sel = true;
+      c.userData.card = d;
+      c.position.copy(slot(k));
+      c.scale.set(1.5, 1, 1.5 * sz);
+      c.rotation.set(0, d.rev ? 0 : Math.PI, Math.PI);
+      faces[k].then((tex) => {
+        c.material = [
+          edge,
+          edge,
+          back,
+          new THREE.MeshStandardMaterial({ map: tex, roughness: 0.72 }),
+          edge,
+          edge,
+        ];
+      });
+    }
+    for (const o of cards.slice(3)) o.visible = false;
+    camera.position.copy(HOME.clone().lerp(new THREE.Vector3(0, TOP + 0.5, 0.75), 0.42));
+    camera.lookAt(new THREE.Vector3(0, TOP, 0.12));
   }
 
   return {
@@ -570,22 +797,38 @@ export function createTarot(ui) {
     scene,
     camera,
     enter() {
+      const back = ui.spread?.take();
       const from = GREET.clone().add(new THREE.Vector3(0, -0.2, 2.2));
       camera.position.copy(from);
       camera.lookAt(GREET_LOOK);
-      tween(
-        1.6,
-        (k) => {
-          camera.position.lerpVectors(from, GREET, k);
-          camera.lookAt(GREET_LOOK);
-        },
-        ease.out,
-      );
+      if (!back)
+        tween(
+          1.6,
+          (k) => {
+            camera.position.lerpVectors(from, GREET, k);
+            camera.lookAt(GREET_LOOK);
+          },
+          ease.out,
+        );
       audio.bell(587, 0.14, 3.5);
+      // 從付款或登入回來：重算同一把牌、擺回桌上，接著剛才的解讀
+      if (back) {
+        deck = back.deck;
+        question = back.question;
+        sit = back.sit;
+        day = back.day;
+        computeDrawn();
+        void layOut();
+        if (back.why === 'pay') return void waitPaid();
+        reading();
+        say('你回來了。牌還在桌上。');
+        return;
+      }
       intro();
       say('請坐。先把想問的事寫下來，牌才知道要說什麼。');
     },
     exit() {
+      deepRun++;
       state = 'idle';
       ui.panel('');
       ui.hint('');

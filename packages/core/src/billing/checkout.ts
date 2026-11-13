@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SessionUser } from '../auth';
 import { errorResponse, json } from '../http';
 import { checkoutProductForCurrency, findProduct, type Locale, type SiteConfig } from '../site';
+import { parseSpread } from '../spread';
 import type { PaymentProvider } from './provider';
 
 export interface CheckoutSelection {
@@ -10,6 +11,8 @@ export interface CheckoutSelection {
   currency: 'HKD' | 'TWD' | 'USD';
   stickId: number | null;
   category: 'him' | 'single' | 'reunion' | null;
+  /** A drawn tarot / Lenormand spread (spread products only); shape checked by parseSpread. */
+  spread: string | null;
   /** Where the purchase started; only picks which fixed page a cancelled checkout returns to. */
   from: 'market' | null;
 }
@@ -18,6 +21,12 @@ function parseSelection(raw: unknown): CheckoutSelection | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const value = raw as Record<string, unknown>;
   const { productId, locale, currency, stickId, category } = value;
+  let spread: string | null = null;
+  if (value.spread !== undefined) {
+    const parsed = parseSpread(value.spread);
+    if (!parsed) return null;
+    spread = parsed.key;
+  }
   if (value.from !== undefined && value.from !== 'market') return null;
   const from = value.from === 'market' ? 'market' : null;
   // Shape only; whether the product exists is decided against the site config below.
@@ -29,9 +38,10 @@ function parseSelection(raw: unknown): CheckoutSelection | null {
     if (typeof stickId !== 'number' || !Number.isInteger(stickId) || stickId < 1 || stickId > 100)
       return null;
     if (category !== 'him' && category !== 'single' && category !== 'reunion') return null;
-    return { productId, locale, currency, stickId, category, from };
+    if (spread !== null) return null;
+    return { productId, locale, currency, stickId, category, spread: null, from };
   }
-  return { productId, locale, currency, stickId: null, category: null, from };
+  return { productId, locale, currency, stickId: null, category: null, spread, from };
 }
 
 export interface CheckoutDeps {
@@ -75,6 +85,10 @@ export async function createTestCheckout({
   if ((product.kind === 'unlock') !== (selection.stickId !== null)) {
     return errorResponse(400, 'invalid_product_selection');
   }
+  // Spread products name exactly one drawn spread; nothing else may carry one.
+  if ((product.kind === 'spread') !== (selection.spread !== null)) {
+    return errorResponse(400, 'invalid_product_selection');
+  }
 
   // The Worker config is trusted, unlike any caller-provided Origin/returnUrl.
   const siteUrl = new URL(baseUrl);
@@ -102,6 +116,19 @@ export async function createTestCheckout({
       .eq('revoked', false)
       .maybeSingle();
     if (unlockError) return errorResponse(503, 'unlock_lookup_failed');
+    if (existing) return errorResponse(409, 'already_unlocked');
+  }
+
+  if (selection.spread !== null) {
+    const { data: existing, error: spreadError } = await database
+      .from('spread_unlocks')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('spread', selection.spread)
+      .eq('locale', selection.locale)
+      .eq('revoked', false)
+      .maybeSingle();
+    if (spreadError) return errorResponse(503, 'unlock_lookup_failed');
     if (existing) return errorResponse(409, 'already_unlocked');
   }
 
@@ -175,6 +202,8 @@ export async function createTestCheckout({
       locale: selection.locale,
       stick_id: selection.stickId,
       category: selection.category,
+      // 只有牌陣訂單才帶這欄，其他商品的下單不依賴它
+      ...(selection.spread ? { spread: selection.spread } : {}),
       pack_uses: product.kind === 'pack' ? product.uses : null,
       status: 'pending',
     })
@@ -186,7 +215,8 @@ export async function createTestCheckout({
   // webhook followed by a single transactional DB grant may unlock it.
   // Fixed paths only — never a caller-supplied URL.
   // 從集市發起的付款直接回集市（月老殿會自己向伺服器確認解鎖），不經過核實頁。
-  const marketPath = product.kind === 'unlock' ? '/market#yuelao' : '/market';
+  const marketPath =
+    product.kind === 'unlock' ? '/market#yuelao' : product.kind === 'spread' ? '/market#tarot' : '/market';
   const returnUrl =
     selection.from === 'market' ? new URL(marketPath, siteUrl) : new URL('/billing/return', siteUrl);
   if (selection.from !== 'market') returnUrl.searchParams.set('order', order.id);

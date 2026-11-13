@@ -127,13 +127,25 @@ export async function generateWithOpenAI(
   fetchImpl: typeof fetch = fetch,
   baseUrl: string | null = null,
 ): Promise<string> {
-  if (!validKey(apiKey, !!baseUrl) || !validModel(model)) throw new Error('ai_not_configured');
   const userInput = JSON.stringify({
     outputLanguage: input.locale === 'zh-Hans' ? '簡體中文' : '繁體中文',
     category: input.category,
     stick: { number: stick.no, grade: stick.grade, poem: stick.poem, freeVerdict: stick.verdict },
     userQuestionUntrusted: input.question || '沒有提供個人情況，請只作象徵性建議',
   });
+  return runModel(READING_INSTRUCTIONS, userInput, apiKey, model, fetchImpl, baseUrl);
+}
+
+/** 送一次生成：有中轉站走 chat/completions，否則走 OpenAI responses（store: false）。 */
+export async function runModel(
+  instructions: string,
+  userInput: string,
+  apiKey: string,
+  model: string,
+  fetchImpl: typeof fetch = fetch,
+  baseUrl: string | null = null,
+): Promise<string> {
+  if (!validKey(apiKey, !!baseUrl) || !validModel(model)) throw new Error('ai_not_configured');
   if (baseUrl) {
     // OpenAI 相容中轉站：用最通用的 chat/completions。
     const res = await fetchImpl(`${baseUrl}/chat/completions`, {
@@ -143,7 +155,7 @@ export async function generateWithOpenAI(
         model,
         max_tokens: 2400,
         messages: [
-          { role: 'system', content: READING_INSTRUCTIONS },
+          { role: 'system', content: instructions },
           { role: 'user', content: userInput },
         ],
       }),
@@ -156,7 +168,7 @@ export async function generateWithOpenAI(
     model,
     store: false, // No response object is saved to the provider's application state.
     max_output_tokens: 2400,
-    instructions: READING_INSTRUCTIONS,
+    instructions,
     input: userInput,
   };
   const response = await fetchImpl('https://api.openai.com/v1/responses', {
