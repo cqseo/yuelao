@@ -783,7 +783,7 @@ export function startMarket(root, opts = {}) {
           ? '心意已到'
           : '上香'
         : near.inside
-          ? '求籤'
+          ? near.promptText || '求籤'
           : `進入${near.name}`;
     else if (nearPool) promptEl.textContent = '到池邊許願';
     else if (nearBurner)
