@@ -257,10 +257,10 @@ export function createAvatar(lowQuality) {
         headX = Math.max(headX, 0.25 * env);
         bodyX += 0.08 * env;
       } else if (emote === 'heart') {
-        armL = armL * (1 - env) - 2.85 * env;
-        armLz = 0.55 * env;
-        armR = armR * (1 - env) - 2.5 * env;
-        armRz = -0.55 * env;
+        armL = armL * (1 - env) - 2.75 * env;
+        armLz = -0.75 * env;
+        armR = armR * (1 - env) - 2.75 * env;
+        armRz = 0.75 * env;
       }
       body.rotation.x = bodyX;
       body.position.y = Math.abs(Math.sin(phase)) * 0.035 * k + Math.sin(t * 1.6) * 0.004 - drop;

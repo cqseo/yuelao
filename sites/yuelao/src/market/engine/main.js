@@ -505,7 +505,7 @@ export function startMarket(root, opts = {}) {
             toneMapped: false,
           }),
         );
-        s.scale.setScalar(0.35);
+        s.scale.setScalar(0.45);
         s.position.set(me.x + (i - 1) * 0.25, 2.2, me.z);
         world.scene.add(s);
         hearts.push({ s, t: -i * 0.25 });
@@ -527,8 +527,8 @@ export function startMarket(root, opts = {}) {
       }
       h.s.visible = true;
       h.s.position.y += dt * 0.7;
-      h.s.material.opacity = Math.max(0, 1 - h.t / 1.8);
-      if (h.t > 1.8) {
+      h.s.material.opacity = Math.max(0, 1 - h.t / 2.6);
+      if (h.t > 2.6) {
         world.scene.remove(h.s);
         h.s.material.dispose();
         hearts.splice(i, 1);
