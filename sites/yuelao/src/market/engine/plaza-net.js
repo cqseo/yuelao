@@ -13,7 +13,7 @@ const SEND_GAP = 0.12; // 秒
  *   onStation?: (st: string, state: {use: string[], queue: string[]}) => void,
  *   onGo?: (st: string) => void }} o
  */
-export function createPlazaNet({ scene, coarse, look, fx, onCount, onStation, onGo }) {
+export function createPlazaNet({ scene, coarse, look, fx, onCount, onStation, onGo, groundY = () => 0 }) {
   let ws = null;
   let live = false;
   let want = false; // 是否應該連著（進了集市才連）
@@ -209,7 +209,7 @@ export function createPlazaNet({ scene, coarse, look, fx, onCount, onStation, on
     update(dt, t) {
       for (const p of peers.values()) {
         if (!p.a.root.visible) {
-          p.a.root.position.set(p.tx, 0, p.tz);
+          p.a.root.position.set(p.tx, groundY(p.tx, p.tz, p.s === 'kneel'), p.tz);
           p.x = p.tx;
           p.z = p.tz;
           continue;
@@ -240,7 +240,7 @@ export function createPlazaNet({ scene, coarse, look, fx, onCount, onStation, on
           p.a.root.rotation.y += turn * Math.min(1, dt * 6);
         }
         p.speed += (speed - p.speed) * Math.min(1, dt * 10);
-        p.a.root.position.set(p.x, 0, p.z);
+        p.a.root.position.set(p.x, groundY(p.x, p.z, p.s === 'kneel'), p.z);
         p.a.update(dt, t + p.ph, p.speed);
       }
     },

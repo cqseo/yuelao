@@ -280,6 +280,12 @@ export function createAvatar(lowQuality) {
       }
       body.rotation.x = bodyX;
       body.position.y = Math.abs(Math.sin(phase)) * 0.035 * k + Math.sin(t * 1.6) * 0.004 - drop;
+      // 坐下、跪下時不是整個人沉進地裡：裙襬往下壓扁、下緣留在地面（或蒲團）上，上身才往下沉
+      const squash = drop / 0.62;
+      skirt.scale.y = 1 - squash;
+      skirt.position.y = drop;
+      hem.position.y = 0.03 + drop;
+      sashTail.visible = drop < 0.1;
       skirt.rotation.z = Math.sin(phase) * 0.035 * k;
       sashTail.rotation.x = -lean * 2 + Math.sin(phase * 2) * 0.1 * k;
       sleeves[0].rotation.x = armL;

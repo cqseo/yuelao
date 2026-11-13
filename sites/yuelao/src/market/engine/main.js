@@ -104,7 +104,7 @@ export function startMarket(root, opts = {}) {
   const rooms = {};
   let active = null; // room object, or null while walking the market
   let mode = 'boot';
-  const me = { x: 0, z: 43, yaw: 0, pitch: 0.1, y: 1.9, bob: 0, speed: 0, face: Math.PI };
+  const me = { x: 0, z: 43, yaw: 0, pitch: 0.1, y: 1.9, bob: 0, speed: 0, face: Math.PI, gy: 0 };
   let avatar;
   let crowd;
   let koi;
@@ -191,6 +191,7 @@ export function startMarket(root, opts = {}) {
       coarse,
       look: () => ({ outfit: avatar.state.outfit, hair: avatar.state.hair }),
       fx: { act: remoteAct },
+      groundY: (x, z, k) => world.groundY(x, z, k),
       onStation: (st) => onStation(st),
       onGo: (st) => onGo(st),
       onCount(n) {
@@ -308,7 +309,10 @@ export function startMarket(root, opts = {}) {
   function applyCam() {
     const c = world.camera;
     c.rotation.set(me.pitch - tp * 0.16, me.yaw, 0);
-    const eyeY = me.y + Math.sin(me.bob) * 0.035 * (1 - tp);
+    // 殿的台基、蒲團比地面高：人要站（跪）在上面，不是陷進去
+    const gy = world.groundY(me.x, me.z, !!avatar.holding);
+    me.gy += (gy - (me.gy ?? 0)) * 0.35;
+    const eyeY = me.y + me.gy + Math.sin(me.bob) * 0.035 * (1 - tp);
     if (tp < 0.01) {
       c.position.set(me.x, eyeY, me.z);
     } else {
@@ -321,7 +325,7 @@ export function startMarket(root, opts = {}) {
       while (d > 1.2 && !world.walkable(me.x - fx * d, me.z - fz * d)) d -= 0.35;
       c.position.set(me.x - fx * d, Math.max(0.5, eyeY + 0.05 * tp - fy * d), me.z - fz * d);
     }
-    avatar.root.position.set(me.x, 0, me.z);
+    avatar.root.position.set(me.x, me.gy, me.z);
     avatar.root.rotation.y = me.face;
     avatar.root.children[0].visible = tp > 0.3;
   }

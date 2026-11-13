@@ -663,6 +663,16 @@ export function createShrine(o) {
   const smokeAt = toWorld(0, B + 1.7, tz);
   return {
     /** 殿內不能走的地方。 */
+    /** 台基上的高度（站在殿裡就是台基高）；不在台基上回 null。蒲團上再高一點。 */
+    floorY(wx, wz, kneeling) {
+      const [lx, lz] = toLocal(wx, wz);
+      if (lx < -W / 2 - 0.6 || lx > W / 2 + 0.6 || lz < -D - 0.4 || lz > 1.6) return null;
+      // 前面的兩級台階：一半高
+      let y = lz > 0.6 ? B / 2 : B;
+      if (kneeling)
+        for (const [cx, cz2] of cushionsLocal) if (Math.hypot(lx - cx, lz - cz2) < 0.5) y = B + 0.14;
+      return y;
+    },
     inside(wx, wz) {
       const [lx, lz] = toLocal(wx, wz);
       return lx > -W / 2 - 0.5 && lx < W / 2 + 0.5 && lz > -D - 0.7 && lz < 1.6;

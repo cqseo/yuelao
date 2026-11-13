@@ -1125,6 +1125,16 @@ export function createWorld(renderer, lowQuality) {
       ground.visible = true;
       renderer.shadowMap.autoUpdate = auto;
     },
+    /** 地面高度：殿的台基、蒲團（跪著時）比廣場地面高。 */
+    groundY(x, z, kneeling) {
+      for (const sh of [shrine, hallShrine]) {
+        const y = sh?.floorY(x, z, kneeling);
+        if (y != null) return y;
+      }
+      // 殿前銅爐旁的兩個蒲團
+      if (kneeling) for (const cx of [-1.6, 1.6]) if (Math.hypot(x - cx, z + 15.1) < 0.5) return 0.14;
+      return 0;
+    },
     /** 走得進去的月老殿與大殿（蒲團位置等）。 */
     shrine,
     hallShrine,
