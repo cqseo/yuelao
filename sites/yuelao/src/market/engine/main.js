@@ -146,9 +146,9 @@ export function startMarket(root, opts = {}) {
     void main(){
       vec4 c = clamp(texture2D(tDiffuse, vUv), 0.0, 1.0);
       vec2 q = vUv - 0.5;
-      c.rgb *= 1.0 - dot(q, q) * 0.95;
-      c.rgb = mix(c.rgb, c.rgb * c.rgb * (3.0 - 2.0 * c.rgb), 0.22);
-      c.rgb += (h(vUv * 900.0) - 0.5) * 0.035;
+      c.rgb *= 1.0 - dot(q, q) * 0.45;
+      c.rgb = mix(c.rgb, c.rgb * c.rgb * (3.0 - 2.0 * c.rgb), 0.1);
+      c.rgb += (h(vUv * 900.0) - 0.5) * 0.004; // 幾乎不要顆粒：手機上顆粒只會讓畫面髒
       gl_FragColor = c;
     }`,
   };
@@ -341,6 +341,7 @@ export function startMarket(root, opts = {}) {
       if (mode !== 'walk') return;
       if (queued) leaveQueue('不排了。');
       else if (avatar.holding) standUp();
+      else if (nearCushion) kneelHere(nearCushion);
       else if (near) enterRoom(near);
       else if (nearPool) openPool();
       else if (nearBurner) offerIncense();
@@ -350,6 +351,7 @@ export function startMarket(root, opts = {}) {
   let near = null;
   let nearPool = false;
   let nearBurner = false;
+  let nearCushion = null;
   let lastIncense = -99;
   /** 銅香爐前上香：人物鞠躬、爐裡插上三炷香冒煙。純儀式，不存任何東西。 */
   /** 爐前的「上香」按鈕：有人在用或在排就去排隊，否則直接上。 */
@@ -541,6 +543,19 @@ export function startMarket(root, opts = {}) {
     ui.hint('跪下來，靜一靜。想起身就按「起身」，或直接走開。');
     setTimeout(() => ui.hint(''), 4000);
   }
+  /** 月老殿裡的蒲團：站正、面向神像、跪下。 */
+  function kneelHere(c) {
+    go(async () => {
+      await walkPath([[c.x, c.z]], 3);
+      await faceTo(world.shrine.faceTo.x, world.shrine.faceTo.z);
+      avatar.hold('kneel');
+      net.hold('kneel');
+      audio.bell(262, 0.1, 4);
+      emit('market_shrine_kneel');
+      ui.hint('跪在月老面前，心裡想著那個人。想起身就按「起身」。');
+      setTimeout(() => ui.hint(''), 4000);
+    });
+  }
   function runAction(id) {
     if (mode !== 'walk') return;
     emit('market_action', { id });
@@ -714,16 +729,21 @@ export function startMarket(root, opts = {}) {
     nearPool = show && !near && fromCentre < world.pondR + 2.6;
     // 走離池邊就把許願面板收起來
     if (pool?.isOpen && show && fromCentre > world.pondR + 9) pool.close();
+    // 月老殿裡的蒲團：站上去就能跪拜
+    nearCushion = null;
+    if (show && world.shrine)
+      for (const c of world.shrine.cushions) if (Math.hypot(c.x - me.x, c.z - me.z) < 0.75) nearCushion = c;
     nearBurner =
       show && !near && !nearPool && Math.hypot(world.burner.x - me.x, world.burner.z - me.z) < world.burner.r;
     const panel = !!pool?.isOpen || !!wardrobe;
     const sitting = show && !!avatar.holding;
     const inLine = show && !!queued;
-    const wantPrompt = !panel && (inLine || sitting || !!near || nearPool || nearBurner);
+    const wantPrompt = !panel && (inLine || sitting || !!nearCushion || !!near || nearPool || nearBurner);
     promptEl.classList.toggle('show', wantPrompt);
     if (inLine) promptEl.textContent = '不排了';
     else if (sitting) promptEl.textContent = '起身';
-    else if (near) promptEl.textContent = `進入${near.name}`;
+    else if (nearCushion) promptEl.textContent = '跪拜';
+    else if (near) promptEl.textContent = near.inside ? '求籤' : `進入${near.name}`;
     else if (nearPool) promptEl.textContent = '到池邊許願';
     else if (nearBurner)
       promptEl.textContent =
@@ -820,6 +840,7 @@ export function startMarket(root, opts = {}) {
       const n = Math.hypot(nx, nz);
       pts.push([(nx / n) * (clear + 1.5), (nz / n) * (clear + 1.5)]);
     }
+    if (r.inside) pts.push([r.entry.x, r.entry.z]); // 走得進去的殿：先到殿門口再進去
     pts.push([r.stand.x, r.stand.z]);
     await walkPath(pts);
     enterRoom(r, false, true);
@@ -872,18 +893,26 @@ export function startMarket(root, opts = {}) {
         me.pitch *= 1 - k;
         applyCam();
       });
-      fade.classList.add('on');
-      const x0 = me.x;
-      const z0 = me.z;
-      await tween(
-        0.55,
-        (k) => {
-          me.x = x0 + (r.door.x - x0) * k * 0.8;
-          me.z = z0 + (r.door.z - z0) * k * 0.8;
-          applyCam();
-        },
-        ease.lin,
-      );
+      if (r.inside) {
+        // 已經站在神前了：鞠個躬就開始求籤，不再往門裡走
+        avatar.bow();
+        await wait(0.9);
+        fade.classList.add('on');
+        await wait(0.35);
+      } else {
+        fade.classList.add('on');
+        const x0 = me.x;
+        const z0 = me.z;
+        await tween(
+          0.55,
+          (k) => {
+            me.x = x0 + (r.door.x - x0) * k * 0.8;
+            me.z = z0 + (r.door.z - z0) * k * 0.8;
+            applyCam();
+          },
+          ease.lin,
+        );
+      }
     } else fade.classList.add('on');
     leaveQueue();
     release('burner');
@@ -918,14 +947,19 @@ export function startMarket(root, opts = {}) {
     bloom.strength = world.sky.bloom;
     bloom.threshold = 0.82;
     renderer.toneMappingExposure = world.sky.exposure;
-    // 回到廣場：站在門外，沿著圓環朝大殿那一側看，鏡頭才不會卡進屋子裡
-    const px = r.stand.x + r.fx * 0.6;
-    const pz = r.stand.z + r.fz * 0.6;
+    // 回到廣場：站在門外，沿著圓環朝大殿那一側看，鏡頭才不會卡進屋子裡。
+    // 走得進去的殿：就站在神前，面向神像
+    const px = r.inside ? r.stand.x : r.stand.x + r.fx * 0.6;
+    const pz = r.inside ? r.stand.z : r.stand.z + r.fz * 0.6;
     let tx = -pz;
     let tz = px;
     if (tz > 0) {
       tx = -tx;
       tz = -tz;
+    }
+    if (r.inside) {
+      tx = r.door.x - px;
+      tz = r.door.z - pz;
     }
     const yaw = yawTo(tx, tz);
     Object.assign(me, { x: px, z: pz, yaw, pitch: 0, y: 1.65, face: yaw + Math.PI });
@@ -1138,6 +1172,7 @@ export function startMarket(root, opts = {}) {
     if (k === 'shift') keys.add('run');
     if (mode === 'walk' && k === 'escape') inter?.close();
     if (mode === 'walk' && (k === 'enter' || k === 'f') && avatar.holding) standUp();
+    else if (mode === 'walk' && (k === 'enter' || k === 'f') && nearCushion) kneelHere(nearCushion);
     else if (mode === 'walk' && (k === 'enter' || k === 'f') && near) enterRoom(near);
     else if (mode === 'walk' && (k === 'enter' || k === 'f') && nearPool && !pool?.isOpen) openPool();
     else if (mode === 'walk' && (k === 'enter' || k === 'f') && nearBurner && !wardrobe) offerIncense();

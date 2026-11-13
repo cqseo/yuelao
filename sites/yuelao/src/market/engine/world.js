@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createMaterials, roofGeometry } from './mats.js';
+import { createShrine } from './shrine.js';
 import { canvasTex, glow, rand, textPlane } from './util.js';
 
 // 月下集市：山門外 → 牌樓 → 圓形廣場。廣場正中是許願池（池心一棵許願樹），正北是
@@ -51,7 +52,7 @@ export function createWorld(renderer, lowQuality) {
   const _pq = new THREE.Quaternion();
   const _pe = new THREE.Euler();
   const _ps = new THREE.Vector3();
-  scene.fog = new THREE.FogExp2(0x090a14, 0.02); // 霧壓暗遠景，讓廣場邊緣融進夜色
+  scene.fog = new THREE.FogExp2(0x090a14, 0.012); // 薄霧讓遠景退後一點；別壓太重，手機上會糊
   const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 500);
   camera.rotation.order = 'YXZ';
   const mat = createMaterials();
@@ -185,6 +186,7 @@ export function createWorld(renderer, lowQuality) {
 
   // ---------- real reflections in the wet stone (desktop only: one extra half-size render per frame) ----------
   const reflRes = { value: new THREE.Vector2(1, 1) };
+  const wetU = { value: 1 }; // 地面濕的程度：夜裡下過雨，白天曬乾
   let reflRT = null;
   const reflCam = new THREE.PerspectiveCamera();
   if (!lowQuality) {
@@ -192,15 +194,16 @@ export function createWorld(renderer, lowQuality) {
     mat.ground.onBeforeCompile = (sh) => {
       sh.uniforms.tRefl = { value: reflRT.texture };
       sh.uniforms.uRes = reflRes;
+      sh.uniforms.uWet = wetU;
       sh.fragmentShader =
-        'uniform sampler2D tRefl; uniform vec2 uRes;\n' +
+        'uniform sampler2D tRefl; uniform vec2 uRes; uniform float uWet;\n' +
         sh.fragmentShader.replace(
           '#include <opaque_fragment>',
           `{
             vec2 ruv = gl_FragCoord.xy / uRes; ruv.y = 1.0 - ruv.y; ruv += normal.xy * 0.03;
             float wetK = smoothstep(0.8, 0.22, roughnessFactor);
             float fres = 0.1 + 0.9 * pow(1.0 - clamp(dot(normal, geometryViewDir), 0.0, 1.0), 2.2);
-            outgoingLight += texture2D(tRefl, clamp(ruv, 0.002, 0.998)).rgb * wetK * fres;
+            outgoingLight += texture2D(tRefl, clamp(ruv, 0.002, 0.998)).rgb * wetK * fres * uWet;
           }
           #include <opaque_fragment>`,
         );
@@ -486,9 +489,28 @@ export function createWorld(renderer, lowQuality) {
     { x: 23, z: 0, sign: '算命攤', banner: '籌備中', room: 'bazi', floors: 2, lit: false },
     { x: 19, z: 13, sign: '茶館', banner: '清茶細點' },
   ];
+  let shrine = null; // 可以直接走進去的月老殿
   for (const s of ring) {
     const r = s.room ? room[s.room] : null;
     const len = Math.hypot(s.x, s.z);
+    if (s.room === 'yuelao') {
+      // 月老殿改成開敞的殿：走進去就到神前，不用進門轉場（參考心安宮）
+      shrine = createShrine({ scene, mat, x: s.x, z: s.z, rot: Math.atan2(-s.x, -s.z), shadow, warm });
+      shrine.pick.traverse((o) => {
+        o.userData.room = 'yuelao';
+      });
+      Object.assign(r, {
+        inside: true,
+        stand: shrine.stand,
+        entry: shrine.entry,
+        door: shrine.door,
+        label: shrine.label,
+        doorMesh: shrine.pick,
+        fx: shrine.fx,
+        fz: shrine.fz,
+      });
+      continue;
+    }
     const res = house({
       ...s,
       rot: Math.atan2(-s.x, -s.z),
@@ -974,6 +996,7 @@ export function createWorld(renderer, lowQuality) {
   ];
   const blocks = [[-14, 14, -60, HALL_Z + 4.6]]; // 大殿石台與台階
   function walkable(x, z) {
+    if (shrine?.inside(x, z)) return !shrine.blocked(x, z);
     const inPlaza = x * x + z * z < PLAZA_R * PLAZA_R;
     if (!inPlaza && !rects.some(([a, b, c, d]) => x >= a && x <= b && z >= c && z <= d)) return false;
     if (circles.some(([cx, cz, r]) => (x - cx) ** 2 + (z - cz) ** 2 < r * r)) return false;
@@ -988,9 +1011,9 @@ export function createWorld(renderer, lowQuality) {
     keyNight: hex3(0x9fb2ff),
     keyDay: hex3(0xfff0d8),
     keyDusk: hex3(0xffa864),
-    hemiSkyNight: hex3(0x5a68a8),
+    hemiSkyNight: hex3(0x7482c0),
     hemiSkyDay: hex3(0xc4dcff),
-    hemiGroundNight: hex3(0x1c100a),
+    hemiGroundNight: hex3(0x2c2018),
     hemiGroundDay: hex3(0x8f8272),
     fogNight: hex3(0x090a14),
     fogDay: hex3(0xbfd2e8),
@@ -1006,7 +1029,8 @@ export function createWorld(renderer, lowQuality) {
     const day = smooth(5.3, 7.3, h) * (1 - smooth(17.3, 19.3, h));
     const dusk = Math.exp(-(((h - 6.3) / 0.9) ** 2)) + Math.exp(-(((h - 18.3) / 0.9) ** 2));
     const night = 1 - day;
-    Object.assign(state, { hour: h, day, dusk, exposure: 1.05 - day * 0.2, bloom: 0.42 - day * 0.26 });
+    // 2026-11-13 改得清楚一點：夜裡也要看得清人和房子；白天乾淨明亮、泛光很淡
+    Object.assign(state, { hour: h, day, dusk, exposure: 1.15 - day * 0.17, bloom: 0.3 - day * 0.22 });
     // 太陽 6 時東升、18 時西落；月亮反過來。兩者都略偏北，影子才不會正對著人。
     const a = ((h - 6) / 12) * Math.PI;
     sunDir.set(Math.cos(a) * 0.85, Math.sin(a), -0.38).normalize();
@@ -1022,16 +1046,19 @@ export function createWorld(renderer, lowQuality) {
       .copy(SKY.keyNight)
       .lerp(SKY.keyDay, day)
       .lerp(SKY.keyDusk, Math.min(1, dusk) * 0.6);
-    moon.intensity = 1.25 + day * 2.1 - Math.min(1, dusk) * 0.6 * day;
+    moon.intensity = 1.7 + day * 1.9 - Math.min(1, dusk) * 0.6 * day;
     hemi.color.copy(SKY.hemiSkyNight).lerp(SKY.hemiSkyDay, day);
     hemi.groundColor.copy(SKY.hemiGroundNight).lerp(SKY.hemiGroundDay, day);
-    hemi.intensity = 0.55 + day * 1.15;
+    hemi.intensity = 1.0 + day * 0.95;
     scene.fog.color
       .copy(SKY.fogNight)
       .lerp(SKY.fogDay, day)
       .lerp(SKY.fogDusk, Math.min(1, dusk) * 0.45);
-    scene.fog.density = 0.02 - day * 0.011;
-    scene.environmentIntensity = 0.55 + day * 0.35;
+    scene.fog.density = 0.012 - day * 0.0095;
+    // 白天地面曬乾：倒影只留在夜裡
+    wetU.value = night;
+    mat.ground.roughness = 1 + day * 1.2;
+    scene.environmentIntensity = 0.7 + day * 0.3;
     // 燈火：夜裡全亮，白天只留一點
     const lamp = 0.12 + night * 0.88;
     for (const l of warmLights) l.intensity = l.userData.base * lamp;
@@ -1065,7 +1092,8 @@ export function createWorld(renderer, lowQuality) {
     },
     /** Render the mirrored view the wet ground samples. Call once per frame before the main render. */
     reflect(cam) {
-      if (!reflRT) return;
+      if (!reflRT || wetU.value < 0.05) return; // 白天地是乾的，省掉這一遍
+
       renderer.getDrawingBufferSize(reflRes.value);
       reflCam.copy(cam, false);
       reflCam.position.y = -cam.position.y;
@@ -1081,6 +1109,8 @@ export function createWorld(renderer, lowQuality) {
       ground.visible = true;
       renderer.shadowMap.autoUpdate = auto;
     },
+    /** 走得進去的月老殿（蒲團位置等）。 */
+    shrine,
     /** 殿前銅爐的位置與可上香的距離。 */
     burner: { x: 0, z: -18.5, r: 3.6 },
     /** 上香：銅爐裡插上三炷新香（香頭發紅），升起一陣煙。新香燒一分鐘後收走，最多留 9 炷。 */
@@ -1145,6 +1175,7 @@ export function createWorld(renderer, lowQuality) {
     sky: state,
     setHour,
     update(dt, t, pos) {
+      shrine?.update(dt);
       sky.material.uniforms.uT.value = t;
       sky.position.copy(pos);
       if (!lowQuality) {
