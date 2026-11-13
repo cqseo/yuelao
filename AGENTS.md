@@ -45,6 +45,8 @@ pnpm lint                                # 改工具或配置後
 
 - 預覽：站點目錄裡 `pnpm deploy:preview`（`wrangler versions upload`），不動生產。
 - **生產部署只從 main、一次一個站、需要用戶明確確認。**
+- **合併進 main 就是上生產**：Cloudflare Workers Builds 監看 main，自動在 `sites/yuelao` 跑 `pnpm run build` 再 `npx wrangler deploy --env=""`（2026-11-13 設定）。所以「合併 PR 到 main」本身就需要用戶明確確認；部署結果看 PR／提交上的「Workers Builds: yuelao」檢查。
+- 預覽版本：這個 Worker 有 Durable Object，Cloudflare 不給預覽網址；要看建置結果，在本機 `vite build` 後 `vite preview` 打開看。
 - 遠程遷移（`supabase db push`）、建雲資源、配支付/密鑰，都需要用戶明確確認。
 
 ## 6. 儀式體驗鐵律（從原型繼承，一個字別改）
