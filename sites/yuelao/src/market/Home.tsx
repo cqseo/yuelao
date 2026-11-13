@@ -45,6 +45,12 @@ const ROOMS = [
     desc: () => m.home_market_room_hall_desc(),
     hash: 'hall',
   },
+  {
+    img: '/market/wish.jpg',
+    name: () => m.home_market_room_wish(),
+    desc: () => m.home_market_room_wish_desc(),
+    hash: 'wish',
+  },
 ];
 
 const STEPS = [
