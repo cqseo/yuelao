@@ -1,46 +1,27 @@
 import * as THREE from 'three';
-import { drawThree, flowLine, LENORMAND, POSITION_DESC, POSITIONS, TONE_WORD } from '../../ritual/lenormand';
+import { drawThree, flowLine, POSITION_DESC, POSITIONS, TONE_WORD } from '../../ritual/lenormand';
+import { drawTarot, TAROT_POSITION_DESC, TAROT_POSITIONS } from '../../ritual/tarot';
 import { createNpc } from './npc.js';
 import { audio, canvasTex, ease, FONT, glow, lerp, rand, tween, wait } from './util.js';
 import { SITS } from './yuelao.js';
 
-// 牌：雷諾曼 36 張（牌義見 ritual/lenormand.ts）。牌面是單色墨線圖示 + 編號 + 撲克角標。
+// 兩副真牌（公有領域掃描，見 DESIGN.md）：
+//   塔羅：偉特 1909 初版（Roses & Lilies 版）78 張 → /market/cards/rws/{img}.webp
+//   雷諾曼：Hechtel《Das Spiel der Hofnung》1799 年 36 張 → /market/cards/lnm/{nn}.webp
 const INK = '#231a4a';
-const GOLD = '#b8893a';
-const ICON = {
-  1: '🏇',
-  2: '☘️',
-  3: '⛵',
-  4: '🏠',
-  5: '🌳',
-  6: '☁️',
-  7: '🐍',
-  8: '⚰️',
-  9: '💐',
-  12: '🐦',
-  13: '🧒',
-  14: '🦊',
-  15: '🐻',
-  16: '⭐',
-  17: '🦩',
-  18: '🐕',
-  19: '🗼',
-  20: '🌷',
-  21: '⛰️',
-  23: '🐭',
-  24: '❤️',
-  25: '💍',
-  26: '📖',
-  27: '✉️',
-  28: '👨',
-  29: '👩',
-  30: '🪷',
-  31: '☀️',
-  32: '🌙',
-  33: '🗝️',
-  34: '🐟',
-  35: '⚓',
-  36: '✝️',
+const DECKS = {
+  tarot: {
+    name: '塔羅',
+    count: 78,
+    aspect: 0.569,
+    desc: '78 張偉特塔羅（1909 初版牌面），看過去、現在、未來，有正逆位。',
+  },
+  lnm: {
+    name: '雷諾曼',
+    count: 36,
+    aspect: 0.754,
+    desc: '36 張雷諾曼（1799 年原版牌面），牌義固定，意思在三張的組合和順序裡。',
+  },
 };
 const Q_MAX = 100;
 const esc = (s) =>
@@ -49,85 +30,40 @@ const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 };
+const imgUrl = (deck, d) =>
+  deck === 'lnm'
+    ? `/market/cards/lnm/${String(d.n).padStart(2, '0')}.webp`
+    : `/market/cards/rws/${d.card.img}.webp`;
 
-// 沒有合適 emoji 的三張自己畫線
-function drawLine(g, n, r) {
-  g.strokeStyle = INK;
-  g.lineCap = 'round';
-  g.lineWidth = r * 0.09;
-  g.beginPath();
-  if (n === 10) {
-    // 鐮刀
-    g.moveTo(-r * 0.15, r * 0.8);
-    g.lineTo(r * 0.25, -r * 0.55);
-    g.stroke();
-    g.beginPath();
-    g.arc(-r * 0.1, -r * 0.45, r * 0.55, -0.15, -Math.PI + 0.2, true);
-  } else if (n === 11) {
-    // 鞭子：一支柄加一條甩開的鞭繩
-    g.moveTo(-r * 0.6, r * 0.75);
-    g.lineTo(-r * 0.2, r * 0.1);
-    g.stroke();
-    g.lineWidth = r * 0.05;
-    g.beginPath();
-    g.moveTo(-r * 0.2, r * 0.1);
-    g.bezierCurveTo(r * 0.3, -r * 0.6, r * 0.9, r * 0.1, r * 0.4, -r * 0.75);
-  } else {
-    // 岔路
-    g.moveTo(0, r * 0.85);
-    g.lineTo(0, r * 0.05);
-    g.lineTo(-r * 0.55, -r * 0.75);
-    g.moveTo(0, r * 0.05);
-    g.lineTo(r * 0.55, -r * 0.75);
-  }
-  g.stroke();
-}
-
-function faceTex(card) {
-  return canvasTex(320, 544, (g, w, h) => {
-    g.fillStyle = '#f1e7d0';
-    g.fillRect(0, 0, w, h);
-    g.strokeStyle = INK;
-    g.lineWidth = 5;
-    g.strokeRect(14, 14, w - 28, h - 28);
-    g.strokeStyle = GOLD;
-    g.lineWidth = 2;
-    g.strokeRect(24, 24, w - 48, h - 48);
-    g.fillStyle = INK;
-    g.textAlign = 'center';
-    g.font = `500 36px Georgia, "Times New Roman", serif`;
-    g.fillText(String(card.n), w / 2, 78);
-    const red = /[♥♦]/.test(card.suit);
-    g.font = `600 26px Georgia, serif`;
-    g.textAlign = 'left';
-    g.fillStyle = red ? '#9a2b2b' : INK;
-    g.fillText(card.suit.slice(1) + card.suit[0], 38, 66);
-    g.textAlign = 'center';
-    // 圖示：先畫在小畫布上，再整片染成墨色，讓每張牌風格一致
-    const icon = document.createElement('canvas');
-    icon.width = icon.height = 240;
-    const ig = icon.getContext('2d');
-    ig.translate(120, 120);
-    if (ICON[card.n]) {
-      ig.textAlign = 'center';
-      ig.textBaseline = 'middle';
-      ig.font = '150px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
-      ig.fillText(ICON[card.n], 0, 8);
-      ig.setTransform(1, 0, 0, 1, 0, 0);
-      ig.globalCompositeOperation = 'source-in';
-      ig.fillStyle = INK;
-      ig.fillRect(0, 0, 240, 240);
-    } else drawLine(ig, card.n, 100);
-    g.strokeStyle = GOLD;
-    g.lineWidth = 2;
-    g.beginPath();
-    g.arc(w / 2, h / 2 - 14, 118, 0, 6.283);
-    g.stroke();
-    g.drawImage(icon, w / 2 - 105, h / 2 - 119, 210, 210);
-    g.fillStyle = INK;
-    g.font = `900 50px ${FONT}`;
-    g.fillText(card.name, w / 2, h - 62);
+const loader = new THREE.TextureLoader();
+const texCache = new Map();
+/** 先載好要翻的那三張；載不到就用一張寫著牌名的素牌頂上。 */
+function loadFace(url, name) {
+  if (texCache.has(url)) return texCache.get(url);
+  const p = new Promise((done) => {
+    loader.load(
+      url,
+      (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 8;
+        done(t);
+      },
+      undefined,
+      () =>
+        done(
+          canvasTex(320, 544, (g, w, h) => {
+            g.fillStyle = '#efe4c8';
+            g.fillRect(0, 0, w, h);
+            g.fillStyle = INK;
+            g.textAlign = 'center';
+            g.font = `900 50px ${FONT}`;
+            g.fillText(name, w / 2, h / 2);
+          }),
+        ),
+    );
   });
+  texCache.set(url, p);
+  return p;
 }
 
 function backTex() {
@@ -307,17 +243,23 @@ export function createTarot(ui) {
   const back = new THREE.MeshStandardMaterial({ map: backTex(), roughness: 0.6 });
   const blank = new THREE.MeshStandardMaterial({ color: 0xf1e7d0, roughness: 0.7 });
   const DECK = new THREE.Vector3(-1.15, TOP, 0.35);
-  const cards = LENORMAND.map((_, i) => {
+  const all = Array.from({ length: 78 }, (_, i) => {
     // +y is the back (deck lies face down), -y is the face
     const m = new THREE.Mesh(cardGeo, [edge, edge, back, blank, edge, edge]);
     m.userData.i = i;
     scene.add(m);
     return m;
   });
+  let deck = 'tarot';
+  try {
+    deck = sessionStorage.getItem('yuelao:deck') === 'lnm' ? 'lnm' : 'tarot';
+  } catch {}
+  let cards = all;
 
   let state = 'idle';
   const N = 3;
   let drawn = [];
+  let faces = [];
   let question = '';
   let sit = 'single';
   try {
@@ -329,6 +271,13 @@ export function createTarot(ui) {
   let hover = null;
 
   function stack() {
+    const D = DECKS[deck];
+    cards = all.slice(0, D.count);
+    const sz = CW / D.aspect / CH; // 兩副牌寬一樣，長度照原牌比例
+    all.forEach((c, k) => {
+      c.visible = k < D.count;
+      c.scale.set(1, 1, sz);
+    });
     cards.forEach((c, k) => {
       c.position.set(DECK.x, DECK.y + 0.004 + k * 0.0034, DECK.z);
       c.rotation.set(0, 0.25, 0);
@@ -361,7 +310,13 @@ export function createTarot(ui) {
     const render = (note = '') => {
       ui.panel(
         `<h2>你想問什麼</h2>
-         <p class="note small">寫下那件事，從牌堆裡選三張。這副是雷諾曼牌：三十六張，意思在三張的組合和順序裡。</p>
+         <div class="chips decks">${Object.entries(DECKS)
+           .map(
+             ([k, d]) =>
+               `<button type="button" data-a="deck:${k}" class="${k === deck ? 'on' : ''}"><b>${d.name}</b><small>${d.count} 張</small></button>`,
+           )
+           .join('')}</div>
+         <p class="note small">${DECKS[deck].desc}</p>
          <label class="ask-q"><textarea id="ask-q" maxlength="${Q_MAX}" rows="3" placeholder="例：他最近忽冷忽熱，這段關係會怎麼走">${esc(question)}</textarea>
            <span class="ask-meta"><span>一件具體的事，說清楚一點</span><span id="ask-n">${[...question].length}/${Q_MAX}</span></span></label>
          <p class="kicker">你現在的情況</p>
@@ -373,6 +328,14 @@ export function createTarot(ui) {
          <button class="seal" data-a="go">抽牌</button>
          <p class="note small">同一天問同一件事，抽到的永遠是同一組牌。</p>`,
         (a) => {
+          if (a.startsWith('deck:')) {
+            deck = a.slice(5) === 'lnm' ? 'lnm' : 'tarot';
+            try {
+              sessionStorage.setItem('yuelao:deck', deck);
+            } catch {}
+            stack();
+            return render();
+          }
           if (a.startsWith('sit:')) {
             sit = a.slice(4);
             try {
@@ -384,7 +347,12 @@ export function createTarot(ui) {
             const q = question.replace(/\s+/g, ' ').trim();
             if ([...q].length < 2) return render('先寫下想問的事，一句話就好。');
             question = q;
-            drawn = drawThree(q, sit, today());
+            drawn =
+              deck === 'lnm'
+                ? drawThree(q, sit, today()).map((c) => ({ ...c, card: c }))
+                : drawTarot(q, sit, today());
+            // 洗牌的這幾秒先把三張牌面載好
+            faces = drawn.map((d) => loadFace(imgUrl(deck, d), d.card.name));
             shuffle();
           }
         },
@@ -461,7 +429,7 @@ export function createTarot(ui) {
 
   function slot(k) {
     const n = N;
-    return new THREE.Vector3((k - (n - 1) / 2) * 0.46, TOP + 0.01, 0.2);
+    return new THREE.Vector3((k - (n - 1) / 2) * 0.5, TOP + 0.01, 0.2);
   }
 
   async function choose(c) {
@@ -481,6 +449,9 @@ export function createTarot(ui) {
         c.position.lerpVectors(from, to, t);
         c.position.y = lerp(from.y, to.y, t) + Math.sin(t * Math.PI) * 0.22;
         c.rotation.y = lerp(ry, 0, t);
+        const sc = lerp(1, 1.5, t); // 選出來的牌放大，好看清原畫
+        c.scale.x = sc;
+        c.scale.z = sc * (CW / DECKS[deck].aspect / CH);
       },
       ease.out,
     );
@@ -513,13 +484,16 @@ export function createTarot(ui) {
     if (state !== 'flip' || flipped >= chosen.length) return;
     const k = flipped++;
     const c = chosen[k];
-    const face = new THREE.MeshStandardMaterial({ map: faceTex(c.userData.card), roughness: 0.65 });
+    const d = c.userData.card;
+    const tex = await faces[k];
+    const face = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.72 });
     c.material = [edge, edge, back, face, edge, edge];
     audio.tick(1900, 0.2, 0.09);
-    say(`${POSITIONS[k]}，${c.userData.card.name}。`);
+    const pos = deck === 'lnm' ? POSITIONS : TAROT_POSITIONS;
+    say(`${pos[k]}，${d.card.name}${deck === 'tarot' ? (d.rev ? '，逆位' : '，正位') : ''}。`);
     const y0 = c.position.y;
     // face texture is drawn upright for a viewer at +z once the card is turned over about its long axis
-    const endY = Math.PI;
+    const endY = d.rev ? 0 : Math.PI;
     await tween(
       0.7,
       (t) => {
@@ -542,22 +516,43 @@ export function createTarot(ui) {
     state = 'reading';
     say('三張連起來看。牌給的是方向，路還是你自己走。');
     ui.hint('');
-    const [a, b, c] = drawn;
-    ui.panel(
-      `<div class="reading lnm">
-        <p class="asked">問．${esc(question)}<span>${sitWord()}</span></p>
-        ${drawn
-          .map(
-            (d, k) => `<article><p class="kicker">${POSITIONS[k]}．${POSITION_DESC[k]}</p>
-              <h3><i>${d.n}</i>${d.name}<small class="t-${d.tone}">${TONE_WORD[d.tone]}</small></h3>
-              <p class="kws">${d.kw.map((w) => `<span>${w}</span>`).join('')}</p>
-              <p><b>在這裡：</b>${d.pos[k]}</p>
-              <p class="dim">感情裡，${d.love}</p></article>`,
-          )
-          .join('')}
+    const thumbs = `<div class="spread">${drawn
+      .map(
+        (d) =>
+          `<figure class="${deck}${d.rev ? ' rev' : ''}"><img src="${imgUrl(deck, d)}" alt="${d.card.name}" loading="lazy"></figure>`,
+      )
+      .join('')}</div>`;
+    let body;
+    if (deck === 'lnm') {
+      const [a, b, c] = drawn;
+      body = `${drawn
+        .map(
+          (d, k) => `<article><p class="kicker">${POSITIONS[k]}．${POSITION_DESC[k]}</p>
+            <h3><i>${d.n}</i>${d.name}<small class="t-${d.tone}">${TONE_WORD[d.tone]}</small></h3>
+            <p class="kws">${d.kw.map((w) => `<span>${w}</span>`).join('')}</p>
+            <p><b>在這裡：</b>${d.pos[k]}</p>
+            <p class="dim">感情裡，${d.love}</p></article>`,
+        )
+        .join('')}
         <article class="flow"><p class="kicker">三張連起來</p><p>${flowLine(a, b, c)}</p>
           <p class="dim">時間感：${c.name}，${c.pace}。</p></article>
-        <p class="note small">雷諾曼的牌義是固定的，順序一換意思就變。同一天問同一件事，抽到的永遠是這一組。牌義屬文化體驗與自我認知參考，不代表現實預測。</p>
+        <p class="note small">雷諾曼的牌義是固定的，順序一換意思就變。同一天問同一件事，抽到的永遠是這一組。牌面為 1799 年《希望遊戲》原版。牌義屬文化體驗與自我認知參考，不代表現實預測。</p>`;
+    } else {
+      body = `${drawn
+        .map(
+          (d, k) => `<article><p class="kicker">${TAROT_POSITIONS[k]}．${TAROT_POSITION_DESC[k]}</p>
+            <h3>${d.card.name}<small class="${d.rev ? 't-hard' : 't-good'}">${d.rev ? '逆位' : '正位'}</small></h3>
+            <p class="kws">${d.card.kw.map((w) => `<span>${w}</span>`).join('')}</p>
+            <p>${d.rev ? d.card.rev : d.card.up}</p></article>`,
+        )
+        .join('')}
+        <p class="note small">同一天問同一件事，抽到的永遠是這一組。牌面為 1909 年偉特塔羅初版。牌義屬文化體驗與自我認知參考，不代表現實預測。</p>`;
+    }
+    ui.panel(
+      `<div class="reading lnm">
+        <p class="asked">問．${esc(question)}<span>${sitWord()}．${DECKS[deck].name}</span></p>
+        ${thumbs}
+        ${body}
        </div>
        <div class="card-actions"><button class="seal" data-a="again">換一件事問</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (x) => {

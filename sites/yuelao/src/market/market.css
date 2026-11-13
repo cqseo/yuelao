@@ -1591,3 +1591,34 @@
 .mk .reading.lnm .flow p:not(.kicker):first-of-type {
   color: var(--paper);
 }
+/* 塔羅館：選牌組、結果頂部三張原牌縮圖 */
+.mk .chips.decks button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+.mk .chips.decks button small {
+  font-size: 0.7rem;
+  opacity: 0.65;
+}
+.mk .reading .spread {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin: 0 0 1.1rem;
+}
+.mk .reading .spread figure {
+  margin: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  background: #e9dfc7;
+}
+.mk .reading .spread img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.mk .reading .spread figure.rev img {
+  transform: rotate(180deg);
+}

@@ -1,0 +1,7 @@
+Card images (public domain)
+
+rws/  Rider-Waite-Smith tarot, first edition (1909), art by Pamela Colman Smith.
+      300x527 WebP scans via github.com/TaroSchenker/tarot-card-data (images marked public domain).
+lnm/  Johann Kaspar Hechtel, "Das Spiel der Hofnung" (The Game of Hope), 1799 - the original Lenormand.
+      Wikimedia Commons: File:Das_Spiel_der_Hofnung_(The_Game_of_Hope).png (public domain);
+      per-card crops via github.com/KevinGuo1007/lenormand-json, resized to 420px WebP.
