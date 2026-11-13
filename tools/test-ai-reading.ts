@@ -7,6 +7,7 @@ import {
   parseGenerationInput,
   relayBaseUrl,
 } from '../packages/core/src/ai-reading';
+import { testCheckoutAllowed } from '../packages/core/src/billing/allowlist';
 
 const report = [
   '籤詩意象：這支籤的象徵，是把不確定感轉化成具體的溝通問題，不是對未來的保證。',
@@ -273,3 +274,10 @@ const failed = await generatePaidReading({
 assert.equal(failed.status, 503);
 assert.equal(failCount, 1);
 console.log('PASS: failed provider request releases generation claim for retry');
+
+assert.equal(testCheckoutAllowed(undefined, 'a@b.co'), false);
+assert.equal(testCheckoutAllowed('', 'a@b.co'), false);
+assert.equal(testCheckoutAllowed(' Owner@QQ.com , other@x.io', 'owner@qq.com'), true);
+assert.equal(testCheckoutAllowed('owner@qq.com', 'stranger@qq.com'), false);
+assert.equal(testCheckoutAllowed('owner@qq.com', undefined), false);
+console.log('PASS: test checkout is limited to allowlisted emails and fails closed');

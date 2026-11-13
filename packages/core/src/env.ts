@@ -17,6 +17,8 @@ export interface CoreEnv {
   STRIPE_WEBHOOK_SECRET?: string;
   /** Test checkouts are disabled unless explicitly set to "true". */
   BILLING_ENABLE_TEST_CHECKOUT?: string;
+  /** 測試結帳只開給這些信箱（逗號分隔）；沒設就誰都不開。 */
+  BILLING_TEST_ALLOWED_EMAILS?: string;
   /** AI delivery is disabled until staging review and explicit opt-in. */
   AI_ENABLE_TEST_GENERATION?: string;
   /** Secret: configured only in Worker secrets, never public code. */

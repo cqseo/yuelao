@@ -36,9 +36,14 @@
     // 正式 Supabase 專案 yuelao。anon key 是公開金鑰（RLS 照常生效）；service_role 只放 wrangler secret。
     "SUPABASE_URL": "https://ichsqdfrwymlizqgxnqw.supabase.co",
     "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljaHNxZGZyd3ltbGl6cWd4bnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4ODMyNjYsImV4cCI6MjEwOTQ1OTI2Nn0.nmuGBobYejLEzjlODojRBLngScHbTI1iYlyHiAVQRGA",
-    // Test-only Stripe Checkout; NEVER enable with live keys.
-    "BILLING_ENABLE_TEST_CHECKOUT": "false",
-    "AI_ENABLE_TEST_GENERATION": "false",
+    // Test-only Stripe Checkout; NEVER enable with live keys. 程式也會拒絕正式金鑰（sk_live）。
+    "BILLING_ENABLE_TEST_CHECKOUT": "true",
+    // 測試卡號是公開的，測試結帳只開給這些信箱（逗號分隔）；其他人看到「尚未開放」。
+    "BILLING_TEST_ALLOWED_EMAILS": "1054935976@qq.com",
+    "AI_ENABLE_TEST_GENERATION": "true",
+    // 付費深度解讀走 OpenAI 相容中轉站（chat/completions）；金鑰 OPENAI_API_KEY 只放 wrangler secret。
+    "OPENAI_BASE_URL": "https://api.sqface.sbs/v1",
+    "OPENAI_MODEL": "deepseek-v4.1-flash",
     "AI_CHAT_ENABLED": "false",
     // 許願池：使用者寫的字公開可見。wishing_pool 遷移已於 2026-11-12 套用到 Supabase。
     "WISHES_ENABLED": "true",

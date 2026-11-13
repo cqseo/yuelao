@@ -4,6 +4,7 @@ import { aiGenerationEnabled, generatePaidReadingRequest } from './ai-reading';
 import { getUserFromRequest, type SessionUser } from './auth';
 import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCode } from './auth-handlers';
 import { sameOriginPost } from './auth-session';
+import { testCheckoutAllowed } from './billing/allowlist';
 import { createTestCheckout } from './billing/checkout';
 import { settleStripeWebhook } from './billing/settle';
 import { isStripeTestApiKey, StripeProvider } from './billing/stripe';
@@ -130,6 +131,10 @@ export function createCore(site: SiteConfig) {
         if (deliveryError || deliveryReady !== true) return errorResponse(503, 'delivery_schema_unavailable');
         const user = await getUserFromRequest(request, ctx.env);
         if (!user) return errorResponse(401, 'login_required');
+        // 測試卡號是公開的：只讓白名單上的帳號走測試結帳，其他人看到的跟「沒開賣」一樣。
+        if (!testCheckoutAllowed(ctx.env.BILLING_TEST_ALLOWED_EMAILS, user.email)) {
+          return errorResponse(503, 'checkout_disabled');
+        }
         const provider = new StripeProvider({
           secretKey: ctx.env.STRIPE_SECRET_KEY,
           webhookSecret: ctx.env.STRIPE_WEBHOOK_SECRET,
