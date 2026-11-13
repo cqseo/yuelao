@@ -504,8 +504,7 @@ export function createWorld(renderer, lowQuality) {
         shadow,
         warm,
         screen: '/market/screen-yuelao.webp',
-        model: '/market/yuelao.glb',
-      });
+        });
       shrine.pick.traverse((o) => {
         o.userData.room = 'yuelao';
       });
@@ -799,11 +798,10 @@ export function createWorld(renderer, lowQuality) {
       inner: ['月下老人', '天作之合'],
       apron: '心誠則靈',
       gold: true,
-      statueScale: 1.45,
+      statueScale: 1.2,
       rack: false,
       tube: false,
       screen: '/market/screen-hall.webp',
-      model: '/market/yuelao-gold.glb',
     });
     Object.assign(room.hall, {
       inside: true,

@@ -481,7 +481,15 @@ export function createShrine(o) {
       m.position.set(-c.x * k, -bb.min.y * k, -c.z * k);
       m.traverse((n) => {
         n.userData.room = god.userData.room;
-        if (n.isMesh) n.castShadow = true;
+        if (!n.isMesh) return;
+        n.castShadow = true;
+        // 大殿的是鎏金像：同一個模型，表面改成金屬金（保留原本的貼圖明暗）
+        if (o.gold && n.material) {
+          n.material = n.material.clone();
+          n.material.color = new THREE.Color(0xffcf6a);
+          n.material.metalness = 0.75;
+          n.material.roughness = 0.35;
+        }
       });
       while (god.children.length) god.remove(god.children[0]);
       god.add(m);
