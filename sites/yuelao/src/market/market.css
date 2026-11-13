@@ -1538,3 +1538,56 @@
 .mk .unlock .offer:hover {
   background: linear-gradient(#efd58a, #d2ad55);
 }
+/* 塔羅館（雷諾曼三張）：問的事、關鍵詞、吉凶傾向 */
+.mk .reading.lnm .asked {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border-left: 2px solid var(--gold);
+  background: rgba(220, 187, 124, 0.07);
+  color: var(--paper);
+  line-height: 1.6;
+}
+.mk .reading.lnm .asked span {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: var(--paper-50);
+}
+.mk .reading.lnm h3 i {
+  margin-right: 0.5rem;
+  font-style: normal;
+  font-family: Georgia, serif;
+  font-size: 0.9rem;
+  color: var(--gold);
+}
+.mk .reading.lnm h3 small.t-good {
+  color: #e7c27c;
+}
+.mk .reading.lnm h3 small.t-hard {
+  color: #d88a7c;
+}
+.mk .reading.lnm p.kws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+}
+.mk .reading.lnm .kws span {
+  padding: 0.05rem 0.55rem;
+  border: 1px solid rgba(239, 229, 207, 0.2);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+.mk .reading.lnm p b {
+  color: var(--paper);
+  font-weight: 600;
+}
+.mk .reading.lnm p.dim {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--paper-50);
+}
+.mk .reading.lnm .flow p:not(.kicker):first-of-type {
+  color: var(--paper);
+}

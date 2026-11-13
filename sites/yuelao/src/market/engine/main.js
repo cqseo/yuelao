@@ -53,6 +53,7 @@ export function startMarket(root, opts = {}) {
   const ui = {
     panel(html, handler, scroll) {
       panel.innerHTML = html;
+      panel.scrollTop = 0; // 換內容就從頭看，不沿用上一個面板的捲動位置
       panel.classList.toggle('show', !!html);
       panel.classList.toggle('scroll', !!scroll);
       if (handler) bind(panel, handler);

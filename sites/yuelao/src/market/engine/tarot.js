@@ -1,178 +1,89 @@
 import * as THREE from 'three';
+import { drawThree, flowLine, LENORMAND, POSITION_DESC, POSITIONS, TONE_WORD } from '../../ritual/lenormand';
 import { createNpc } from './npc.js';
 import { audio, canvasTex, ease, FONT, glow, lerp, rand, tween, wait } from './util.js';
+import { SITS } from './yuelao.js';
 
-// 22 張大阿卡納。牌義是為感情問題寫的短解，樣片用，正式版需懂行的人審。
-const CARDS = [
-  ['愚者', '放下顧慮，先走出第一步；新的緣分從輕鬆的心開始。', '衝動多過準備，先想清楚自己要什麼，再往前。'],
-  [
-    '魔術師',
-    '你手上的條件已經夠了，主動開口，事情會動起來。',
-    '話說得漂亮但心意不足，留意是否有人只在表演。',
-  ],
-  [
-    '女祭司',
-    '答案在你心裡，安靜下來聽直覺；先觀察，不急著表態。',
-    '你把感受藏得太深，對方猜不到；也別忽略已經看見的訊號。',
-  ],
-  ['皇后', '被好好照顧、也願意付出的時期，關係有溫度地成長。', '付出過頭或過度依賴，先把自己照顧好。'],
-  ['皇帝', '需要穩定與承諾，把話講明、把界線立好。', '控制多過關心，僵持不下時先鬆手一步。'],
-  ['教皇', '走向正式、被祝福的關係；聽一聽信得過的人的意見。', '別人的規矩不一定適合你們，照自己的步調。'],
-  [
-    '戀人',
-    '心意相通，是一個要用心做的選擇；選了就全心投入。',
-    '在兩個選項間搖擺，或價值觀不合，先對自己誠實。',
-  ],
-  ['戰車', '目標明確就往前衝，行動會帶來進展。', '方向不一致、用力過猛，先確認兩人是否同路。'],
-  ['力量', '用溫柔而不是硬碰，耐心會讓對方靠近。', '信心不足或情緒壓不住，先安撫自己。'],
-  ['隱者', '適合獨處整理，想清楚再回到關係裡。', '把自己關太久了，該走出來讓人靠近。'],
-  ['命運之輪', '轉機出現，時機站在你這邊，順勢而為。', '時機未到，硬推不動；等這一輪轉過去。'],
-  ['正義', '付出多少得到多少，把話說公平、說清楚。', '關係失衡，有人不願面對責任。'],
-  ['倒吊人', '換個角度看，暫停不是失去；現在等比追有用。', '為不值得的事犧牲太久，該放下了。'],
-  ['死神', '一個階段真正結束，結束之後才有新的開始。', '捨不得放手，拖著只會更累。'],
-  ['節制', '慢慢調和，兩個人找到舒服的節奏。', '步調不合、過與不及，需要重新磨合。'],
-  ['惡魔', '強烈的吸引，也可能是放不下的執著；看清是愛還是癮。', '開始掙脫束縛，離開不健康的牽絆。'],
-  ['高塔', '突來的變動拆掉假象，痛，但讓你看見真實。', '危機在醞釀，早點面對比被動承受好。'],
-  ['星星', '希望回來了，慢慢療癒；願望值得繼續相信。', '一時失去信心，別因為累就否定一切。'],
-  ['月亮', '看不清、想太多的時候；別急著下結論，讓事情浮現。', '迷霧漸散，誤會有機會解開。'],
-  ['太陽', '坦率、溫暖、開心在一起；好消息在路上。', '快樂打了折扣，或期待太高；回到單純的相處。'],
-  ['審判', '舊事重提、舊人回來；這次要聽從內心的召喚做決定。', '逃避檢討，同樣的問題會再來一次。'],
-  ['世界', '圓滿與完成，一段關係走到成熟；也可能迎向下一個階段。', '只差最後一步，還有一件事沒有收尾。'],
-];
-const ROMAN = [
-  '0',
-  'I',
-  'II',
-  'III',
-  'IV',
-  'V',
-  'VI',
-  'VII',
-  'VIII',
-  'IX',
-  'X',
-  'XI',
-  'XII',
-  'XIII',
-  'XIV',
-  'XV',
-  'XVI',
-  'XVII',
-  'XVIII',
-  'XIX',
-  'XX',
-  'XXI',
-];
-const SPREADS = {
-  one: { n: 1, labels: ['指引'] },
-  three: { n: 3, labels: ['過去', '現在', '未來'] },
-};
-
+// 牌：雷諾曼 36 張（牌義見 ritual/lenormand.ts）。牌面是單色墨線圖示 + 編號 + 撲克角標。
 const INK = '#231a4a';
 const GOLD = '#b8893a';
+const ICON = {
+  1: '🏇',
+  2: '☘️',
+  3: '⛵',
+  4: '🏠',
+  5: '🌳',
+  6: '☁️',
+  7: '🐍',
+  8: '⚰️',
+  9: '💐',
+  12: '🐦',
+  13: '🧒',
+  14: '🦊',
+  15: '🐻',
+  16: '⭐',
+  17: '🦩',
+  18: '🐕',
+  19: '🗼',
+  20: '🌷',
+  21: '⛰️',
+  23: '🐭',
+  24: '❤️',
+  25: '💍',
+  26: '📖',
+  27: '✉️',
+  28: '👨',
+  29: '👩',
+  30: '🪷',
+  31: '☀️',
+  32: '🌙',
+  33: '🗝️',
+  34: '🐟',
+  35: '⚓',
+  36: '✝️',
+};
+const Q_MAX = 100;
+const esc = (s) =>
+  String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+};
 
-function emblem(g, i, cx, cy, r) {
-  g.save();
-  g.translate(cx, cy);
+// 沒有合適 emoji 的三張自己畫線
+function drawLine(g, n, r) {
   g.strokeStyle = INK;
-  g.fillStyle = INK;
-  g.lineWidth = 3;
-  const ring = (rad, w = 3) => {
-    g.lineWidth = w;
-    g.beginPath();
-    g.arc(0, 0, rad, 0, 6.283);
+  g.lineCap = 'round';
+  g.lineWidth = r * 0.09;
+  g.beginPath();
+  if (n === 10) {
+    // 鐮刀
+    g.moveTo(-r * 0.15, r * 0.8);
+    g.lineTo(r * 0.25, -r * 0.55);
     g.stroke();
-  };
-  const star = (n, r1, r2, fill) => {
     g.beginPath();
-    for (let k = 0; k < n * 2; k++) {
-      const a = (k * Math.PI) / n - Math.PI / 2;
-      const rr = k % 2 ? r2 : r1;
-      g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-    }
-    g.closePath();
-    fill ? g.fill() : g.stroke();
-  };
-  ring(r, 2);
-  if (i === 18) {
-    g.beginPath();
-    g.arc(0, 0, r * 0.62, 0.5, 5.78);
-    g.arc(r * 0.26, 0, r * 0.5, 5.4, 0.88, true);
-    g.fill();
-  } else if (i === 19) {
-    g.fillStyle = GOLD;
-    g.beginPath();
-    g.arc(0, 0, r * 0.36, 0, 6.283);
-    g.fill();
-    g.strokeStyle = GOLD;
-    for (let k = 0; k < 16; k++) {
-      const a = (k * Math.PI) / 8;
-      g.beginPath();
-      g.moveTo(Math.cos(a) * r * 0.46, Math.sin(a) * r * 0.46);
-      g.lineTo(Math.cos(a) * r * (k % 2 ? 0.7 : 0.86), Math.sin(a) * r * (k % 2 ? 0.7 : 0.86));
-      g.stroke();
-    }
-  } else if (i === 17) {
-    g.fillStyle = GOLD;
-    star(8, r * 0.78, r * 0.26, true);
-  } else if (i === 6) {
-    g.lineWidth = 4;
-    for (const dx of [-0.24, 0.24]) {
-      g.beginPath();
-      g.arc(dx * r, 0, r * 0.44, 0, 6.283);
-      g.stroke();
-    }
-  } else if (i === 10) {
-    ring(r * 0.7, 4);
-    ring(r * 0.16, 4);
-    for (let k = 0; k < 8; k++) {
-      const a = (k * Math.PI) / 4;
-      g.beginPath();
-      g.moveTo(Math.cos(a) * r * 0.16, Math.sin(a) * r * 0.16);
-      g.lineTo(Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7);
-      g.stroke();
-    }
-  } else if (i === 16) {
-    g.fillRect(-r * 0.2, -r * 0.45, r * 0.4, r * 1.05);
-    g.strokeStyle = GOLD;
-    g.lineWidth = 5;
-    g.beginPath();
-    g.moveTo(r * 0.5, -r * 0.8);
-    g.lineTo(r * 0.05, -r * 0.3);
-    g.lineTo(r * 0.3, -r * 0.3);
-    g.lineTo(-r * 0.1, r * 0.15);
+    g.arc(-r * 0.1, -r * 0.45, r * 0.55, -0.15, -Math.PI + 0.2, true);
+  } else if (n === 11) {
+    // 鞭子：一支柄加一條甩開的鞭繩
+    g.moveTo(-r * 0.6, r * 0.75);
+    g.lineTo(-r * 0.2, r * 0.1);
     g.stroke();
-  } else if (i === 11) {
-    g.lineWidth = 4;
+    g.lineWidth = r * 0.05;
     g.beginPath();
-    g.moveTo(0, -r * 0.6);
-    g.lineTo(0, r * 0.6);
-    g.moveTo(-r * 0.55, -r * 0.4);
-    g.lineTo(r * 0.55, -r * 0.4);
-    g.stroke();
-    for (const s of [-1, 1]) {
-      g.beginPath();
-      g.arc(s * r * 0.55, -r * 0.05, r * 0.2, 0, Math.PI);
-      g.stroke();
-    }
-  } else if (i === 21) {
-    g.lineWidth = 4;
-    g.beginPath();
-    g.ellipse(0, 0, r * 0.48, r * 0.74, 0, 0, 6.283);
-    g.stroke();
-    g.fillStyle = GOLD;
-    star(4, r * 0.26, r * 0.1, true);
+    g.moveTo(-r * 0.2, r * 0.1);
+    g.bezierCurveTo(r * 0.3, -r * 0.6, r * 0.9, r * 0.1, r * 0.4, -r * 0.75);
   } else {
-    const n = 3 + (i % 6);
-    g.lineWidth = 3;
-    star(n, r * 0.76, r * (0.3 + (i % 3) * 0.08), false);
-    g.fillStyle = GOLD;
-    star(n, r * 0.3, r * 0.12, true);
+    // 岔路
+    g.moveTo(0, r * 0.85);
+    g.lineTo(0, r * 0.05);
+    g.lineTo(-r * 0.55, -r * 0.75);
+    g.moveTo(0, r * 0.05);
+    g.lineTo(r * 0.55, -r * 0.75);
   }
-  g.restore();
+  g.stroke();
 }
 
-function faceTex(i) {
+function faceTex(card) {
   return canvasTex(320, 544, (g, w, h) => {
     g.fillStyle = '#f1e7d0';
     g.fillRect(0, 0, w, h);
@@ -184,12 +95,38 @@ function faceTex(i) {
     g.strokeRect(24, 24, w - 48, h - 48);
     g.fillStyle = INK;
     g.textAlign = 'center';
-    g.font = `500 34px Georgia, "Times New Roman", serif`;
-    g.fillText(ROMAN[i], w / 2, 78);
-    emblem(g, i, w / 2, h / 2 - 12, 104);
-    g.font = `900 46px ${FONT}`;
-    const name = CARDS[i][0];
-    g.fillText(name, w / 2, h - 62);
+    g.font = `500 36px Georgia, "Times New Roman", serif`;
+    g.fillText(String(card.n), w / 2, 78);
+    const red = /[♥♦]/.test(card.suit);
+    g.font = `600 26px Georgia, serif`;
+    g.textAlign = 'left';
+    g.fillStyle = red ? '#9a2b2b' : INK;
+    g.fillText(card.suit.slice(1) + card.suit[0], 38, 66);
+    g.textAlign = 'center';
+    // 圖示：先畫在小畫布上，再整片染成墨色，讓每張牌風格一致
+    const icon = document.createElement('canvas');
+    icon.width = icon.height = 240;
+    const ig = icon.getContext('2d');
+    ig.translate(120, 120);
+    if (ICON[card.n]) {
+      ig.textAlign = 'center';
+      ig.textBaseline = 'middle';
+      ig.font = '150px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+      ig.fillText(ICON[card.n], 0, 8);
+      ig.setTransform(1, 0, 0, 1, 0, 0);
+      ig.globalCompositeOperation = 'source-in';
+      ig.fillStyle = INK;
+      ig.fillRect(0, 0, 240, 240);
+    } else drawLine(ig, card.n, 100);
+    g.strokeStyle = GOLD;
+    g.lineWidth = 2;
+    g.beginPath();
+    g.arc(w / 2, h / 2 - 14, 118, 0, 6.283);
+    g.stroke();
+    g.drawImage(icon, w / 2 - 105, h / 2 - 119, 210, 210);
+    g.fillStyle = INK;
+    g.font = `900 50px ${FONT}`;
+    g.fillText(card.name, w / 2, h - 62);
   });
 }
 
@@ -370,7 +307,7 @@ export function createTarot(ui) {
   const back = new THREE.MeshStandardMaterial({ map: backTex(), roughness: 0.6 });
   const blank = new THREE.MeshStandardMaterial({ color: 0xf1e7d0, roughness: 0.7 });
   const DECK = new THREE.Vector3(-1.15, TOP, 0.35);
-  const cards = CARDS.map((_, i) => {
+  const cards = LENORMAND.map((_, i) => {
     // +y is the back (deck lies face down), -y is the face
     const m = new THREE.Mesh(cardGeo, [edge, edge, back, blank, edge, edge]);
     m.userData.i = i;
@@ -379,7 +316,14 @@ export function createTarot(ui) {
   });
 
   let state = 'idle';
-  let spread = SPREADS.three;
+  const N = 3;
+  let drawn = [];
+  let question = '';
+  let sit = 'single';
+  try {
+    sit = sessionStorage.getItem('yuelao:sit') || 'single';
+  } catch {}
+  const sitWord = () => (SITS.find((x) => x.key === sit) || SITS[0]).word;
   let chosen = [];
   let flipped = 0;
   let hover = null;
@@ -389,7 +333,6 @@ export function createTarot(ui) {
       c.position.set(DECK.x, DECK.y + 0.004 + k * 0.0034, DECK.z);
       c.rotation.set(0, 0.25, 0);
       c.userData.sel = false;
-      c.userData.rev = false;
       c.material = [edge, edge, back, blank, edge, edge];
     });
   }
@@ -415,17 +358,47 @@ export function createTarot(ui) {
     flipped = 0;
     stack();
     ui.hint('');
-    ui.panel(
-      `<h2>想清楚一件事，再抽牌</h2>
-       <div class="choices">
-         <button data-a="three"><b>三張</b><span>過去、現在、未來，看一件事的來龍去脈</span></button>
-         <button data-a="one"><b>單張</b><span>只要一個指引</span></button>
-       </div>`,
-      (a) => {
-        spread = SPREADS[a];
-        shuffle();
-      },
-    );
+    const render = (note = '') => {
+      ui.panel(
+        `<h2>你想問什麼</h2>
+         <p class="note small">寫下那件事，從牌堆裡選三張。這副是雷諾曼牌：三十六張，意思在三張的組合和順序裡。</p>
+         <label class="ask-q"><textarea id="ask-q" maxlength="${Q_MAX}" rows="3" placeholder="例：他最近忽冷忽熱，這段關係會怎麼走">${esc(question)}</textarea>
+           <span class="ask-meta"><span>一件具體的事，說清楚一點</span><span id="ask-n">${[...question].length}/${Q_MAX}</span></span></label>
+         <p class="kicker">你現在的情況</p>
+         <div class="chips sits">${SITS.map(
+           (x) =>
+             `<button type="button" data-a="sit:${x.key}" class="${x.key === sit ? 'on' : ''}">${x.word}</button>`,
+         ).join('')}</div>
+         ${note ? `<p class="note" role="status">${note}</p>` : ''}
+         <button class="seal" data-a="go">抽牌</button>
+         <p class="note small">同一天問同一件事，抽到的永遠是同一組牌。</p>`,
+        (a) => {
+          if (a.startsWith('sit:')) {
+            sit = a.slice(4);
+            try {
+              sessionStorage.setItem('yuelao:sit', sit);
+            } catch {}
+            return render();
+          }
+          if (a === 'go') {
+            const q = question.replace(/\s+/g, ' ').trim();
+            if ([...q].length < 2) return render('先寫下想問的事，一句話就好。');
+            question = q;
+            drawn = drawThree(q, sit, today());
+            shuffle();
+          }
+        },
+        true,
+      );
+      const ta = document.getElementById('ask-q');
+      if (ta)
+        ta.oninput = () => {
+          question = [...ta.value].slice(0, Q_MAX).join('');
+          const n = document.getElementById('ask-n');
+          if (n) n.textContent = `${[...question].length}/${Q_MAX}`;
+        };
+    };
+    render();
   }
 
   async function shuffle() {
@@ -483,25 +456,25 @@ export function createTarot(ui) {
     );
     state = 'choose';
     say('憑直覺，不要挑。');
-    ui.hint(spread.n === 1 ? '憑直覺點一張牌' : `憑直覺點 ${spread.n} 張牌`);
+    ui.hint('憑直覺點三張牌');
   }
 
   function slot(k) {
-    const n = spread.n;
+    const n = N;
     return new THREE.Vector3((k - (n - 1) / 2) * 0.46, TOP + 0.01, 0.2);
   }
 
   async function choose(c) {
-    if (c.userData.sel || chosen.length >= spread.n) return;
+    if (c.userData.sel || chosen.length >= N) return;
     c.userData.sel = true;
-    c.userData.rev = Math.random() < 0.35;
     const k = chosen.length;
+    c.userData.card = drawn[k];
     chosen.push(c);
     audio.tick(2400, 0.14, 0.06);
     const from = c.position.clone();
     const to = slot(k);
     const ry = c.rotation.y;
-    ui.hint(chosen.length < spread.n ? `還要 ${spread.n - chosen.length} 張` : '');
+    ui.hint(chosen.length < N ? `還要 ${N - chosen.length} 張` : '');
     await tween(
       0.6,
       (t) => {
@@ -511,7 +484,7 @@ export function createTarot(ui) {
       },
       ease.out,
     );
-    if (chosen.length === spread.n && state === 'choose') {
+    if (chosen.length === N && state === 'choose') {
       state = 'flip';
       // the rest of the fan slides away
       for (const o of cards)
@@ -532,9 +505,7 @@ export function createTarot(ui) {
         camera.lookAt(look);
       });
       ui.hint('點牌，一張一張翻開');
-      ui.panel(`<button class="seal" data-a="flip">翻開${spread.n > 1 ? '第一張' : ''}</button>`, () =>
-        flipNext(),
-      );
+      ui.panel(`<button class="seal" data-a="flip">翻開第一張</button>`, () => flipNext());
     }
   }
 
@@ -542,15 +513,13 @@ export function createTarot(ui) {
     if (state !== 'flip' || flipped >= chosen.length) return;
     const k = flipped++;
     const c = chosen[k];
-    const face = new THREE.MeshStandardMaterial({ map: faceTex(c.userData.i), roughness: 0.65 });
+    const face = new THREE.MeshStandardMaterial({ map: faceTex(c.userData.card), roughness: 0.65 });
     c.material = [edge, edge, back, face, edge, edge];
     audio.tick(1900, 0.2, 0.09);
-    say(
-      `${spread.n > 1 ? `${spread.labels[k]}，` : ''}${CARDS[c.userData.i][0]}${c.userData.rev ? '，逆位' : ''}。`,
-    );
+    say(`${POSITIONS[k]}，${c.userData.card.name}。`);
     const y0 = c.position.y;
     // face texture is drawn upright for a viewer at +z once the card is turned over about its long axis
-    const endY = c.userData.rev ? 0 : Math.PI;
+    const endY = Math.PI;
     await tween(
       0.7,
       (t) => {
@@ -571,19 +540,31 @@ export function createTarot(ui) {
 
   function reading() {
     state = 'reading';
-    say('牌說完了。它給的是方向，路還是你自己走。');
+    say('三張連起來看。牌給的是方向，路還是你自己走。');
     ui.hint('');
+    const [a, b, c] = drawn;
     ui.panel(
-      `<div class="reading">
-        ${chosen
-          .map((c, k) => {
-            const [name, up, rev] = CARDS[c.userData.i];
-            return `<article><p class="kicker">${spread.labels[k]}</p><h3>${name}<small>${c.userData.rev ? '逆位' : '正位'}</small></h3><p>${c.userData.rev ? rev : up}</p></article>`;
-          })
+      `<div class="reading lnm">
+        <p class="asked">問．${esc(question)}<span>${sitWord()}</span></p>
+        ${drawn
+          .map(
+            (d, k) => `<article><p class="kicker">${POSITIONS[k]}．${POSITION_DESC[k]}</p>
+              <h3><i>${d.n}</i>${d.name}<small class="t-${d.tone}">${TONE_WORD[d.tone]}</small></h3>
+              <p class="kws">${d.kw.map((w) => `<span>${w}</span>`).join('')}</p>
+              <p><b>在這裡：</b>${d.pos[k]}</p>
+              <p class="dim">感情裡，${d.love}</p></article>`,
+          )
           .join('')}
+        <article class="flow"><p class="kicker">三張連起來</p><p>${flowLine(a, b, c)}</p>
+          <p class="dim">時間感：${c.name}，${c.pace}。</p></article>
+        <p class="note small">雷諾曼的牌義是固定的，順序一換意思就變。同一天問同一件事，抽到的永遠是這一組。牌義屬文化體驗與自我認知參考，不代表現實預測。</p>
        </div>
-       <div class="card-actions"><button class="seal" data-a="again">再抽一次</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
-      (a) => (a === 'leave' ? ui.leave() : intro()),
+       <div class="card-actions"><button class="seal" data-a="again">換一件事問</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
+      (x) => {
+        if (x === 'leave') return ui.leave();
+        question = '';
+        intro();
+      },
       true,
     );
   }
@@ -607,7 +588,7 @@ export function createTarot(ui) {
       );
       audio.bell(587, 0.14, 3.5);
       intro();
-      say('請坐。想清楚一件事，牌才知道要說什麼。');
+      say('請坐。先把想問的事寫下來，牌才知道要說什麼。');
     },
     exit() {
       state = 'idle';

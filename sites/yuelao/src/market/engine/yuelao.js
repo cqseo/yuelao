@@ -11,7 +11,7 @@ const CATS = [
 ];
 // 2026-11-13：不再先選「他／脫單／複合」三個方向。改成先寫下想問的事、再選現在的情況
 // （參考占了麼的求籤頁）。籤詩判詞仍分三類，由「情況」對應過去；問的事一路帶到深度解讀，不用再寫一次。
-const SITS = [
+export const SITS = [
   { key: 'single', word: '單身', cat: 'single' },
   { key: 'crush', word: '曖昧中', cat: 'him' },
   { key: 'dating', word: '交往中', cat: 'him' },
