@@ -803,6 +803,13 @@ export function createWorld(renderer, lowQuality) {
     scene.add(c);
     flick.push(warm(0, 2.4, -18.5, 22, 9, 0xff4a1c));
     burnerGroup = c;
+    // 爐前兩個蒲團：殿前跪拜的位置
+    const cushionM = new THREE.MeshStandardMaterial({ color: 0x8a1f24, roughness: 0.85 });
+    for (const x of [-1.6, 1.6]) {
+      const p = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.14, 24), cushionM));
+      p.position.set(x, 0.07, -15.1);
+      scene.add(p);
+    }
   }
   const FURNACE = [10.5, -19.5];
   {

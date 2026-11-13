@@ -438,8 +438,10 @@ export function startMarket(root, opts = {}) {
       });
     if (id === 'kneel')
       return go(async () => {
-        await walkTo(world.burner.x + 1.6, world.burner.z + 3.4);
-        await faceTo(world.burner.x + 1.6, world.burner.z - 6);
+        // 兩個蒲團挑近的那個
+        const cx = world.burner.x + (me.x < world.burner.x ? -1.6 : 1.6);
+        await walkTo(cx, world.burner.z + 3.4);
+        await faceTo(cx, world.burner.z - 6);
         avatar.hold('kneel');
         audio.bell(262, 0.1, 4);
         ui.hint('跪下來，靜一靜。想起身就按「起身」，或直接走開。');
