@@ -18,7 +18,6 @@ function Reading() {
   const [body, setBody] = useState('');
   const [canGenerate, setCanGenerate] = useState(false);
   const [question, setQuestion] = useState('');
-  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -82,7 +81,7 @@ function Reading() {
   }, []);
 
   async function generate() {
-    if (busy || !consent || !canGenerate) return;
+    if (busy || !canGenerate) return;
     setBusy(true);
     setError('');
     try {
@@ -166,14 +165,13 @@ function Reading() {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
               />
-              <label className="reading-consent">
-                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+              <p className="reading-consent">
                 {t(
-                  '我同意將自願填寫的問題送至第三方 AI 模型服務（可能經由 API 中轉服務）生成解讀，並將結果存入自己的帳戶。問題文字不會寫入本站資料庫。',
-                  '我同意将自愿填写的问题发送给第三方 AI 模型服务（可能经由 API 中转服务）生成解读，并将结果保存至我的账户。问题原文不会存入本站数据库。',
+                  '你寫的問題會送至第三方 AI 模型服務（可能經由 API 中轉服務）生成解讀，結果存入你的帳戶；問題原文不寫入本站資料庫。',
+                  '你写的问题会发送给第三方 AI 模型服务（可能经由 API 中转服务）生成解读，结果保存至你的账户；问题原文不存入本站数据库。',
                 )}
-              </label>
-              <button disabled={!consent || busy} type="submit">
+              </p>
+              <button disabled={busy} type="submit">
                 {busy
                   ? t('正在整理心事…', '正在整理问题…')
                   : t('生成我的 AI 深度解讀', '生成我的 AI 深度解读')}

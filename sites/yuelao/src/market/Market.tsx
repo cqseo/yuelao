@@ -196,9 +196,39 @@ export function Market() {
       buy(stickId: number, category: string) {
         return checkout('unlock_1', { stickId, category });
       },
-      save(stickId: number, category: string) {
+      /**
+       * 請伺服器生成這支籤的深度解讀（已付款才會成功）。付款前已在面板上告知問題會送至 AI 服務，
+       * 付款即同意，所以這裡帶 consent: true。回傳 ready／processing／failed。
+       */
+      async generate(stickId: number, category: string, question: string) {
         try {
-          sessionStorage.setItem(PENDING, JSON.stringify({ stickId, category, at: Date.now() }));
+          const res = await authed(() =>
+            fetch('/api/account/reading/generate', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                stickId,
+                category,
+                locale,
+                question: question.slice(0, 400),
+                consent: true,
+              }),
+            }),
+          );
+          if (res.status === 202) return 'processing' as const;
+          return res.ok ? ('ready' as const) : ('failed' as const);
+        } catch {
+          return 'failed' as const;
+        }
+      },
+      /** why：'pay' 去付款、'login' 去登入。question 只存在本機，生成後就清掉。 */
+      save(stickId: number, category: string, why: 'pay' | 'login' = 'login', question = '') {
+        try {
+          sessionStorage.setItem(
+            PENDING,
+            JSON.stringify({ stickId, category, why, question: question.slice(0, 400), at: Date.now() }),
+          );
         } catch {}
       },
       /** 取出並清掉暫存的那支籤；超過 45 分鐘或格式不對就不算。 */
@@ -206,7 +236,15 @@ export function Market() {
         try {
           const raw = sessionStorage.getItem(PENDING);
           sessionStorage.removeItem(PENDING);
-          const p = raw ? (JSON.parse(raw) as { stickId?: unknown; category?: unknown; at?: unknown }) : null;
+          const p = raw
+            ? (JSON.parse(raw) as {
+                stickId?: unknown;
+                category?: unknown;
+                why?: unknown;
+                question?: unknown;
+                at?: unknown;
+              })
+            : null;
           if (
             p &&
             typeof p.stickId === 'number' &&
@@ -217,7 +255,12 @@ export function Market() {
             typeof p.at === 'number' &&
             Date.now() - p.at < 45 * 60 * 1000
           )
-            return { stickId: p.stickId, category: p.category };
+            return {
+              stickId: p.stickId,
+              category: p.category,
+              why: p.why === 'pay' ? ('pay' as const) : ('login' as const),
+              question: typeof p.question === 'string' ? p.question.slice(0, 400) : '',
+            };
         } catch {}
         return null;
       },

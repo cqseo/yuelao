@@ -637,7 +637,7 @@ export function startMarket(root, opts = {}) {
     if (mode === 'room' && k === 'escape') leaveRoom();
     if (mode === 'walk' && pool?.isOpen && k === 'escape') pool.close();
     // 在面板的輸入框裡打字時，不要把按鍵當成走路或開門
-    if (e.target instanceof HTMLInputElement) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (KEYMAP[k]) keys.add(KEYMAP[k]);
     if (k === 'shift') keys.add('run');
     if (mode === 'walk' && (k === 'enter' || k === 'f') && near) enterRoom(near);

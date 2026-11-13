@@ -1162,3 +1162,54 @@
   color: var(--gold);
   text-underline-offset: 4px;
 }
+
+/* 深度解讀：付款前的選填問題、月老殿裡直接展示的報告（見 DESIGN.md「月老殿的付費深度解讀」） */
+.mk .deep-q {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--paper-70);
+}
+.mk .deep-q textarea {
+  min-height: 5.5rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(7, 8, 18, 0.5);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--paper);
+  resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.mk .deep-q textarea:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.mk .deep-body {
+  margin: 0.75rem 0 1rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--gold);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.mk .deep-body p {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  line-height: 1.95;
+  color: var(--paper);
+  white-space: pre-line;
+}
+.mk .deep-body b {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+.mk #panel .seal + .ghost {
+  margin-top: 0.5rem;
+}

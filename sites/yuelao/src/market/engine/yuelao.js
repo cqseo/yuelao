@@ -482,36 +482,70 @@ export function createYuelao(ui) {
       deepState = r;
       const b = document.getElementById('deep-btn');
       if (b && r.state !== 'none')
-        b.textContent = r.state === 'ready' ? '看深度解讀（已解鎖）' : '領取深度解讀（已解鎖）';
+        b.textContent = r.state === 'ready' ? '看深度解讀（已解鎖）' : '請月老動筆（已解鎖）';
     });
   }
   const backToCard = `<button class="ghost" data-a="card">回到判詞</button>`;
-  async function openDeep() {
+  const esc = (t) =>
+    String(t).replace(
+      /[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+    );
+  let draftQ = ''; // 想問的事：只放在這頁的記憶體與 sessionStorage，生成後清掉
+  let deepRun = 0; // 每次開始等待／生成就換一個號碼，舊的輪詢看到號碼變了就停
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function openDeep() {
     state = 'deep';
     if (deepState?.state === 'ready') return showDeep(deepState.body);
-    if (deepState?.state === 'unlocked') return deepLink();
+    if (deepState?.state === 'unlocked') return startGenerate(draftQ);
+    showOffer();
+  }
+
+  /** 付款前：說清楚買什麼、可以寫想問的事、付款即同意送 AI。沒有勾選框。 */
+  function showOffer(note = '') {
+    state = 'deep';
+    say('想再看深一點，我替你細細批一份。有想問的，寫下來給我。');
+    ui.panel(
+      `<p class="kicker">${stick.no}　深度解讀</p>
+       <h2>月老親筆，替這支籤細細批一份</h2>
+       <p class="note">從籤詩、你問的這一類，到眼前可以做的一步。寫好就在這裡看，也會存在「我的」。</p>
+       <label class="deep-q"><span>想問的事（選填，400 字內）</span>
+         <textarea id="deep-q" maxlength="400" rows="3" placeholder="例：我們最近很少聊天，我該怎麼開口？">${esc(draftQ)}</textarea></label>
+       <p class="note small">付款即表示同意：你寫的問題會送至第三方 AI 模型服務（可能經由 API 中轉服務）生成解讀，問題原文不存入本站。<a href="/privacy" target="_blank" rel="noopener">隱私說明</a></p>
+       ${note ? `<p class="note" role="status">${note}</p>` : ''}
+       <button class="seal" data-a="pay">付款，請月老批讀　${ui.deep.price}</button>
+       ${backToCard}`,
+      (a) => {
+        if (a === 'card') return verdict();
+        if (a === 'pay') void pay();
+      },
+      true,
+    );
+    const q = document.getElementById('deep-q');
+    if (q) q.oninput = () => (draftQ = q.value.slice(0, 400));
+  }
+
+  async function pay() {
     say('稍等，我看看簿子。');
-    ui.panel(`<p class="note" role="status">正在準備</p>`);
+    ui.panel(`<p class="note" role="status">正在準備付款</p>`);
     const r = await ui.deep.buy(stick.id, cat);
     if (state !== 'deep') return;
     if (r.state === 'redirect') {
-      ui.deep.save(stick.id, cat);
-      say('隨我來。付完了回到這裡，籤還在。');
+      ui.deep.save(stick.id, cat, 'pay', draftQ);
+      say('隨我來。付完了回到這裡，我就動筆。');
       location.assign(r.url);
     } else if (r.state === 'login') {
-      ui.deep.save(stick.id, cat);
+      ui.deep.save(stick.id, cat, 'login', draftQ);
       say('先登入，我才記得這支籤是誰求的。');
       ui.panel(
         `<h2>登入後再請月老動筆</h2>
-         <p class="note">登入完會回到月老殿，這支籤還在。</p>
+         <p class="note">登入完會回到月老殿，這支籤和你寫的話都還在。</p>
          <a class="seal linkbtn" href="/login">去登入</a>${backToCard}`,
         (a) => a === 'card' && verdict(),
       );
     } else if (r.state === 'owned') {
-      const again = await ui.deep.check(stick.id, cat);
-      if (state !== 'deep') return;
-      if (again.state === 'ready') showDeep(again.body);
-      else deepLink();
+      startGenerate(draftQ);
     } else {
       say(r.state === 'closed' ? '深度解讀還沒開張，過些日子再來。' : '這會兒忙不過來，稍後再試一次。');
       ui.panel(
@@ -520,26 +554,96 @@ export function createYuelao(ui) {
       );
     }
   }
-  function deepLink() {
-    say('這份解讀已經是你的了，去領吧。');
+
+  /** 付款回來：等伺服器確認解鎖（Stripe 通知通常幾秒內到），確認了就直接動筆。 */
+  async function waitPaid(question) {
+    const run = ++deepRun;
+    state = 'deep';
+    say('你回來了。我核對一下簿子。');
     ui.panel(
-      `<h2>深度解讀已解鎖</h2>
-       <p class="note">內文在「我的」裡生成與保存。</p>
-       <a class="seal linkbtn" href="${ui.deep.page(stick.id, cat)}">去領取</a>${backToCard}`,
-      (a) => a === 'card' && verdict(),
+      `<p class="kicker">${stick.no}　深度解讀</p><p class="note" role="status">正在確認付款，通常幾秒鐘。</p>`,
+    );
+    for (let i = 0; i < 45; i++) {
+      const r = await ui.deep.check(stick.id, cat);
+      if (run !== deepRun || state !== 'deep') return;
+      if (r.state === 'ready') return showDeep(r.body);
+      if (r.state === 'unlocked') return startGenerate(question);
+      await sleep(2000);
+      if (run !== deepRun || state !== 'deep') return;
+    }
+    say('付款的消息還沒傳到我這。');
+    ui.panel(
+      `<p class="kicker">${stick.no}　深度解讀</p>
+       <p class="note">付款確認還沒到。不用重新付款，等一下再查；確認後解讀也會出現在「我的」。</p>
+       <button class="seal" data-a="again">再查一次</button>${backToCard}`,
+      (a) => (a === 'again' ? void waitPaid(question) : a === 'card' && verdict()),
     );
   }
+
+  /** 已解鎖：請伺服器生成，寫好了直接在這裡看。 */
+  async function startGenerate(question) {
+    const run = ++deepRun;
+    state = 'deep';
+    say('我提筆了，稍候。');
+    ui.panel(
+      `<p class="kicker">${stick.no}　深度解讀</p><p class="note" role="status">月老正在批讀，大約半分鐘。</p>`,
+    );
+    const talking = setInterval(() => npc.talk(), 2600);
+    npc.talk();
+    try {
+      let status = await ui.deep.generate(stick.id, cat, question || '');
+      if (run !== deepRun || state !== 'deep') return;
+      // 另一個分頁已經在寫：等它寫完
+      for (let i = 0; status === 'processing' && i < 30; i++) {
+        await sleep(3000);
+        if (run !== deepRun || state !== 'deep') return;
+        const r = await ui.deep.check(stick.id, cat);
+        if (r.state === 'ready') return showDeep(r.body);
+      }
+      if (status === 'ready') {
+        const r = await ui.deep.check(stick.id, cat);
+        if (run !== deepRun || state !== 'deep') return;
+        if (r.state === 'ready') {
+          draftQ = '';
+          return showDeep(r.body);
+        }
+        status = 'failed';
+      }
+      say('筆頭不順，再來一次。');
+      ui.panel(
+        `<p class="kicker">${stick.no}　深度解讀</p>
+         <p class="note">這次沒寫成。你已經付過款，再試不會重複扣款。</p>
+         <button class="seal" data-a="retry">再試一次</button>${backToCard}`,
+        (a) => (a === 'retry' ? void startGenerate(question) : a === 'card' && verdict()),
+      );
+    } finally {
+      clearInterval(talking);
+    }
+  }
   function showDeep(body) {
+    state = 'deep';
     say('寫好了，慢慢看。');
     ui.panel(
-      `<p class="kicker">${stick.no}　深度解讀</p><div class="ask-log" id="deep-body"></div>${backToCard}`,
+      `<p class="kicker">${stick.no}　深度解讀</p><div class="deep-body" id="deep-body"></div>
+       <p class="note small">這份解讀也存在「我的」，日後隨時能看。AI 生成，供自我反思，不是預言。</p>${backToCard}`,
       (a) => a === 'card' && verdict(),
       true,
     );
-    const p = document.createElement('p');
-    p.className = 'npc';
-    p.textContent = body; // 伺服器回來的內文也只當純文字
-    document.getElementById('deep-body').appendChild(p);
+    // 伺服器回來的內文只當純文字；【小標】那一行單獨成段，讀起來分得出段落
+    const box = document.getElementById('deep-body');
+    for (const block of String(body).split(/\n{2,}/)) {
+      const text = block.trim();
+      if (!text) continue;
+      const p = document.createElement('p');
+      const head = text.match(/^【[^】]{1,12}】/);
+      if (head) {
+        const b = document.createElement('b');
+        b.textContent = head[0];
+        p.appendChild(b);
+        p.appendChild(document.createTextNode(text.slice(head[0].length).replace(/^\n/, '')));
+      } else p.textContent = text;
+      box.appendChild(p);
+    }
   }
 
   // 追問月老：免費的引導式回答；AI 即時對話開放且已登入、勾選同意時才走 AI。
@@ -637,7 +741,14 @@ export function createYuelao(ui) {
       if (kept) {
         stick = kept;
         cat = back.category;
+        draftQ = back.question || '';
         resetHero();
+        if (back.why === 'pay') {
+          // 付完款回來：不先秀判詞卡，直接等確認、動筆
+          ui.card('');
+          void waitPaid(draftQ);
+          return;
+        }
         verdict();
         say('你回來了。這支籤還在。');
         return;
@@ -646,6 +757,7 @@ export function createYuelao(ui) {
       say('來了。不急，心裡放著誰，先想清楚。');
     },
     exit() {
+      deepRun++;
       state = 'idle';
       pressing = false;
       ui.panel('');
