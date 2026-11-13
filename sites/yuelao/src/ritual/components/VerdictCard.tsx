@@ -61,8 +61,8 @@ export function VerdictCard({
   const advice = adviceFor(v.stick.id, locale);
   const poemLines = v.stick.poem.split('\n');
   const teaserLine = poemLines[1] ?? poemLines[0] ?? '';
-  // 鎖定區價錢取自 site.config（P9：單次深度解讀 HK$18 / NT$75），按鈕仍
-  // disabled（未接支付，P4）。不得在這裡寫死價錢。
+  // 價錢取自 site.config，不得在這裡寫死。深度解讀在 3D 月老殿裡買、裡面看：
+  // 按鈕把這支籤暫存起來，帶到 /market#yuelao，月老殿接著這支籤打開深度解讀。
   const unlockProduct = findProduct(site, 'unlock_1');
   const unlockPrice = unlockProduct ? formatPrice(priceForLocale(unlockProduct, locale), locale) : '';
   return (
@@ -111,10 +111,7 @@ export function VerdictCard({
       </div>
       {showLocaleNote(getLocale()) && <p className="locale-note">{m.ritual_locale_note()}</p>}
       <div className="deep-lock">
-        <h3>
-          {m.ritual_deep_title()}
-          <span className="soon-tag">{m.ritual_deep_soon()}</span>
-        </h3>
+        <h3>{m.ritual_deep_title()}</h3>
         <p className="teaser">
           {m.ritual_deep_teaser_lead()}
           <br />
@@ -132,7 +129,26 @@ export function VerdictCard({
           <div>{m.ritual_deep_trust_2()}</div>
           <div>{m.ritual_deep_trust_3()}</div>
         </div>
-        <button className="cta" type="button" disabled>
+        <button
+          className="cta"
+          type="button"
+          data-rybbit-event="ritual_deep_to_market"
+          onClick={() => {
+            try {
+              sessionStorage.setItem(
+                'market-pending',
+                JSON.stringify({
+                  stickId: v.stick.id,
+                  category: v.cat,
+                  why: 'ritual',
+                  question: '',
+                  at: Date.now(),
+                }),
+              );
+            } catch {}
+            window.location.assign('/market#yuelao');
+          }}
+        >
           {m.ritual_deep_cta({ price: unlockPrice })}
         </button>
         <p className="cta-note">{m.ritual_deep_cta_note()}</p>

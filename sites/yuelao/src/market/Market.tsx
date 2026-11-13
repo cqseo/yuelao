@@ -258,7 +258,12 @@ export function Market() {
             return {
               stickId: p.stickId,
               category: p.category,
-              why: p.why === 'pay' ? ('pay' as const) : ('login' as const),
+              why:
+                p.why === 'pay'
+                  ? ('pay' as const)
+                  : p.why === 'ritual'
+                    ? ('ritual' as const)
+                    : ('login' as const),
               question: typeof p.question === 'string' ? p.question.slice(0, 400) : '',
             };
         } catch {}

@@ -46,7 +46,7 @@ export default defineSite({
       prices: usd(1399),
     },
   ],
-  supportEmail: 'support@example.com',
+  supportEmail: 'yunhuazhang99@gmail.com',
   // taxCode：深度解讀是 AI 線上生成的個人用數位內容（AI as a Service - Cloud Based - Personal Use）。
   // Stripe 帳戶預設開 Managed Payments，沒有稅務分類碼會拒絕建立結帳。
   // taxBehavior：站長決定標價含稅（2026-11-13）——買家在哪都只付 US$2.99，各地消費稅從收入裡扣。
