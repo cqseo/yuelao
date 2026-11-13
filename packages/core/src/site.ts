@@ -100,6 +100,11 @@ export interface SiteConfig {
     provider: 'stripe';
     /** Enable Stripe Tax automatic tax calculation; configure it in the Stripe dashboard first. */
     automaticTax: boolean;
+    /**
+     * Stripe 產品稅務分類碼（例如 txcd_10105001）。帳戶開了 Managed Payments（Stripe 預設開）時必填，
+     * 沒填 Stripe 會拒絕建立結帳；沒開時只影響 Stripe Tax 的稅率判斷。
+     */
+    taxCode?: string;
   };
   analytics?: {
     ga4?: string;

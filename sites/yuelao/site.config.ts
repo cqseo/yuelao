@@ -47,6 +47,8 @@ export default defineSite({
     },
   ],
   supportEmail: 'support@example.com',
-  billing: { provider: 'stripe', automaticTax: false },
+  // taxCode：深度解讀是 AI 線上生成的個人用數位內容（AI as a Service - Cloud Based - Personal Use）。
+  // Stripe 帳戶預設開 Managed Payments，沒有稅務分類碼會拒絕建立結帳。
+  billing: { provider: 'stripe', automaticTax: false, taxCode: 'txcd_10105001' },
   analytics: {},
 });
