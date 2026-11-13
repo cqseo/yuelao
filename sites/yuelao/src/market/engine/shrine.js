@@ -293,6 +293,291 @@ function statue(mat, gold = false) {
   return g;
 }
 
+/** 塔羅館的掛毯：深紫星空、月相一排、黃道環、金邊。 */
+function tarotTapestry() {
+  return canvasTex(1024, 640, (g, w, h) => {
+    const bg = g.createRadialGradient(w / 2, h * 0.45, 20, w / 2, h / 2, w * 0.7);
+    bg.addColorStop(0, '#3a2470');
+    bg.addColorStop(1, '#140b2c');
+    g.fillStyle = bg;
+    g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 420; i++) {
+      g.fillStyle = `rgba(255,${rand(220, 255) | 0},${rand(180, 240) | 0},${rand(0.3, 0.95)})`;
+      const r = rand(0.6, 2.2);
+      g.beginPath();
+      g.arc(rand(w), rand(h), r, 0, Math.PI * 2);
+      g.fill();
+    }
+    // 黃道環
+    g.strokeStyle = 'rgba(232,201,122,.75)';
+    g.lineWidth = 3;
+    for (const r of [h * 0.3, h * 0.36]) {
+      g.beginPath();
+      g.arc(w / 2, h * 0.47, r, 0, Math.PI * 2);
+      g.stroke();
+    }
+    g.font = '28px serif';
+    g.fillStyle = '#e8c97a';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    const signs = '♈♉♊♋♌♍♎♏♐♑♒♓';
+    [...signs].forEach((c, i) => {
+      const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+      g.fillText(c, w / 2 + Math.cos(a) * h * 0.33, h * 0.47 + Math.sin(a) * h * 0.33);
+    });
+    // 中間一隻眼與太陽光
+    g.fillStyle = '#e8c97a';
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      g.beginPath();
+      g.moveTo(w / 2 + Math.cos(a) * 50, h * 0.47 + Math.sin(a) * 50);
+      g.lineTo(w / 2 + Math.cos(a + 0.06) * 95, h * 0.47 + Math.sin(a + 0.06) * 95);
+      g.lineTo(w / 2 + Math.cos(a + 0.12) * 50, h * 0.47 + Math.sin(a + 0.12) * 50);
+      g.fill();
+    }
+    g.beginPath();
+    g.arc(w / 2, h * 0.47, 46, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#2a1650';
+    g.beginPath();
+    g.ellipse(w / 2, h * 0.47, 30, 16, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#e8c97a';
+    g.beginPath();
+    g.arc(w / 2, h * 0.47, 9, 0, Math.PI * 2);
+    g.fill();
+    // 上緣一排月相
+    for (let i = 0; i < 7; i++) {
+      const mx = w * 0.2 + i * w * 0.1;
+      const my = h * 0.09;
+      g.fillStyle = '#f3e3b0';
+      g.beginPath();
+      g.arc(mx, my, 16, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#1d0f3c';
+      g.beginPath();
+      g.arc(mx + (i - 3) * 6, my, 16, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.strokeStyle = '#d4a650';
+    g.lineWidth = 14;
+    g.strokeRect(7, 7, w - 14, h - 14);
+  });
+}
+
+/** 塔羅館：星空掛毯、紫布圓桌、三張蓋著的牌、水晶球、燭台、牌架。 */
+function furnishTarot({ g, mat, box, shadow, B, W, zBack }) {
+  const tap = new THREE.Mesh(
+    new THREE.PlaneGeometry(6.4, 4),
+    new THREE.MeshStandardMaterial({ map: tarotTapestry(), roughness: 0.7 }),
+  );
+  tap.position.set(0, B + 2.3, zBack + 0.05);
+  g.add(tap);
+  // 兩側紫色帷幔
+  const drapeM = new THREE.MeshStandardMaterial({ color: 0x3b1f6e, roughness: 0.8, side: THREE.DoubleSide });
+  for (const s of [-1, 1]) {
+    const d = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.75, 4.2, 12, 1, true, 0, Math.PI), drapeM);
+    d.position.set(s * (W / 2 - 0.9), B + 2.1, zBack + 0.5);
+    d.rotation.y = Math.PI;
+    g.add(d);
+  }
+  const tz = zBack + 2.6;
+  const table = new THREE.Group();
+  table.add(
+    shadow(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(1.15, 1.25, 0.9, 32),
+        new THREE.MeshStandardMaterial({ color: 0x2a1650, roughness: 0.85 }),
+      ),
+    ).translateY(0.45),
+  );
+  table.add(
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(1.2, 1.2, 0.04, 32),
+      new THREE.MeshStandardMaterial({ color: 0xd4a650, metalness: 0.7, roughness: 0.35 }),
+    ).translateY(0.92),
+  );
+  // 三張蓋著的牌
+  const back = canvasTex(128, 200, (c, w, h) => {
+    c.fillStyle = '#24124a';
+    c.fillRect(0, 0, w, h);
+    c.strokeStyle = '#e8c97a';
+    c.lineWidth = 6;
+    c.strokeRect(8, 8, w - 16, h - 16);
+    c.fillStyle = '#e8c97a';
+    c.beginPath();
+    c.arc(w / 2, h / 2, 22, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = '#24124a';
+    c.beginPath();
+    c.arc(w / 2 + 9, h / 2 - 4, 20, 0, Math.PI * 2);
+    c.fill();
+  });
+  for (const cx of [-0.42, 0, 0.42]) {
+    const card = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.008, 0.48), [
+      mat.gold,
+      mat.gold,
+      new THREE.MeshStandardMaterial({ map: back, roughness: 0.5 }),
+      mat.gold,
+      mat.gold,
+      mat.gold,
+    ]);
+    card.position.set(cx, 0.95, 0.35);
+    card.rotation.y = cx * -0.3;
+    table.add(card);
+  }
+  // 水晶球
+  const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 24, 18),
+    new THREE.MeshStandardMaterial({
+      color: 0xbfa8ff,
+      emissive: 0x6a48d8,
+      emissiveIntensity: 0.6,
+      roughness: 0.05,
+      transparent: true,
+      opacity: 0.85,
+    }),
+  );
+  ball.position.set(0, 1.18, -0.35);
+  table.add(
+    ball,
+    new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.12, 16), mat.gold)
+      .translateY(0.98)
+      .translateZ(-0.35),
+  );
+  const orb = glow(0x9f7bff, 1.2, 0.5);
+  orb.position.set(0, 1.18, -0.35);
+  table.add(orb);
+  const flames = [];
+  for (const s of [-1, 1]) {
+    table.add(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 0.3, 10),
+        new THREE.MeshStandardMaterial({ color: 0xf2ead8 }),
+      )
+        .translateX(s * 0.8)
+        .translateY(1.08)
+        .translateZ(-0.2),
+    );
+    const f = glow(0xffb050, 0.4, 0.95);
+    f.position.set(s * 0.8, 1.32, -0.2);
+    table.add(f);
+    flames.push(f);
+  }
+  table.position.set(0, B, tz - 0.6);
+  table.traverse((n) => {
+    n.userData.room = 'tarot';
+  });
+  g.add(table);
+  // 坐墊兩個
+  const seatM = new THREE.MeshStandardMaterial({ color: 0x4b2a88, roughness: 0.85 });
+  g.add(
+    shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.44, 0.16, 24), seatM))
+      .translateY(B + 0.08)
+      .translateZ(zBack + 0.9),
+  );
+  void box;
+  return { god: table, tz, cz: tz + 1.75, cushionsLocal: [], flames };
+}
+
+/** 抄經閣：心經直幅、矮書案（宣紙、毛筆、硯台、燭台）、兩側書架、坐墊。 */
+function furnishSutra({ g, mat, box, shadow, B, W, zBack }) {
+  // 心經（玄奘譯，公版）直幅
+  const lines = ['觀自在菩薩', '行深般若波羅蜜多時', '照見五蘊皆空', '度一切苦厄', '心無罣礙', '無有恐怖'];
+  lines.forEach((t, i) => {
+    const p = textPlane(t, 3.0, { vertical: true, bg: '#efe4c8', fg: '#2a1a10', size: 96, weight: 600 });
+    p.position.set(1.9 - i * 0.62, B + 2.4, zBack + 0.06);
+    g.add(p);
+  });
+  g.add(
+    box(4.4, 0.12, 0.1, mat.wood)
+      .translateY(B + 4.0)
+      .translateZ(zBack + 0.08),
+  );
+  g.add(
+    box(4.4, 0.12, 0.1, mat.wood)
+      .translateY(B + 0.85)
+      .translateZ(zBack + 0.08),
+  );
+  // 兩側書架
+  const bookM = [0x7b161b, 0x24484a, 0x3b2414, 0xc9a25a, 0x2b3a5c].map(
+    (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }),
+  );
+  for (const s of [-1, 1]) {
+    const shelf = new THREE.Group();
+    shelf.add(box(0.4, 3.2, 1.8, mat.wood).translateY(1.6));
+    for (let r = 0; r < 4; r++)
+      for (let k = 0; k < 7; k++) {
+        const bk = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.55, 0.16), bookM[(r * 7 + k) % bookM.length]);
+        bk.position.set(0.25, 0.55 + r * 0.75, -0.75 + k * 0.24);
+        shelf.add(bk);
+      }
+    shelf.position.set(s * (W / 2 - 0.55), B, zBack + 2.2);
+    shelf.rotation.y = s > 0 ? Math.PI : 0;
+    g.add(shelf);
+  }
+  const tz = zBack + 2.4;
+  const desk = new THREE.Group();
+  desk.add(shadow(box(2.6, 0.12, 1.1, mat.wood)).translateY(0.55));
+  for (const [dx, dz] of [
+    [-1.15, -0.45],
+    [1.15, -0.45],
+    [-1.15, 0.45],
+    [1.15, 0.45],
+  ])
+    desk.add(box(0.1, 0.5, 0.1, mat.wood).translateX(dx).translateY(0.25).translateZ(dz));
+  const paper = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.9, 0.6),
+    new THREE.MeshStandardMaterial({ color: 0xf6efdc, roughness: 0.9 }),
+  );
+  paper.rotation.x = -Math.PI / 2;
+  paper.position.set(0, 0.62, 0.05);
+  const ink = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.05, 0.2),
+    new THREE.MeshStandardMaterial({ color: 0x15151a, roughness: 0.3 }),
+  );
+  ink.position.set(0.8, 0.64, -0.1);
+  const brush = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.012, 0.018, 0.4, 6),
+    new THREE.MeshStandardMaterial({ color: 0x8a5a2a }),
+  );
+  brush.rotation.z = Math.PI / 2;
+  brush.position.set(0.55, 0.64, 0.25);
+  desk.add(paper, ink, brush);
+  const flames = [];
+  for (const s of [-1, 1]) {
+    desk.add(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.04, 0.24, 10),
+        new THREE.MeshStandardMaterial({ color: 0xc21f1a }),
+      )
+        .translateX(s * 1.05)
+        .translateY(0.73)
+        .translateZ(-0.3),
+    );
+    const f = glow(0xffb050, 0.35, 0.95);
+    f.position.set(s * 1.05, 0.92, -0.3);
+    desk.add(f);
+    flames.push(f);
+  }
+  desk.position.set(0, B, tz - 0.6);
+  desk.traverse((n) => {
+    n.userData.room = 'sutra';
+  });
+  g.add(desk);
+  g.add(
+    shadow(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(0.4, 0.44, 0.14, 24),
+        new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.85 }),
+      ),
+    )
+      .translateY(B + 0.07)
+      .translateZ(tz + 0.4),
+  );
+  return { god: desk, tz, cz: tz + 1.75, cushionsLocal: [], flames };
+}
+
 /**
  * @param {{ scene: THREE.Scene, mat: any, x: number, z: number, rot: number,
  *   shadow: (m: THREE.Object3D, cast?: boolean, recv?: boolean) => THREE.Object3D,
@@ -416,213 +701,221 @@ export function createShrine(o) {
 
   // ---------- 殿內 ----------
   const zBack = -D + 0.15;
-  // 屏風
-  // 屏風比例 1.6:1（AI 生成的屏風圖就是這個比例）；殿大屏風跟著大，但不頂到天花
-  const sh2 = Math.min(H - 0.9, 4.7);
-  const sw = Math.min(W - 3.2, sh2 * 1.6);
-  const sh = sw / 1.6;
-  const scr = new THREE.Mesh(
-    new THREE.PlaneGeometry(sw, sh),
-    new THREE.MeshStandardMaterial({ map: screenTex(), roughness: 0.5 }),
-  );
-  scr.position.set(0, B + 0.3 + sh / 2, zBack + 0.05);
-  g.add(scr);
-  // 有 AI 畫好的屏風圖就換上；載不到就留著 canvas 畫的
-  if (o.screen)
-    new THREE.TextureLoader().load(o.screen, (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = 4;
-      scr.material.map = tex;
-      scr.material.needsUpdate = true;
-    });
-  g.add(
-    box(sw + 0.3, 0.18, 0.12, mat.gold)
-      .translateY(B + 0.4 + sh)
-      .translateZ(zBack + 0.08),
-  );
-  // 兩側直聯
-  for (const [cx, txt] of [
-    [-(sw / 2 + 0.55), inner[0]],
-    [sw / 2 + 0.55, inner[1]],
-  ]) {
-    const c = textPlane(txt, 2.2, {
-      vertical: true,
-      bg: '#5a0d12',
+  /** 月老殿／大殿：屏風、神台與坐像、供桌、蒲團、紅線架。 */
+  function furnishAltar() {
+    // 屏風
+    // 屏風比例 1.6:1（AI 生成的屏風圖就是這個比例）；殿大屏風跟著大，但不頂到天花
+    const sh2 = Math.min(H - 0.9, 4.7);
+    const sw = Math.min(W - 3.2, sh2 * 1.6);
+    const sh = sw / 1.6;
+    const scr = new THREE.Mesh(
+      new THREE.PlaneGeometry(sw, sh),
+      new THREE.MeshStandardMaterial({ map: screenTex(), roughness: 0.5 }),
+    );
+    scr.position.set(0, B + 0.3 + sh / 2, zBack + 0.05);
+    g.add(scr);
+    // 有 AI 畫好的屏風圖就換上；載不到就留著 canvas 畫的
+    if (o.screen)
+      new THREE.TextureLoader().load(o.screen, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 4;
+        scr.material.map = tex;
+        scr.material.needsUpdate = true;
+      });
+    g.add(
+      box(sw + 0.3, 0.18, 0.12, mat.gold)
+        .translateY(B + 0.4 + sh)
+        .translateZ(zBack + 0.08),
+    );
+    // 兩側直聯
+    for (const [cx, txt] of [
+      [-(sw / 2 + 0.55), inner[0]],
+      [sw / 2 + 0.55, inner[1]],
+    ]) {
+      const c = textPlane(txt, 2.2, {
+        vertical: true,
+        bg: '#5a0d12',
+        fg: '#f3d691',
+        border: '#b88a3c',
+        size: 110,
+        weight: 700,
+      });
+      c.position.set(cx, B + 2.3, zBack + 0.06);
+      g.add(c);
+    }
+    // 神台與坐像
+    g.add(
+      box(3.4, 0.9, 1.7, mat.red)
+        .translateY(B + 0.45)
+        .translateZ(zBack + 1.05),
+    );
+    g.add(
+      box(3.6, 0.1, 1.9, mat.gold)
+        .translateY(B + 0.92)
+        .translateZ(zBack + 1.05),
+    );
+    const god = statue(mat, !!o.gold);
+    god.position.set(0, B + 0.97, zBack + 1.1);
+    god.scale.setScalar(o.statueScale ?? 1.05);
+    // 有 AI 生成的神像模型（GLB）就換上：量好高度、底部貼齊神台、置中；載不到就留著拼出來的像
+    if (o.model)
+      new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(o.model, (gltf) => {
+        const m = gltf.scene;
+        m.rotation.y = o.modelRotY ?? 0; // 模型原本面向哪邊不一定，轉到朝殿門
+        m.updateMatrixWorld(true);
+        const bb = new THREE.Box3().setFromObject(m);
+        const size = bb.getSize(new THREE.Vector3());
+        const k = 2.9 / (size.y || 1);
+        m.scale.setScalar(k);
+        const c = bb.getCenter(new THREE.Vector3());
+        m.position.set(-c.x * k, -bb.min.y * k, -c.z * k);
+        m.traverse((n) => {
+          n.userData.room = god.userData.room;
+          if (!n.isMesh) return;
+          n.castShadow = true;
+          // 大殿的是鎏金像：同一個模型，表面改成金屬金（保留原本的貼圖明暗）
+          if (o.gold && n.material) {
+            n.material = n.material.clone();
+            n.material.color = new THREE.Color(0xffcf6a);
+            n.material.metalness = 0.75;
+            n.material.roughness = 0.35;
+          }
+        });
+        while (god.children.length) god.remove(god.children[0]);
+        god.add(m);
+      });
+    g.add(god);
+    // 供桌
+    const tz = zBack + 2.75;
+    g.add(
+      box(3.8, 0.12, 1.1, mat.wood)
+        .translateY(B + 1.0)
+        .translateZ(tz),
+    );
+    g.add(
+      box(3.6, 0.85, 1.0, mat.red)
+        .translateY(B + 0.5)
+        .translateZ(tz),
+    );
+    // 桌圍：紅底金字
+    const apron = textPlane(o.apron ?? '有求必應', 0.55, {
+      bg: '#8a1a1a',
       fg: '#f3d691',
-      border: '#b88a3c',
       size: 110,
       weight: 700,
     });
-    c.position.set(cx, B + 2.3, zBack + 0.06);
-    g.add(c);
-  }
-  // 神台與坐像
-  g.add(
-    box(3.4, 0.9, 1.7, mat.red)
-      .translateY(B + 0.45)
-      .translateZ(zBack + 1.05),
-  );
-  g.add(
-    box(3.6, 0.1, 1.9, mat.gold)
-      .translateY(B + 0.92)
-      .translateZ(zBack + 1.05),
-  );
-  const god = statue(mat, !!o.gold);
-  god.position.set(0, B + 0.97, zBack + 1.1);
-  god.scale.setScalar(o.statueScale ?? 1.05);
-  // 有 AI 生成的神像模型（GLB）就換上：量好高度、底部貼齊神台、置中；載不到就留著拼出來的像
-  if (o.model)
-    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(o.model, (gltf) => {
-      const m = gltf.scene;
-      m.rotation.y = o.modelRotY ?? 0; // 模型原本面向哪邊不一定，轉到朝殿門
-      m.updateMatrixWorld(true);
-      const bb = new THREE.Box3().setFromObject(m);
-      const size = bb.getSize(new THREE.Vector3());
-      const k = 2.9 / (size.y || 1);
-      m.scale.setScalar(k);
-      const c = bb.getCenter(new THREE.Vector3());
-      m.position.set(-c.x * k, -bb.min.y * k, -c.z * k);
-      m.traverse((n) => {
-        n.userData.room = god.userData.room;
-        if (!n.isMesh) return;
-        n.castShadow = true;
-        // 大殿的是鎏金像：同一個模型，表面改成金屬金（保留原本的貼圖明暗）
-        if (o.gold && n.material) {
-          n.material = n.material.clone();
-          n.material.color = new THREE.Color(0xffcf6a);
-          n.material.metalness = 0.75;
-          n.material.roughness = 0.35;
-        }
-      });
-      while (god.children.length) god.remove(god.children[0]);
-      god.add(m);
-    });
-  g.add(god);
-  // 供桌
-  const tz = zBack + 2.75;
-  g.add(
-    box(3.8, 0.12, 1.1, mat.wood)
-      .translateY(B + 1.0)
-      .translateZ(tz),
-  );
-  g.add(
-    box(3.6, 0.85, 1.0, mat.red)
-      .translateY(B + 0.5)
-      .translateZ(tz),
-  );
-  // 桌圍：紅底金字
-  const apron = textPlane(o.apron ?? '有求必應', 0.55, {
-    bg: '#8a1a1a',
-    fg: '#f3d691',
-    size: 110,
-    weight: 700,
-  });
-  apron.position.set(0, B + 0.55, tz + 0.52);
-  g.add(apron);
-  // 燭台（燭火會微微亮）
-  const flames = [];
-  for (const s of [-1, 1]) {
-    g.add(
-      box(0.12, 0.35, 0.12, mat.gold)
-        .translateX(s * 1.45)
-        .translateY(B + 1.24)
-        .translateZ(tz),
-    );
-    const candle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, 0.32, 10),
-      new THREE.MeshStandardMaterial({ color: 0xc21f1a }),
-    );
-    candle.position.set(s * 1.45, B + 1.57, tz);
-    g.add(candle);
-    const f = glow(0xffb050, 0.45, 0.95);
-    f.position.set(s * 1.45, B + 1.82, tz);
-    g.add(f);
-    flames.push(f);
-  }
-  // 供果
-  const fruitM = new THREE.MeshStandardMaterial({ color: 0xe0802a, roughness: 0.5 });
-  for (const s of [-1, 1]) {
-    const plate = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.28, 0.22, 0.05, 18),
-      new THREE.MeshStandardMaterial({ color: 0xf2efe6 }),
-    );
-    plate.position.set(s * 0.8, B + 1.09, tz);
-    g.add(plate);
-    for (const [ox, oy, oz] of [
-      [-0.09, 0, -0.06],
-      [0.09, 0, -0.06],
-      [0, 0, 0.09],
-      [0, 0.13, 0],
-    ]) {
-      const f = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), fruitM);
-      f.position.set(s * 0.8 + ox, B + 1.2 + oy, tz + oz);
+    apron.position.set(0, B + 0.55, tz + 0.52);
+    g.add(apron);
+    // 燭台（燭火會微微亮）
+    const flames = [];
+    for (const s of [-1, 1]) {
+      g.add(
+        box(0.12, 0.35, 0.12, mat.gold)
+          .translateX(s * 1.45)
+          .translateY(B + 1.24)
+          .translateZ(tz),
+      );
+      const candle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.06, 0.32, 10),
+        new THREE.MeshStandardMaterial({ color: 0xc21f1a }),
+      );
+      candle.position.set(s * 1.45, B + 1.57, tz);
+      g.add(candle);
+      const f = glow(0xffb050, 0.45, 0.95);
+      f.position.set(s * 1.45, B + 1.82, tz);
       g.add(f);
+      flames.push(f);
     }
-  }
-  // 小香爐
-  const bowl = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.2, 18), mat.bronze));
-  bowl.position.set(0, B + 1.16, tz);
-  g.add(bowl);
-  for (const ox of [-0.06, 0, 0.06]) {
-    const stick = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.008, 0.008, 0.45, 5),
-      new THREE.MeshBasicMaterial({ color: 0x8a6a48 }),
+    // 供果
+    const fruitM = new THREE.MeshStandardMaterial({ color: 0xe0802a, roughness: 0.5 });
+    for (const s of [-1, 1]) {
+      const plate = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28, 0.22, 0.05, 18),
+        new THREE.MeshStandardMaterial({ color: 0xf2efe6 }),
+      );
+      plate.position.set(s * 0.8, B + 1.09, tz);
+      g.add(plate);
+      for (const [ox, oy, oz] of [
+        [-0.09, 0, -0.06],
+        [0.09, 0, -0.06],
+        [0, 0, 0.09],
+        [0, 0.13, 0],
+      ]) {
+        const f = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), fruitM);
+        f.position.set(s * 0.8 + ox, B + 1.2 + oy, tz + oz);
+        g.add(f);
+      }
+    }
+    // 小香爐
+    const bowl = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.2, 18), mat.bronze));
+    bowl.position.set(0, B + 1.16, tz);
+    g.add(bowl);
+    for (const ox of [-0.06, 0, 0.06]) {
+      const stick = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.008, 0.008, 0.45, 5),
+        new THREE.MeshBasicMaterial({ color: 0x8a6a48 }),
+      );
+      stick.position.set(ox, B + 1.45, tz);
+      g.add(stick);
+      const tip = glow(0xff5a20, 0.08, 1);
+      tip.position.set(ox, B + 1.68, tz);
+      g.add(tip);
+    }
+    // 籤筒
+    const tube = shadow(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.12, 0.38, 14),
+        new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.6 }),
+      ),
     );
-    stick.position.set(ox, B + 1.45, tz);
-    g.add(stick);
-    const tip = glow(0xff5a20, 0.08, 1);
-    tip.position.set(ox, B + 1.68, tz);
-    g.add(tip);
+    tube.position.set(1.15, B + 1.25, tz + 0.25);
+    if (o.tube !== false) g.add(tube);
+    for (let i = 0; i < (o.tube === false ? 0 : 9); i++) {
+      const s = new THREE.Mesh(
+        new THREE.BoxGeometry(0.025, 0.42, 0.006),
+        new THREE.MeshStandardMaterial({ color: 0xd9b26a }),
+      );
+      s.position.set(1.15 + rand(-0.07, 0.07), B + 1.5, tz + 0.25 + rand(-0.07, 0.07));
+      s.rotation.set(rand(-0.15, 0.15), rand(3), rand(-0.15, 0.15));
+      g.add(s);
+    }
+    // 蒲團（三個）
+    const cushionM = new THREE.MeshStandardMaterial({ color: 0x8a1f24, roughness: 0.85 });
+    const cz = tz + 1.75;
+    const cushionsLocal = [-1.4, 0, 1.4].map((cx) => {
+      const p = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.14, 24), cushionM));
+      p.position.set(cx, B + 0.07, cz);
+      g.add(p);
+      return [cx, cz];
+    });
+    // 紅線架：一排掛著的紅線與小木牌
+    const rack = new THREE.Group();
+    rack.add(box(0.1, 2, 0.1, mat.wood).translateX(-0.9).translateY(1));
+    rack.add(box(0.1, 2, 0.1, mat.wood).translateX(0.9).translateY(1));
+    rack.add(box(2.1, 0.1, 0.12, mat.wood).translateY(2));
+    const tagM = new THREE.MeshStandardMaterial({ color: 0xb02a22, roughness: 0.6 });
+    for (let i = 0; i < 6; i++) {
+      const tx = -0.75 + i * 0.3;
+      const len = rand(0.4, 0.7);
+      const th = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.01, 0.01, len, 4),
+        new THREE.MeshBasicMaterial({ color: 0xff2a2a }),
+      );
+      th.position.set(tx, 2 - len / 2, 0);
+      rack.add(
+        th,
+        new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.26, 0.03), tagM)
+          .translateX(tx)
+          .translateY(2 - len - 0.13),
+      );
+    }
+    rack.position.set(W / 2 - 1.3, B, -D + 4.2);
+    rack.rotation.y = -Math.PI / 2;
+    if (o.rack !== false) g.add(rack);
+    return { god, tz, cz, cushionsLocal, flames };
   }
-  // 籤筒
-  const tube = shadow(
-    new THREE.Mesh(
-      new THREE.CylinderGeometry(0.14, 0.12, 0.38, 14),
-      new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.6 }),
-    ),
-  );
-  tube.position.set(1.15, B + 1.25, tz + 0.25);
-  if (o.tube !== false) g.add(tube);
-  for (let i = 0; i < (o.tube === false ? 0 : 9); i++) {
-    const s = new THREE.Mesh(
-      new THREE.BoxGeometry(0.025, 0.42, 0.006),
-      new THREE.MeshStandardMaterial({ color: 0xd9b26a }),
-    );
-    s.position.set(1.15 + rand(-0.07, 0.07), B + 1.5, tz + 0.25 + rand(-0.07, 0.07));
-    s.rotation.set(rand(-0.15, 0.15), rand(3), rand(-0.15, 0.15));
-    g.add(s);
-  }
-  // 蒲團（三個）
-  const cushionM = new THREE.MeshStandardMaterial({ color: 0x8a1f24, roughness: 0.85 });
-  const cz = tz + 1.75;
-  const cushionsLocal = [-1.4, 0, 1.4].map((cx) => {
-    const p = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.14, 24), cushionM));
-    p.position.set(cx, B + 0.07, cz);
-    g.add(p);
-    return [cx, cz];
-  });
-  // 紅線架：一排掛著的紅線與小木牌
-  const rack = new THREE.Group();
-  rack.add(box(0.1, 2, 0.1, mat.wood).translateX(-0.9).translateY(1));
-  rack.add(box(0.1, 2, 0.1, mat.wood).translateX(0.9).translateY(1));
-  rack.add(box(2.1, 0.1, 0.12, mat.wood).translateY(2));
-  const tagM = new THREE.MeshStandardMaterial({ color: 0xb02a22, roughness: 0.6 });
-  for (let i = 0; i < 6; i++) {
-    const tx = -0.75 + i * 0.3;
-    const len = rand(0.4, 0.7);
-    const th = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.01, 0.01, len, 4),
-      new THREE.MeshBasicMaterial({ color: 0xff2a2a }),
-    );
-    th.position.set(tx, 2 - len / 2, 0);
-    rack.add(
-      th,
-      new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.26, 0.03), tagM).translateX(tx).translateY(2 - len - 0.13),
-    );
-  }
-  rack.position.set(W / 2 - 1.3, B, -D + 4.2);
-  rack.rotation.y = -Math.PI / 2;
-  if (o.rack !== false) g.add(rack);
+  const furnish = o.kind === 'tarot' ? furnishTarot : o.kind === 'sutra' ? furnishSutra : furnishAltar;
+  const { god, tz, cz, cushionsLocal, flames } = furnish({ g, mat, box, shadow, B, W, D, H, zBack, o });
 
   g.position.set(x, 0, z);
   g.rotation.y = rot;
@@ -646,7 +939,7 @@ export function createShrine(o) {
     [-W / 2 - 0.4, -W / 2 + 0.35, -D, 0.3],
     [W / 2 - 0.35, W / 2 + 0.4, -D, 0.3],
     [-2.05, 2.05, -D, tz + 0.7],
-    [W / 2 - 1.6, W / 2 - 0.3, -D + 3, -D + 5.4],
+    ...(o.kind ? [] : [[W / 2 - 1.6, W / 2 - 0.3, -D + 3, -D + 5.4]]),
   ];
   // 殿內要亮：一盞大的暖光照全殿，一盞打在神像臉上
   // 不交給 warm()：那些燈白天會調暗，殿內白天也要亮

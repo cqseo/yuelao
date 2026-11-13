@@ -490,12 +490,29 @@ export function createWorld(renderer, lowQuality) {
     { x: 19, z: 13, sign: '茶館', banner: '清茶細點' },
   ];
   let shrine = null; // 可以直接走進去的月老殿
+  const extraShrines = []; // 塔羅館、抄經閣等其他走得進去的鋪子
   for (const s of ring) {
     const r = s.room ? room[s.room] : null;
     const len = Math.hypot(s.x, s.z);
-    if (s.room === 'yuelao') {
-      // 月老殿改成開敞的殿：走進去就到神前，不用進門轉場（參考心安宮）
-      shrine = createShrine({
+    // 2026-11-13：開張的鋪子都改成正面敞開、走得進去的殿（參考心安宮）
+    const OPEN_SHOPS = {
+      yuelao: { screen: '/market/screen-yuelao.webp', prompt: '求籤' },
+      tarot: {
+        kind: 'tarot',
+        plaque: '塔羅館',
+        outer: ['三張牌陣', '看見此刻'],
+        prompt: '抽牌',
+      },
+      sutra: {
+        kind: 'sutra',
+        plaque: '抄經閣',
+        outer: ['一日一箋', '心安即是'],
+        prompt: '抄經',
+      },
+    };
+    const open = s.room && OPEN_SHOPS[s.room];
+    if (open && r?.open) {
+      const sh = createShrine({
         scene,
         mat,
         x: s.x,
@@ -503,20 +520,23 @@ export function createWorld(renderer, lowQuality) {
         rot: Math.atan2(-s.x, -s.z),
         shadow,
         warm,
-        screen: '/market/screen-yuelao.webp',
+        ...open,
       });
-      shrine.pick.traverse((o) => {
-        o.userData.room = 'yuelao';
+      if (s.room === 'yuelao') shrine = sh;
+      else extraShrines.push(sh);
+      sh.pick.traverse((o) => {
+        o.userData.room = s.room;
       });
       Object.assign(r, {
         inside: true,
-        stand: shrine.stand,
-        entry: shrine.entry,
-        door: shrine.door,
-        label: shrine.label,
-        doorMesh: shrine.pick,
-        fx: shrine.fx,
-        fz: shrine.fz,
+        promptText: open.prompt,
+        stand: sh.stand,
+        entry: sh.entry,
+        door: sh.door,
+        label: sh.label,
+        doorMesh: sh.pick,
+        fx: sh.fx,
+        fz: sh.fz,
       });
       continue;
     }
@@ -1012,7 +1032,7 @@ export function createWorld(renderer, lowQuality) {
   ];
   const blocks = []; // 大殿改成走得進去的殿，牆與神台由 hallShrine 自己擋
   function walkable(x, z) {
-    for (const sh of [shrine, hallShrine]) if (sh?.inside(x, z)) return !sh.blocked(x, z);
+    for (const sh of [shrine, hallShrine, ...extraShrines]) if (sh?.inside(x, z)) return !sh.blocked(x, z);
     const inPlaza = x * x + z * z < PLAZA_R * PLAZA_R;
     if (!inPlaza && !rects.some(([a, b, c, d]) => x >= a && x <= b && z >= c && z <= d)) return false;
     if (circles.some(([cx, cz, r]) => (x - cx) ** 2 + (z - cz) ** 2 < r * r)) return false;
@@ -1127,7 +1147,7 @@ export function createWorld(renderer, lowQuality) {
     },
     /** 地面高度：殿的台基、蒲團（跪著時）比廣場地面高。 */
     groundY(x, z, kneeling) {
-      for (const sh of [shrine, hallShrine]) {
+      for (const sh of [shrine, hallShrine, ...extraShrines]) {
         const y = sh?.floorY(x, z, kneeling);
         if (y != null) return y;
       }
@@ -1204,6 +1224,7 @@ export function createWorld(renderer, lowQuality) {
     update(dt, t, pos) {
       shrine?.update(dt);
       hallShrine?.update(dt);
+      for (const sh of extraShrines) sh.update(dt);
       sky.material.uniforms.uT.value = t;
       sky.position.copy(pos);
       if (!lowQuality) {
