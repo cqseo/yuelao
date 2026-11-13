@@ -1497,3 +1497,44 @@
   font-size: 0.82rem;
   color: var(--paper-50);
 }
+
+/* 判詞下方直接接「解鎖完整解籤」（2026-11-13，不另開一頁） */
+.mk .unlock {
+  width: min(24rem, calc(100vw - 2.5rem));
+  margin-top: 0.5rem;
+  padding: 1.4rem 1.2rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(220, 187, 124, 0.06);
+  text-align: center;
+}
+.mk .unlock h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.4rem;
+  letter-spacing: 0.14em;
+  color: var(--paper);
+}
+.mk .unlock .deep-teaser {
+  text-align: left;
+}
+.mk .unlock-note {
+  margin: 0.6rem 0 1rem;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--paper-70);
+}
+.mk .unlock .offer {
+  width: 100%;
+}
+.mk .unlock .deep-list {
+  text-align: left;
+}
+.mk .unlock .offer {
+  border: none;
+  background: linear-gradient(#e6c97a, #c9a24a);
+  color: #1d1408;
+  box-shadow: 0 8px 24px rgba(201, 162, 74, 0.25);
+}
+.mk .unlock .offer:hover {
+  background: linear-gradient(#efd58a, #d2ad55);
+}

@@ -505,10 +505,32 @@ export function createYuelao(ui) {
         <blockquote>${x.love}</blockquote>
       </section>`;
   }
+  // 依「現在的情況」開頭，讓開頭那一段讀起來就是在說你（參考占了麼）
+  const SIT_LEAD = {
+    single: '你還在等待對象，這支籤提醒的是：',
+    crush: '你們還在曖昧，這支籤想讓你先看清楚：',
+    dating: '你們正在交往，這支籤要說的是：',
+    reunion: '你們已經分開，這支籤對複合的看法是：',
+    married: '你們正談婚論嫁，這支籤提醒的是：',
+  };
+  /** 判詞下方直接接「解鎖完整解籤」：開頭一段漸淡、付款按鈕、七段目錄。 */
+  function unlockBlock() {
+    if (!ui.deep?.price) return '';
+    const x = STICK_PLAIN[stick.id];
+    const teaser = `${SIT_LEAD[sit] || ''}${x ? x.love : ''}${stick.verdict[cat]}`;
+    return `<section class="unlock" id="unlock">
+        <h3>解鎖完整解籤</h3>
+        <p class="deep-teaser">${esc(teaser)}</p>
+        <p class="unlock-note">這一段還沒說完。解鎖之後它會完整，另外六段只寫你問的那件事。</p>
+        <button class="offer" id="deep-btn" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>
+        <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
+        <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
+      </section>`;
+  }
   function verdict() {
     state = 'verdict';
     ui.panel('');
-    say('判詞寫好了，拿去看。還有想問的，就開口。');
+    say('判詞寫好了，拿去看。往下還有白話和完整解籤。');
     const c = CATS.find((x) => x.key === cat);
     ui.card(
       `<div class="paper">
@@ -523,14 +545,18 @@ export function createYuelao(ui) {
          <span class="p-seal">月老已批</span>
        </div>
        ${explainBlock()}
-       <div class="card-actions"><button class="seal" data-a="again">再求一支</button><button class="ghost" data-a="leave">回到廣場</button></div>
-       ${ui.deep?.price ? `<button class="offer" id="deep-btn" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>` : ''}
-       <div class="card-links"><button class="ghost" data-a="ask">問月老</button><a class="ghost" href="/sign/${stick.id}">這支籤的籤頁</a></div>`,
+       ${unlockBlock()}
+       <div class="card-actions"><button class="seal" data-a="again">再求一支</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (a) => {
         ui.card('');
-        if (a === 'ask') showAsk();
-        else if (a === 'deep') openDeep();
-        else if (a === 'leave') ui.leave();
+        if (a === 'deep') {
+          // 已經解鎖過就直接看／動筆；沒有就直接去付款（說明都在判詞下方，不另開一頁）
+          if (deepState && deepState.state !== 'none') openDeep();
+          else {
+            state = 'deep';
+            void pay();
+          }
+        } else if (a === 'leave') ui.leave();
         else showPick();
       },
     );
@@ -565,7 +591,12 @@ export function createYuelao(ui) {
     state = 'deep';
     if (deepState?.state === 'ready') return showDeep(deepState.body);
     if (deepState?.state === 'unlocked') return startGenerate(draftQ);
-    showOffer();
+    // 還沒解鎖：回到判詞，捲到下方的「解鎖完整解籤」
+    verdict();
+    setTimeout(
+      () => document.getElementById('unlock')?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+      80,
+    );
   }
 
   // 完整解籤的七段（和伺服器要月老寫的段落一一對應，改了要一起改 packages/core/src/ai-reading.ts）
@@ -578,39 +609,6 @@ export function createYuelao(ui) {
     ['三天內可以做的一步', '一件小到今天就能開始的事'],
     ['留給你的一句話', '月老最後想對你說的'],
   ];
-  /** 付款前：先讓人讀到開頭一段，再說清楚完整解籤寫了什麼。沒有勾選框。 */
-  function showOffer(note = '') {
-    state = 'deep';
-    say('這支籤還有話沒說完。我替你細細批一份，只寫你問的那件事。');
-    const x = STICK_PLAIN[stick.id];
-    const teaser = `${x ? x.love : ''}${stick.verdict[cat]}`;
-    ui.panel(
-      `<p class="kicker">${stick.no}　${stick.grade}</p>
-       <h2>解鎖完整解籤</h2>
-       ${draftQ ? `<div class="deep-asked"><span>你問的是</span><p>「${esc(draftQ)}」</p><small>${sitWord()}</small></div>` : ''}
-       <p class="deep-teaser">${esc(teaser)}</p>
-       <p class="note">這一段還沒說完。解鎖之後它會完整，另外六段只寫你問的那件事；寫好就在這裡看，也會存在「我的」。</p>
-       ${
-         draftQ
-           ? ''
-           : `<label class="deep-q"><span>想問的事（選填，100 字內）</span>
-         <textarea id="deep-q" maxlength="${Q_MAX}" rows="3" placeholder="例：我和他還有機會嗎">${esc(draftQ)}</textarea></label>`
-       }
-       ${note ? `<p class="note" role="status">${note}</p>` : ''}
-       <button class="seal" data-a="pay">解鎖完整解籤　${ui.deep.price}</button>
-       <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
-       <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
-       ${backToCard}`,
-      (a) => {
-        if (a === 'card') return verdict();
-        if (a === 'pay') void pay();
-      },
-      true,
-    );
-    const q = document.getElementById('deep-q');
-    if (q) q.oninput = () => (draftQ = [...q.value].slice(0, Q_MAX).join(''));
-  }
-
   async function pay() {
     say('稍等，我看看簿子。');
     ui.panel(`<p class="note" role="status">正在準備付款</p>`);
@@ -733,80 +731,8 @@ export function createYuelao(ui) {
     }
   }
 
-  // 追問月老：免費的引導式回答；AI 即時對話開放且已登入、勾選同意時才走 AI。
-  const asked = [];
-  function showAsk(chips = ui.askStarters()) {
-    state = 'ask';
-    const ai = ui.aiStatus();
-    ui.panel(
-      `<p class="kicker">問月老</p>
-       <div class="ask-log" id="ask-log"></div>
-       <div class="chips" id="ask-chips"></div>
-       ${
-         ai.available
-           ? `<label class="ask-ai"><input type="checkbox" id="ask-ai" /><span>讓月老即時回答你的話。我同意將本次訊息與最近 6 條對話送至第三方服務生成回應；原文不存入本站資料庫。</span></label>`
-           : ''
-       }
-       <form class="ask" id="ask-form"><input id="ask-input" maxlength="200" autocomplete="off" placeholder="把想問的寫下來" aria-label="想問月老的事" /><button class="seal" type="submit">問</button></form>
-       <button class="ghost" data-a="card">${stick ? '回到判詞' : '求一支籤'}</button>`,
-      (a) => a === 'card' && (stick ? verdict() : showPick()),
-      true,
-    );
-    const log = document.getElementById('ask-log');
-    const chipBox = document.getElementById('ask-chips');
-    const input = document.getElementById('ask-input');
-    const line = (who, text) => {
-      const p = document.createElement('p');
-      p.className = who;
-      p.textContent = text; // 使用者輸入只當純文字放進畫面
-      log.appendChild(p);
-      log.scrollTop = log.scrollHeight;
-    };
-    for (const m of asked.slice(-6)) line(m.who, m.text);
-    if (!asked.length) line('npc', '說吧，我聽著。');
-    const setChips = (list) => {
-      chipBox.textContent = '';
-      for (const text of list.slice(0, 3)) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = text;
-        b.onclick = () => send(text);
-        chipBox.appendChild(b);
-      }
-    };
-    setChips(chips);
-    let busy = false;
-    async function send(raw) {
-      const text = raw.trim().slice(0, 200);
-      if (!text || busy) return;
-      busy = true;
-      input.value = '';
-      line('me', text);
-      asked.push({ who: 'me', text });
-      npc.talk();
-      let reply;
-      try {
-        reply = await ui.ask(text, { ai: !!document.getElementById('ask-ai')?.checked });
-      } catch {
-        reply = { text: '我這會兒聽不清楚，等一下再問一次。', followups: [] };
-      }
-      busy = false;
-      if (state !== 'ask') return;
-      npc.talk();
-      line('npc', reply.text);
-      asked.push({ who: 'npc', text: reply.text });
-      setChips(reply.followups || []);
-    }
-    document.getElementById('ask-form').onsubmit = (e) => {
-      e.preventDefault();
-      send(input.value);
-    };
-  }
-
   const hall = {
     id: 'yuelao',
-    /** 進門後要直接做的事：'ask'＝打開問月老（main.js 依網址 #ask 設定）。 */
-    intent: null,
     title: '月老殿',
     scene,
     camera,
@@ -846,13 +772,6 @@ export function createYuelao(ui) {
           return;
         }
         say('你回來了。這支籤還在。');
-        return;
-      }
-      // 從頂欄「問月老」直接來（/market#ask）：先開口問，不必先求籤
-      if (hall.intent === 'ask') {
-        hall.intent = null;
-        showAsk();
-        say('坐。想問什麼，直說。');
         return;
       }
       showPick();
