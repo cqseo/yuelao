@@ -304,7 +304,7 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
       .translateY(B / 2)
       .translateZ(-D / 2 + 0.6),
   );
-  const floorM = new THREE.MeshStandardMaterial({ color: 0x9a8f80, roughness: 0.85, map: mat.stone.map });
+  const floorM = new THREE.MeshStandardMaterial({ color: 0xd8cdb8, roughness: 0.85, map: mat.stone.map });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.4, D - 0.3), floorM);
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(0, B + 0.005, -D / 2);
@@ -390,11 +390,12 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
   g.add(plaque);
   // 正面兩根柱子上的對聯（朝外）
   for (const [cx, txt] of [
-    [-1.7, '願天下有情人'],
-    [1.7, '都成了眷屬'],
+    [-W / 2 + 0.3, '願天下有情人'],
+    [W / 2 - 0.3, '都成了眷屬'],
   ]) {
-    const c = textPlane(txt, 2.6, { vertical: true, bg: '#7b161b', fg: '#f6e4b6', size: 100, weight: 700 });
-    c.position.set(cx, B + 2.1, 0.39);
+    // 對聯貼在最外側兩根柱子上，別擋住看進殿裡的視線
+    const c = textPlane(txt, 2.3, { vertical: true, bg: '#7b161b', fg: '#f6e4b6', size: 100, weight: 700 });
+    c.position.set(cx, B + 2.0, 0.4);
     g.add(c);
   }
 
@@ -441,7 +442,7 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
   );
   const god = statue(mat);
   god.position.set(0, B + 0.97, zBack + 1.1);
-  god.scale.setScalar(0.92);
+  god.scale.setScalar(1.05);
   g.add(god);
   // 供桌
   const tz = zBack + 2.75;
@@ -588,8 +589,17 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
     [-2.05, 2.05, -D, tz + 0.7],
     [W / 2 - 1.6, W / 2 - 0.3, -D + 3, -D + 5.4],
   ];
-  warm(...toWorld(0, 3.4, -D / 2).toArray(), 26, 11, 0xffb070);
-  warm(...toWorld(0, 2.0, tz + 0.4).toArray(), 10, 5, 0xffa040);
+  // 殿內要亮：一盞大的暖光照全殿，一盞打在神像臉上
+  // 不交給 warm()：那些燈白天會調暗，殿內白天也要亮
+  for (const [lx, ly, lz, i, d, c] of [
+    [0, 3.6, -D / 2 + 1, 60, 14, 0xffd8b0],
+    [0, 3.2, tz + 1.6, 26, 7, 0xffe6c8],
+  ]) {
+    const l = new THREE.PointLight(c, i, d, 1.6);
+    l.position.copy(toWorld(lx, ly, lz));
+    scene.add(l);
+  }
+  void warm;
 
   let t = 0;
   return {
@@ -603,7 +613,7 @@ export function createShrine({ scene, mat, x, z, rot, shadow, warm }) {
       return blocks.some(([a, b, c, d]) => lx >= a && lx <= b && lz >= c && lz <= d);
     },
     /** 供桌前站的位置（「求籤」）、面向的神像、匾額標籤的位置。 */
-    stand: toWorld(0, 1.65, cz),
+    stand: toWorld(0, 1.65, cz - 0.85),
     /** 殿門口外面一點：走進殿要先到這裡，免得穿牆。 */
     entry: toWorld(0, 0, 3),
     door: toWorld(0, 1.8, zBack + 1.1),
