@@ -8,14 +8,28 @@
   "observability": { "enabled": true },
   "upload_source_maps": true,
   // 大殿同拜：一間殿一個 Durable Object（只同步位置與動作，不存資料）。
-  "durable_objects": { "bindings": [{ "name": "HALL", "class_name": "HallRoom" }] },
-  "migrations": [{ "tag": "v1-hall", "new_sqlite_classes": ["HallRoom"] }],
+  // 廣場同遊：一個廣場分身一個 Durable Object（同樣只同步位置、姿勢與動作）。
+  "durable_objects": {
+    "bindings": [
+      { "name": "HALL", "class_name": "HallRoom" },
+      { "name": "PLAZA", "class_name": "PlazaRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1-hall", "new_sqlite_classes": ["HallRoom"] },
+    { "tag": "v2-plaza", "new_sqlite_classes": ["PlazaRoom"] }
+  ],
   // Staging creates a separate Worker, with no live DB, API keys or payment secrets.
   "env": {
     "staging": {
       "name": "yuelao-v2-staging-20261109",
       "workers_dev": true,
-      "durable_objects": { "bindings": [{ "name": "HALL", "class_name": "HallRoom" }] },
+      "durable_objects": {
+        "bindings": [
+          { "name": "HALL", "class_name": "HallRoom" },
+          { "name": "PLAZA", "class_name": "PlazaRoom" }
+        ]
+      },
       "vars": {
         "SITE_STAGING": "true",
         "APP_URL": "https://yuelao-v2-staging-20261109.cqseo.workers.dev",

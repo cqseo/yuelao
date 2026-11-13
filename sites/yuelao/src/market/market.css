@@ -346,6 +346,18 @@
   color: var(--paper-50);
 }
 
+/* 廣場上此刻有幾個真人 */
+.mk #online {
+  margin-left: 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.mk #online:empty {
+  display: none;
+}
+
 /* 互動／動作：左下、右下兩顆圓鈕（參考心安宮），點開是一張小選單 */
 .mk .orb {
   position: fixed;

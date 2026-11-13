@@ -9,6 +9,7 @@ import { createCrowd } from './crowd.js';
 import { createHall } from './hall.js';
 import { createInteract } from './interact.js';
 import { createKoi } from './koi.js';
+import { createPlazaNet } from './plaza-net.js';
 import { createPool } from './pool.js';
 import { createSutra } from './sutra.js';
 import { createTarot } from './tarot.js';
@@ -107,7 +108,10 @@ export function startMarket(root, opts = {}) {
   let avatar;
   let crowd;
   let koi;
+  let net; // 廣場同遊
+  let crowdBase = 0;
   let inter = null; // 左下互動、右下動作
+  let seenOthers = false;
   let third = true; // third-person view (you see your own character); V or the 視角 button switches
   let tp = 0; // 0 = first person, 1 = third person; eased so the switch glides
   let wardrobe = false;
@@ -176,8 +180,30 @@ export function startMarket(root, opts = {}) {
     skyLabel();
     avatar = createAvatar(coarse);
     world.scene.add(avatar.root);
-    crowd = createCrowd(world, coarse ? 6 : 12);
+    crowdBase = coarse ? 6 : 12;
+    crowd = createCrowd(world, crowdBase);
     koi = createKoi(world.scene);
+    const onlineEl = document.createElement('span');
+    onlineEl.id = 'online';
+    $('#hud-title').after(onlineEl);
+    net = createPlazaNet({
+      scene: world.scene,
+      coarse,
+      look: () => ({ outfit: avatar.state.outfit, hair: avatar.state.hair }),
+      fx: { act: remoteAct },
+      onCount(n) {
+        // 真人來了就撤掉幾個佈景路人，人一多廣場只剩真人
+        crowd.limit(Math.max(coarse ? 1 : 2, crowdBase - Math.max(0, n - 1) * 2));
+        onlineEl.textContent = n > 1 ? `此刻 ${n} 人` : '';
+        if (n > 1 && !seenOthers) {
+          seenOthers = true;
+          if (mode === 'walk') {
+            ui.hint('廣場上還有別人在逛。揮個手打招呼吧（右下「動作」）');
+            setTimeout(() => mode === 'walk' && ui.hint(''), 5000);
+          }
+        }
+      },
+    });
     restoreLook();
     // 擁有的付費外觀要問過帳戶才知道；回來後再套一次上次的選擇
     shop?.owned().then((ids) => {
@@ -332,6 +358,7 @@ export function startMarket(root, opts = {}) {
     me.face = Math.atan2(world.burner.x - me.x, world.burner.z - me.z);
     avatar.bow();
     world.offerIncense(t);
+    net.act('incense');
     audio.bell(330, 0.12, 3);
     emit('market_incense');
     ui.hint('三炷清香，心意已到');
@@ -378,6 +405,7 @@ export function startMarket(root, opts = {}) {
   function standUp() {
     if (!avatar.holding) return;
     avatar.hold(null);
+    net.hold('');
     // 從池沿上站起來，往外跨一步，免得卡在池子裡
     const r = Math.hypot(me.x, me.z);
     if (r < world.pondR + 0.3) {
@@ -443,6 +471,7 @@ export function startMarket(root, opts = {}) {
         await walkTo(cx, world.burner.z + 3.4);
         await faceTo(cx, world.burner.z - 6);
         avatar.hold('kneel');
+        net.hold('kneel');
         audio.bell(262, 0.1, 4);
         ui.hint('跪下來，靜一靜。想起身就按「起身」，或直接走開。');
         setTimeout(() => ui.hint(''), 4000);
@@ -461,6 +490,7 @@ export function startMarket(root, opts = {}) {
         });
         me.face = Math.atan2(me.x, me.z);
         avatar.hold('sit');
+        net.hold('sit');
         ui.hint('在池邊歇一會兒。想起身就按「起身」，或直接走開。');
         setTimeout(() => ui.hint(''), 4000);
       });
@@ -472,6 +502,7 @@ export function startMarket(root, opts = {}) {
         avatar.emote('wave');
         await wait(0.5);
         koi.feed(me.x, me.z, clock.elapsedTime);
+        net.act('feed');
         audio.tick(880, 0.04, 0.05);
         ui.hint('撒了一把飼料，錦鯉都游過來了。');
         setTimeout(() => ui.hint(''), 3500);
@@ -489,35 +520,51 @@ export function startMarket(root, opts = {}) {
     if (!len) return;
     emit('market_emote', { kind });
     if (kind === 'bow' || kind === 'pray') audio.bell(392, 0.08, 2.5);
-    if (kind === 'heart') {
-      heartMap ??= canvasTex(128, 128, (g, w) => {
-        g.fillStyle = '#ff4f6d';
-        g.beginPath();
-        g.moveTo(w / 2, w * 0.86);
-        g.bezierCurveTo(w * 0.05, w * 0.55, w * 0.1, w * 0.12, w / 2, w * 0.3);
-        g.bezierCurveTo(w * 0.9, w * 0.12, w * 0.95, w * 0.55, w / 2, w * 0.86);
-        g.fill();
-      });
-      for (let i = 0; i < 3; i++) {
-        const s = new THREE.Sprite(
-          new THREE.SpriteMaterial({
-            map: heartMap,
-            transparent: true,
-            depthWrite: false,
-            toneMapped: false,
-          }),
-        );
-        s.scale.setScalar(0.45);
-        s.position.set(me.x + (i - 1) * 0.25, 2.2, me.z);
-        world.scene.add(s);
-        hearts.push({ s, t: -i * 0.25 });
-      }
-    }
+    net.act(kind);
+    if (kind === 'heart') spawnHearts(me.x, me.z);
     // 第一人稱看不到自己，動作時暫時切到第三人稱的效果交給鏡頭：只提示一下
     if (!third) ui.hint('切到第三人稱（右上角）就看得到自己的動作');
     const n = crowd.react(me.x, me.z, kind);
     if (n && third) setTimeout(() => mode === 'walk' && ui.hint('附近的人也回了你一個'), 1400);
     if (n || !third) setTimeout(() => mode === 'walk' && ui.hint(''), 3800);
+  }
+  /** 別人做的動作：在他的角色身上播出來。 */
+  function remoteAct(a, x, z, av) {
+    const t = clock.elapsedTime;
+    if (a === 'incense') {
+      av.emote('bow');
+      world.offerIncense(t);
+    } else if (a === 'feed') {
+      av.emote('wave');
+      koi.feed(x, z, t);
+    } else {
+      av.emote(a);
+      if (a === 'heart') spawnHearts(x, z);
+    }
+  }
+  function spawnHearts(x, z) {
+    heartMap ??= canvasTex(128, 128, (g, w) => {
+      g.fillStyle = '#ff4f6d';
+      g.beginPath();
+      g.moveTo(w / 2, w * 0.86);
+      g.bezierCurveTo(w * 0.05, w * 0.55, w * 0.1, w * 0.12, w / 2, w * 0.3);
+      g.bezierCurveTo(w * 0.9, w * 0.12, w * 0.95, w * 0.55, w / 2, w * 0.86);
+      g.fill();
+    });
+    for (let i = 0; i < 3; i++) {
+      const s = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: heartMap,
+          transparent: true,
+          depthWrite: false,
+          toneMapped: false,
+        }),
+      );
+      s.scale.setScalar(0.45);
+      s.position.set(x + (i - 1) * 0.25, 2.2, z);
+      world.scene.add(s);
+      hearts.push({ s, t: -i * 0.25 });
+    }
   }
   function updateHearts(dt) {
     for (let i = hearts.length - 1; i >= 0; i--) {
@@ -616,6 +663,7 @@ export function startMarket(root, opts = {}) {
     menu.classList.remove('show');
     mode = 'moving';
     emit('market_enter');
+    net.start();
     audio.bell(330, 0.2, 5);
     const y0 = me.y;
     tween(2.5, (k) => (me.y = y0 + (1.65 - y0) * k));
@@ -724,6 +772,7 @@ export function startMarket(root, opts = {}) {
         ease.lin,
       );
     } else fade.classList.add('on');
+    net.hold('away');
     active = rooms[r.id];
     active.from = r;
     emit('market_room_open', { room: r.id });
@@ -765,6 +814,9 @@ export function startMarket(root, opts = {}) {
     const yaw = yawTo(tx, tz);
     Object.assign(me, { x: px, z: pz, yaw, pitch: 0, y: 1.65, face: yaw + Math.PI });
     applyCam();
+    net.start();
+    net.move(me.x, me.z, me.face, clock.elapsedTime, true);
+    setTimeout(() => net.hold(''), 200);
     $('#back').hidden = true;
     mode = 'walk';
     fade.classList.remove('on');
@@ -1101,6 +1153,7 @@ export function startMarket(root, opts = {}) {
     trying = null;
     ui.panel('');
     avatar.apply({ outfit: saved.outfit || 'moon', hair: saved.hair || 'bun' });
+    net.look();
   }
   $('#view').onclick = toggleView;
   $('#look').onclick = () => (wardrobe ? closeWardrobe() : openWardrobe());
@@ -1250,6 +1303,9 @@ export function startMarket(root, opts = {}) {
         bloom.strength = world.sky.bloom;
       }
       crowd.update(dt, t);
+      net.update(dt, t);
+      if (hud.classList.contains('show') && (mode === 'walk' || mode === 'moving'))
+        net.move(me.x, me.z, me.face, t);
       koi.update(dt, t);
       updateHearts(dt);
       world.update(dt, t, world.camera.position);
@@ -1287,6 +1343,7 @@ export function startMarket(root, opts = {}) {
   });
   return () => {
     dead = true;
+    net?.stop();
     ac.abort();
     clearInterval(sayTimer);
     cancelAnimationFrame(raf);
