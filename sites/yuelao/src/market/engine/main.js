@@ -667,7 +667,10 @@ export function startMarket(root, opts = {}) {
     audio.bell(330, 0.2, 5);
     const y0 = me.y;
     tween(2.5, (k) => (me.y = y0 + (1.65 - y0) * k));
-    await walkPath([world.spawn], 4.6);
+    // 每個人進門的落腳點錯開一點，同時進來的人才不會疊在一起
+    const jx = world.spawn[0] + (Math.random() - 0.5) * 6;
+    const jz = world.spawn[1] + (Math.random() - 0.5) * 2;
+    await walkPath([[jx, jz]], 4.6);
     hud.classList.add('show');
     $('#back').hidden = true;
     mode = 'walk';
