@@ -450,6 +450,21 @@
 .mk #stick.show {
   opacity: 1;
 }
+/* 觸控：走動時搖桿固定在左下角、一直看得到（底座圈內走，推出圈外跑） */
+.mk #stick.fixed {
+  left: calc(1.25rem + env(safe-area-inset-left));
+  top: auto;
+  bottom: calc(8rem + env(safe-area-inset-bottom));
+  margin: 0;
+  opacity: 0.55;
+}
+.mk #stick.fixed.show {
+  opacity: 1;
+}
+.mk #stick.run {
+  border-color: rgba(220, 187, 124, 0.8);
+  box-shadow: 0 0 0 6px rgba(220, 187, 124, 0.12);
+}
 .mk #stick i {
   position: absolute;
   left: 50%;

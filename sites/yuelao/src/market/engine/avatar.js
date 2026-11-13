@@ -175,22 +175,29 @@ export function createAvatar(lowQuality) {
 
   let phase = 0;
   let lean = 0;
+  let bowT = 0;
   return {
     root,
     light,
     state,
     apply,
     /** speed: metres per second the walker is moving at. */
+    /** 鞠躬合十一次（上香、朝拜用），約 1.8 秒。 */
+    bow() {
+      bowT = 1.8;
+    },
     update(dt, t, speed) {
+      bowT = Math.max(0, bowT - dt);
+      const bowK = bowT > 0 ? Math.sin(((1.8 - bowT) / 1.8) * Math.PI) : 0;
       const k = Math.min(1, speed / 4.2);
       phase += dt * (5 + k * 6) * (k > 0.02 ? 1 : 0);
       lean += (k * 0.09 - lean) * Math.min(1, dt * 8);
-      body.rotation.x = lean;
+      body.rotation.x = lean + bowK * 0.5;
       body.position.y = Math.abs(Math.sin(phase)) * 0.035 * k + Math.sin(t * 1.6) * 0.004;
       skirt.rotation.z = Math.sin(phase) * 0.035 * k;
       sashTail.rotation.x = -lean * 2 + Math.sin(phase * 2) * 0.1 * k;
-      sleeves[0].rotation.x = Math.sin(phase) * 0.55 * k;
-      sleeves[1].rotation.x = -0.75 + Math.sin(phase + Math.PI) * 0.12 * k; // lantern arm held forward
+      sleeves[0].rotation.x = Math.sin(phase) * 0.55 * k - bowK * 1.1; // 鞠躬時雙手合十在胸前
+      sleeves[1].rotation.x = -0.75 + Math.sin(phase + Math.PI) * 0.12 * k - bowK * 0.35; // lantern arm held forward
       head.rotation.y = Math.sin(t * 0.5) * 0.06;
     },
   };
