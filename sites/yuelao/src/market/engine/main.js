@@ -194,6 +194,13 @@ export function startMarket(root, opts = {}) {
     mode = 'menu';
     raf = requestAnimationFrame(loop);
 
+    // #enter：從首頁按「入市」進來，不再顯示第二個入市選單，直接走進山門。
+    // 換頁後瀏覽器還不准播聲音；audio 會在第一次點擊或按鍵時自己叫醒。
+    if (location.hash === '#enter') {
+      history.replaceState(null, '', location.pathname + location.search);
+      void enterMarket();
+      return;
+    }
     // #street, #plaza, #yuelao, #tarot, #wish jump straight in (首頁的鋪子卡片也用這些)
     const h = location.hash.slice(1);
     if (h) {
