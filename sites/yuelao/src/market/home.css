@@ -200,7 +200,8 @@
 
 .mh-rooms {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 四間：寬螢幕一排四張，中等寬度兩兩一排，手機一張一排（見下方 720px） */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(1rem, 3vw, 2rem);
 }
 .mh-rooms li {
@@ -414,6 +415,11 @@
   color: var(--paper);
 }
 
+@media (max-width: 1080px) and (min-width: 721px) {
+  .mh-rooms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 @media (max-width: 720px) {
   .mh-top {
     flex-wrap: wrap;

@@ -194,19 +194,22 @@ export function startMarket(root, opts = {}) {
     mode = 'menu';
     raf = requestAnimationFrame(loop);
 
-    // #street, #plaza, #yuelao, #tarot jump straight in (used for checking the build)
+    // #street, #plaza, #yuelao, #tarot, #wish jump straight in (首頁的鋪子卡片也用這些)
     const h = location.hash.slice(1);
     if (h) {
       menu.classList.remove('show');
       hud.classList.add('show');
       Object.assign(me, {
         x: h === 'plaza' ? 9 : 0,
-        z: h === 'plaza' ? -12 : world.spawn[1],
-        pitch: 0,
+        z: h === 'plaza' ? -12 : h === 'wish' ? world.pondR + 1.3 : world.spawn[1],
+        pitch: h === 'wish' ? -0.12 : 0,
         y: 1.65,
       });
+      // 許願池：站在池邊、面向許願樹，直接打開面板
+      if (h === 'wish') me.yaw = yawTo(-me.x, -me.z);
       mode = 'walk';
       applyCam();
+      if (h === 'wish') openPool();
       if (rooms[h])
         enterRoom(
           world.rooms.find((x) => x.id === h),
