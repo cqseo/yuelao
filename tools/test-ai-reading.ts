@@ -13,7 +13,7 @@ const report = [
   '籤詩意象：這支籤的象徵，是把不確定感轉化成具體的溝通問題，不是對未來的保證。',
   '關係觀察：從對方是否尊重你們的約定、是否願意傾聽等事實出發，避免替別人的心思下定論。',
   '可以嘗試的一步：選一個平靜的時刻，以自己的感受和需求開始對話。',
-  '界線提醒：尊重他人的拒絕，也保留自己的獨立生活。此解讀是 AI 生成的文化與自我反思內容，不代表現實預測。',
+  '界線提醒：尊重他人的拒絕，也保留自己的獨立生活。籤詩解讀供自我反思，不代表現實預測。',
 ].join('\n\n');
 assert.ok(report.length > 100);
 assert.equal(parseGenerationInput({ stickId: 1, category: 'him', locale: 'zh-Hant', consent: false }), null);
@@ -64,7 +64,7 @@ const mockFetch: typeof fetch = async (url, options) => {
   const body = JSON.parse(options?.body as string);
   assert.equal(body.store, false);
   assert.equal(body.model, 'test-model');
-  assert.equal(body.max_output_tokens, 1600);
+  assert.equal(body.max_output_tokens, 2400);
   assert.equal(body.input.includes(input.question), true);
   assert.equal(typeof body.instructions, 'string');
   assert.equal(body.instructions.includes('不診斷'), true);
@@ -120,7 +120,7 @@ const relayFetch: typeof fetch = async (url, options) => {
   );
   const body = JSON.parse(options?.body as string);
   assert.equal(body.model, 'gpt-4o-mini');
-  assert.equal(body.max_tokens, 1600);
+  assert.equal(body.max_tokens, 2400);
   assert.equal(body.messages[0].role, 'system');
   assert.equal(body.messages[0].content.includes('不診斷'), true);
   assert.equal(body.messages[1].content.includes(input.question), true);
