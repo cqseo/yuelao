@@ -13,13 +13,13 @@ const DECKS = {
   tarot: {
     name: '塔羅',
     count: 78,
-    aspect: 0.58,
+    aspect: 0.569,
     desc: '78 張偉特塔羅（1909 初版牌面），看過去、現在、未來，有正逆位。',
   },
   lnm: {
     name: '雷諾曼',
     count: 36,
-    aspect: 0.7,
+    aspect: 0.754,
     desc: '36 張雷諾曼（1799 年原版牌面），牌義固定，意思在三張的組合和順序裡。',
   },
 };
