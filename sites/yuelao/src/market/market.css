@@ -1538,6 +1538,16 @@
 .mk .unlock .offer:hover {
   background: linear-gradient(#efd58a, #d2ad55);
 }
+/* 塔羅館：解鎖區塊在面板裡，寬度跟著面板內寬走（判詞卡的 24rem 會撐破面板） */
+.mk #panel .unlock {
+  width: auto;
+  padding: 1.25rem 1rem 0.9rem;
+}
+.mk #panel .unlock .offer {
+  white-space: normal;
+  letter-spacing: 0.1em;
+  line-height: 1.4;
+}
 /* 塔羅館（雷諾曼三張）：問的事、關鍵詞、吉凶傾向 */
 .mk .reading.lnm .asked {
   margin: 0 0 1rem;

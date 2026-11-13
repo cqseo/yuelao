@@ -336,3 +336,4 @@
 - 付款：webhook → `settle_stripe_payment` 發 `spread_unlocks`；退款／拒付由 `revoke_for_refund` 收回（遷移 `20261113200001_spread_readings.sql`，測試 `pnpm test:spread:db`）。
 - 生成：`/api/account/spread/generate`，七段（三張牌湊在一起／每一張落在這裡／兩兩之間／對著你的問題／眼下該做與不該做／時間上的提示／留給你的一句話），以塔羅師口吻、不提 AI；讀取 `/api/account/spread`。
 - 去付款或登入前把牌組、問題、情況、日期記在 sessionStorage；回到 `/market#tarot` 時重算出同一組牌、直接擺在桌上（不再洗牌），付款回來就等確認、動筆。
+- 寬度：解鎖區塊在塔羅館是放在右側（手機為底部）面板裡，寬度跟著面板內寬走，不沿用判詞卡的固定 24rem（2026-11-13 修：原本比面板寬，右邊被切、出現橫向捲軸）。面板裡的區塊左右留白收窄；付款鈕的字距略收，窄螢幕放不下時可以換行，不能溢出。
