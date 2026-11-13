@@ -82,9 +82,10 @@ function stoneSet() {
     speckle(g, S, 14000, 0.25);
   });
   const map = canvasTex(S, S, (g) => {
-    g.fillStyle = '#16130f';
+    // 2026-11-13：石板改成淺暖灰（原本深褐），白天看得清地面、人站在上面也分得出來
+    g.fillStyle = '#6e665c';
     g.fillRect(0, 0, S, S);
-    paint(g, (k) => `rgb(${58 + k * 22},${54 + k * 20},${50 + k * 18})`);
+    paint(g, (k) => `rgb(${132 + k * 26},${127 + k * 24},${118 + k * 22})`);
     speckle(g, S, 16000, 0.1);
   });
   return { map, normalMap: normalFromHeight(hc, 3.2) };
@@ -107,10 +108,10 @@ function tileSet() {
     for (let y = 0; y < S; y += 32) g.fillRect(0, y, S, 5);
   });
   const map = canvasTex(S, S, (g) => {
-    g.fillStyle = '#1b2026';
+    g.fillStyle = '#34404e'; // 青灰瓦（原本近黑）
     g.fillRect(0, 0, S, S);
     for (let x = 0; x < cols; x++) {
-      g.fillStyle = `rgba(90,110,125,${0.1 + Math.random() * 0.12})`;
+      g.fillStyle = `rgba(120,140,160,${0.12 + Math.random() * 0.14})`;
       g.fillRect((x * S) / cols + 6, 0, S / cols - 12, S);
     }
     speckle(g, S, 5000, 0.12);
@@ -155,7 +156,7 @@ function plasterSet() {
     speckle(g, S, 6000, 0.2);
   });
   const map = canvasTex(S, S, (g) => {
-    g.fillStyle = '#8a7f72';
+    g.fillStyle = '#e6dcc8'; // 米白粉牆（原本灰褐）
     g.fillRect(0, 0, S, S);
     for (let i = 0; i < 60; i++) {
       g.fillStyle = `rgba(40,30,20,${Math.random() * 0.12})`;

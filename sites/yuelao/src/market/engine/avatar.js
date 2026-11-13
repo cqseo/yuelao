@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
-// 訪客自己的角色（第三人稱時看得到）：程序拼出來的漢服小人，提一盞紙燈籠。
+// 訪客自己的角色（第三人稱時看得到）：程序拼出來的 Q 版漢服小人（大頭、短身），提一盞紙燈籠。
+// 2026-11-13 從細長比例改成 Q 版：手機上遠遠也認得出是個人、看得到臉。
 // 外觀分「衣服」和「髮型」兩組，目前全部免費。之後要賣的款式標 free: false，
 // 並在 site.config.ts 加一個 id 為 'outfit_<代號>' 的 item 商品，衣櫥就會標價、可試穿、可購買。
 export const OUTFITS = [
@@ -36,35 +37,35 @@ export function createAvatar(lowQuality) {
   const prof = [];
   for (let i = 0; i <= 10; i++) {
     const t = i / 10;
-    prof.push(new THREE.Vector2(0.17 + 0.25 * t ** 1.5, 0.98 - t * 0.96));
+    prof.push(new THREE.Vector2(0.17 + 0.2 * t ** 1.5, 0.64 - t * 0.62));
   }
   const skirt = sh(new THREE.Mesh(new THREE.LatheGeometry(prof, 20), robeM));
-  const hem = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.015, 6, 28), trimM);
+  const hem = new THREE.Mesh(new THREE.TorusGeometry(0.37, 0.02, 6, 28), trimM);
   hem.rotation.x = Math.PI / 2;
   hem.position.y = 0.03;
-  const torso = sh(new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.19, 0.42, 14), robeM));
-  torso.position.y = 1.17;
-  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.022, 6, 16), trimM);
+  const torso = sh(new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.19, 0.32, 14), robeM));
+  torso.position.y = 0.79;
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.026, 6, 16), trimM);
   collar.rotation.x = Math.PI / 2;
-  collar.position.y = 1.38;
-  const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.185, 0.185, 0.09, 16), sashM);
-  sash.position.y = 0.99;
-  const sashTail = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.012), sashM);
-  sashTail.position.set(0.05, 0.72, 0.19);
+  collar.position.y = 0.95;
+  const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.08, 16), sashM);
+  sash.position.y = 0.66;
+  const sashTail = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.32, 0.012), sashM);
+  sashTail.position.set(0.05, 0.47, 0.2);
   body.add(skirt, hem, torso, collar, sash, sashTail);
 
   // wide sleeves hanging from the shoulders
   const sleeves = [-1, 1].map((s) => {
     const g = new THREE.Group();
-    const sl = sh(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.17, 0.62, 12, 1, true), robeM));
-    sl.position.y = -0.31;
-    const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.014, 6, 18), trimM);
+    const sl = sh(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.15, 0.42, 12, 1, true), robeM));
+    sl.position.y = -0.21;
+    const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.018, 6, 18), trimM);
     cuff.rotation.x = Math.PI / 2;
-    cuff.position.y = -0.62;
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), skinM);
-    hand.position.y = -0.66;
+    cuff.position.y = -0.42;
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), skinM);
+    hand.position.y = -0.46;
     g.add(sl, cuff, hand);
-    g.position.set(s * 0.2, 1.34, 0);
+    g.position.set(s * 0.21, 0.92, 0);
     g.rotation.z = s * 0.16;
     body.add(g);
     return g;
@@ -72,23 +73,37 @@ export function createAvatar(lowQuality) {
 
   // head and hair
   const head = new THREE.Group();
-  head.position.y = 1.53;
+  // Q 版：頭放大約兩倍，底下的五官、髮型都跟著放大
+  head.position.y = 1.2;
+  head.scale.setScalar(2.05);
   const face = sh(new THREE.Mesh(new THREE.SphereGeometry(0.125, 20, 16), skinM));
   face.scale.set(0.94, 1.06, 0.98);
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.1, 10), skinM);
-  neck.position.y = -0.13;
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.05, 10), skinM);
+  neck.position.y = -0.125;
   const cap = sh(
     new THREE.Mesh(new THREE.SphereGeometry(0.134, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.56), hairM),
   );
   cap.position.set(0, 0.012, -0.012);
   cap.rotation.x = -0.25;
+  // 五官：大眼睛（帶一點高光）、腮紅、小嘴
   const eyeM = new THREE.MeshBasicMaterial({ color: 0x1a1210 });
+  const shineM = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const blushM = new THREE.MeshBasicMaterial({ color: 0xf29a9a, transparent: true, opacity: 0.55 });
   for (const s of [-1, 1]) {
-    const e = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), eyeM);
-    e.position.set(s * 0.045, 0.005, 0.117);
-    e.scale.set(1.3, 0.8, 0.5);
-    head.add(e);
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), eyeM);
+    e.position.set(s * 0.044, 0.0, 0.112);
+    e.scale.set(1, 1.35, 0.45);
+    const hi = new THREE.Mesh(new THREE.SphereGeometry(0.006, 6, 4), shineM);
+    hi.position.set(s * 0.044 + 0.006, 0.01, 0.12);
+    const bl = new THREE.Mesh(new THREE.CircleGeometry(0.02, 12), blushM);
+    bl.position.set(s * 0.07, -0.032, 0.1);
+    bl.rotation.y = s * 0.55;
+    head.add(e, hi, bl);
   }
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.012, 0.0035, 4, 10, Math.PI), eyeM);
+  mouth.position.set(0, -0.042, 0.117);
+  mouth.rotation.z = Math.PI;
+  head.add(mouth);
   const hairStyles = {
     bun: new THREE.Group(),
     twin: new THREE.Group(),
@@ -155,7 +170,7 @@ export function createAvatar(lowQuality) {
   );
   capL.position.copy(paper.position);
   lamp.add(stick, paper, capL);
-  lamp.position.set(0, -0.6, 0);
+  lamp.position.set(0, -0.42, 0);
   sleeves[1].add(lamp);
   const light = new THREE.PointLight(0xffa450, 7, 7, 1.7);
   light.position.set(0.25, 0.85, 0.5);
@@ -228,12 +243,12 @@ export function createAvatar(lowQuality) {
       let headX = 0;
       let drop = 0;
       if (hold === 'sit' || (!hold && holdK > 0.01 && lastHold === 'sit')) {
-        drop = 0.42 * holdK;
+        drop = 0.16 * holdK;
         armL += -0.55 * holdK;
         armR += 0.1 * holdK;
         headX = 0.12 * holdK;
       } else if (hold === 'kneel' || (!hold && holdK > 0.01 && lastHold === 'kneel')) {
-        drop = 0.5 * holdK;
+        drop = 0.3 * holdK;
         // 跪著時每隔幾秒叩一次
         const kow = Math.max(0, Math.sin(t * 1.1)) ** 3;
         bodyX += (0.15 + kow * 0.55) * holdK;
