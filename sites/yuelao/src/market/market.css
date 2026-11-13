@@ -775,7 +775,7 @@
   inset: 0;
   z-index: 30;
   display: grid;
-  place-content: center;
+  place-content: safe center; /* 內容比畫面高時從頂端開始，不要被切掉 */
   gap: 1.25rem;
   padding: 1.25rem;
   background: rgba(7, 8, 18, 0.72);
@@ -1414,4 +1414,86 @@
 .mk .p-cat.q {
   letter-spacing: 0.06em;
   line-height: 1.5;
+}
+
+/* 判詞卡下方的白話與出處（2026-11-13，參考占了麼） */
+.mk .explain {
+  width: min(24rem, calc(100vw - 2.5rem));
+  padding: 0.25rem 0.25rem 0;
+  color: var(--paper);
+}
+.mk .explain h3 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 1.25rem;
+  letter-spacing: 0.12em;
+  color: var(--paper);
+}
+.mk .explain h4 {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+}
+.mk .explain p {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.85;
+}
+.mk .explain .ex-src {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+.mk .explain .ex-dim {
+  color: var(--paper-70);
+}
+.mk .explain blockquote {
+  margin: 0.2rem 0 0.4rem;
+  padding: 0.15rem 0 0.15rem 0.85rem;
+  border-left: 2px solid var(--gold);
+  font-size: 1.08rem;
+  line-height: 1.7;
+  color: #f1d48f;
+}
+/* 完整解籤：開頭一段漸漸淡掉，下面列出七段 */
+.mk .deep-teaser {
+  position: relative;
+  margin: 0.4rem 0 0.4rem;
+  max-height: 6.2em;
+  overflow: hidden;
+  font-size: 0.98rem;
+  line-height: 1.85;
+  color: var(--paper-70);
+  -webkit-mask-image: linear-gradient(#000 45%, transparent);
+  mask-image: linear-gradient(#000 45%, transparent);
+}
+.mk .deep-list {
+  list-style: none;
+  margin: 1rem 0 0.5rem;
+  padding: 0;
+}
+.mk .deep-list li {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--line);
+}
+.mk .deep-list b {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--paper);
+}
+.mk .deep-list i {
+  display: inline-block;
+  width: 2rem;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--gold);
+}
+.mk .deep-list span {
+  padding-left: 2rem;
+  font-size: 0.82rem;
+  color: var(--paper-50);
 }

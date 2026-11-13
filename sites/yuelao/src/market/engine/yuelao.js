@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { STICKS } from '../../ritual/sticks';
+import { STICK_PLAIN } from '../../ritual/sticks-plain';
 import { createNpc } from './npc.js';
 import { audio, canvasTex, ease, glow, lerp, rand, textPlane, tween, wait, woodTex } from './util.js';
 
@@ -490,6 +491,20 @@ export function createYuelao(ui) {
     );
   }
 
+  /** 判詞卡下方：白話、出處原意、放在姻緣裡怎麼讀（參考占了麼）。 */
+  function explainBlock() {
+    const x = STICK_PLAIN[stick.id];
+    if (!x) return '';
+    return `<section class="explain">
+        <h3>白話</h3>
+        <p>${x.plain}</p>
+        ${stick.source ? `<p class="ex-src">出處．${stick.source}</p>` : ''}
+        <h4>原句本來在說什麼</h4>
+        <p class="ex-dim">${x.origin}</p>
+        <h3>放在姻緣裡怎麼讀</h3>
+        <blockquote>${x.love}</blockquote>
+      </section>`;
+  }
   function verdict() {
     state = 'verdict';
     ui.panel('');
@@ -507,9 +522,10 @@ export function createYuelao(ui) {
          <p class="p-verdict">${stick.verdict[cat]}</p>
          <span class="p-seal">月老已批</span>
        </div>
+       ${explainBlock()}
        <div class="card-actions"><button class="seal" data-a="again">再求一支</button><button class="ghost" data-a="leave">回到廣場</button></div>
-       ${ui.deep?.price ? `<button class="offer" id="deep-btn" data-a="deep">深度解讀　${ui.deep.price}</button>` : ''}
-       <div class="card-links"><button class="ghost" data-a="ask">問月老</button><a class="ghost" href="/sign/${stick.id}">完整籤文</a></div>`,
+       ${ui.deep?.price ? `<button class="offer" id="deep-btn" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>` : ''}
+       <div class="card-links"><button class="ghost" data-a="ask">問月老</button><a class="ghost" href="/sign/${stick.id}">這支籤的籤頁</a></div>`,
       (a) => {
         ui.card('');
         if (a === 'ask') showAsk();
@@ -532,7 +548,7 @@ export function createYuelao(ui) {
       deepState = r;
       const b = document.getElementById('deep-btn');
       if (b && r.state !== 'none')
-        b.textContent = r.state === 'ready' ? '看深度解讀（已解鎖）' : '請月老動筆（已解鎖）';
+        b.textContent = r.state === 'ready' ? '看完整解籤（已解鎖）' : '請月老動筆（已解鎖）';
     });
   }
   const backToCard = `<button class="ghost" data-a="card">回到判詞</button>`;
@@ -552,23 +568,38 @@ export function createYuelao(ui) {
     showOffer();
   }
 
-  /** 付款前：說清楚買什麼、可以寫想問的事、付款即同意送 AI。沒有勾選框。 */
+  // 完整解籤的七段（和伺服器要月老寫的段落一一對應，改了要一起改 packages/core/src/ai-reading.ts）
+  const DEEP_SECTIONS = [
+    ['這支籤對你這件事的定調', '往前、要等、看清楚，還是放下'],
+    ['原典給你的提示', '原句裡那個處境和你的對應'],
+    ['對著你的問題', '這一節只寫你問的那件事'],
+    ['眼下該做與不該做', '具體到你這幾天的處境'],
+    ['對方那一邊', '他可能在顧慮什麼（不猜心，只說可能）'],
+    ['三天內可以做的一步', '一件小到今天就能開始的事'],
+    ['留給你的一句話', '月老最後想對你說的'],
+  ];
+  /** 付款前：先讓人讀到開頭一段，再說清楚完整解籤寫了什麼。沒有勾選框。 */
   function showOffer(note = '') {
     state = 'deep';
-    say('想再看深一點，我替你細細批一份。有想問的，寫下來給我。');
+    say('這支籤還有話沒說完。我替你細細批一份，只寫你問的那件事。');
+    const x = STICK_PLAIN[stick.id];
+    const teaser = `${x ? x.love : ''}${stick.verdict[cat]}`;
     ui.panel(
-      `<p class="kicker">${stick.no}　深度解讀</p>
-       <h2>月老親筆，替這支籤細細批一份</h2>
-       <p class="note">從籤詩、你問的這一類，到眼前可以做的一步。寫好就在這裡看，也會存在「我的」。</p>
+      `<p class="kicker">${stick.no}　${stick.grade}</p>
+       <h2>解鎖完整解籤</h2>
+       ${draftQ ? `<div class="deep-asked"><span>你問的是</span><p>「${esc(draftQ)}」</p><small>${sitWord()}</small></div>` : ''}
+       <p class="deep-teaser">${esc(teaser)}</p>
+       <p class="note">這一段還沒說完。解鎖之後它會完整，另外六段只寫你問的那件事；寫好就在這裡看，也會存在「我的」。</p>
        ${
          draftQ
-           ? `<div class="deep-asked"><span>你問的是</span><p>「${esc(draftQ)}」</p><small>${sitWord()}</small></div>`
+           ? ''
            : `<label class="deep-q"><span>想問的事（選填，100 字內）</span>
          <textarea id="deep-q" maxlength="${Q_MAX}" rows="3" placeholder="例：我和他還有機會嗎">${esc(draftQ)}</textarea></label>`
        }
-       <p class="note small">付款即表示同意：你寫的問題會送至第三方 AI 模型服務（可能經由 API 中轉服務）生成解讀，問題原文不存入本站。<a href="/privacy" target="_blank" rel="noopener">隱私說明</a></p>
        ${note ? `<p class="note" role="status">${note}</p>` : ''}
-       <button class="seal" data-a="pay">付款，請月老批讀　${ui.deep.price}</button>
+       <button class="seal" data-a="pay">解鎖完整解籤　${ui.deep.price}</button>
+       <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
+       <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
        ${backToCard}`,
       (a) => {
         if (a === 'card') return verdict();
@@ -601,9 +632,9 @@ export function createYuelao(ui) {
     } else if (r.state === 'owned') {
       startGenerate(draftQ);
     } else {
-      say(r.state === 'closed' ? '深度解讀還沒開張，過些日子再來。' : '這會兒忙不過來，稍後再試一次。');
+      say(r.state === 'closed' ? '完整解籤還沒開張，過些日子再來。' : '這會兒忙不過來，稍後再試一次。');
       ui.panel(
-        `<p class="note">${r.state === 'closed' ? '付費的深度解讀尚未開放。免費的判詞和追問都可以照常用。' : '沒有扣款。可以稍後再試。'}</p>${backToCard}`,
+        `<p class="note">${r.state === 'closed' ? '付費的完整解籤尚未開放。免費的判詞和追問都可以照常用。' : '沒有扣款。可以稍後再試。'}</p>${backToCard}`,
         (a) => a === 'card' && verdict(),
       );
     }
@@ -615,7 +646,7 @@ export function createYuelao(ui) {
     state = 'deep';
     say('你回來了。我核對一下簿子。');
     ui.panel(
-      `<p class="kicker">${stick.no}　深度解讀</p><p class="note" role="status">正在確認付款，通常幾秒鐘。</p>`,
+      `<p class="kicker">${stick.no}　完整解籤</p><p class="note" role="status">正在確認付款，通常幾秒鐘。</p>`,
     );
     for (let i = 0; i < 45; i++) {
       const r = await ui.deep.check(stick.id, cat);
@@ -627,7 +658,7 @@ export function createYuelao(ui) {
     }
     say('付款的消息還沒傳到我這。');
     ui.panel(
-      `<p class="kicker">${stick.no}　深度解讀</p>
+      `<p class="kicker">${stick.no}　完整解籤</p>
        <p class="note">付款確認還沒到。不用重新付款，等一下再查；確認後解讀也會出現在「我的」。</p>
        <button class="seal" data-a="again">再查一次</button>${backToCard}`,
       (a) => (a === 'again' ? void waitPaid(question) : a === 'card' && verdict()),
@@ -640,7 +671,7 @@ export function createYuelao(ui) {
     state = 'deep';
     say('我提筆了，稍候。');
     ui.panel(
-      `<p class="kicker">${stick.no}　深度解讀</p><p class="note" role="status">月老正在批讀，大約半分鐘。</p>`,
+      `<p class="kicker">${stick.no}　完整解籤</p><p class="note" role="status">月老正在批讀，大約半分鐘。</p>`,
     );
     const talking = setInterval(() => npc.talk(), 2600);
     npc.talk();
@@ -667,7 +698,7 @@ export function createYuelao(ui) {
       }
       say('筆頭不順，再來一次。');
       ui.panel(
-        `<p class="kicker">${stick.no}　深度解讀</p>
+        `<p class="kicker">${stick.no}　完整解籤</p>
          <p class="note">這次沒寫成。你已經付過款，再試不會重複扣款。</p>
          <button class="seal" data-a="retry">再試一次</button>${backToCard}`,
         (a) => (a === 'retry' ? void startGenerate(question) : a === 'card' && verdict()),
@@ -680,8 +711,8 @@ export function createYuelao(ui) {
     state = 'deep';
     say('寫好了，慢慢看。');
     ui.panel(
-      `<p class="kicker">${stick.no}　深度解讀</p><div class="deep-body" id="deep-body"></div>
-       <p class="note small">這份解讀也存在「我的」，日後隨時能看。AI 生成，供自我反思，不是預言。</p>${backToCard}`,
+      `<p class="kicker">${stick.no}　完整解籤</p><div class="deep-body" id="deep-body"></div>
+       <p class="note small">這份解籤也存在「我的」，日後隨時能看。籤詩解讀供自我反思，不是預言。</p>${backToCard}`,
       (a) => a === 'card' && verdict(),
       true,
     );
@@ -713,7 +744,7 @@ export function createYuelao(ui) {
        <div class="chips" id="ask-chips"></div>
        ${
          ai.available
-           ? `<label class="ask-ai"><input type="checkbox" id="ask-ai" /><span>用 AI 即時回答。我同意將本次訊息與最近 6 條對話送至第三方 AI 模型生成回應；原文不存入月老資料庫。</span></label>`
+           ? `<label class="ask-ai"><input type="checkbox" id="ask-ai" /><span>讓月老即時回答你的話。我同意將本次訊息與最近 6 條對話送至第三方服務生成回應；原文不存入本站資料庫。</span></label>`
            : ''
        }
        <form class="ask" id="ask-form"><input id="ask-input" maxlength="200" autocomplete="off" placeholder="把想問的寫下來" aria-label="想問月老的事" /><button class="seal" type="submit">問</button></form>
