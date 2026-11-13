@@ -257,10 +257,11 @@ export function createAvatar(lowQuality) {
         headX = Math.max(headX, 0.25 * env);
         bodyX += 0.08 * env;
       } else if (emote === 'heart') {
-        armL = armL * (1 - env) - 2.75 * env;
-        armLz = -0.75 * env;
-        armR = armR * (1 - env) - 2.75 * env;
-        armRz = 0.75 * env;
+        // 雙手舉過頭頂、往內收，在頭上合成一顆心
+        armL = armL * (1 - env) - 2.95 * env;
+        armLz = 0.42 * env;
+        armR = armR * (1 - env) - 2.95 * env;
+        armRz = -0.42 * env;
       }
       body.rotation.x = bodyX;
       body.position.y = Math.abs(Math.sin(phase)) * 0.035 * k + Math.sin(t * 1.6) * 0.004 - drop;
