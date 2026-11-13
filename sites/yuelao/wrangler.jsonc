@@ -33,8 +33,9 @@
   },
   "vars": {
     "EMAIL_FROM": "noreply@example.com",
-    "SUPABASE_URL": "",
-    "SUPABASE_ANON_KEY": "",
+    // 正式 Supabase 專案 yuelao。anon key 是公開金鑰（RLS 照常生效）；service_role 只放 wrangler secret。
+    "SUPABASE_URL": "https://ichsqdfrwymlizqgxnqw.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljaHNxZGZyd3ltbGl6cWd4bnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4ODMyNjYsImV4cCI6MjEwOTQ1OTI2Nn0.nmuGBobYejLEzjlODojRBLngScHbTI1iYlyHiAVQRGA",
     // Test-only Stripe Checkout; NEVER enable with live keys.
     "BILLING_ENABLE_TEST_CHECKOUT": "false",
     "AI_ENABLE_TEST_GENERATION": "false",
