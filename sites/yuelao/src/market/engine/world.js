@@ -504,7 +504,7 @@ export function createWorld(renderer, lowQuality) {
         shadow,
         warm,
         screen: '/market/screen-yuelao.webp',
-        });
+      });
       shrine.pick.traverse((o) => {
         o.userData.room = 'yuelao';
       });
