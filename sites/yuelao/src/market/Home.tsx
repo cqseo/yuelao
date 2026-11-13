@@ -19,7 +19,7 @@ export const FAQS = [
 ];
 
 const NAV = [
-  { to: '/market', label: () => m.home_market_nav_market(), hard: true },
+  { to: '/market#enter', label: () => m.home_market_nav_market(), hard: true },
   { to: '/ritual', label: () => m.home_market_nav_ritual() },
   { to: '/daily', label: () => m.home_market_nav_daily() },
   { to: '/chat', label: () => m.home_market_nav_chat() },
@@ -131,7 +131,7 @@ export function Home() {
             <h1 id="mh-title">{m.home_market_title()}</h1>
             <p className="mh-lead">{m.home_market_lead()}</p>
             <div className="mh-actions">
-              <a className="mh-enter" href="/market" data-rybbit-event="home_market_enter">
+              <a className="mh-enter" href="/market#enter" data-rybbit-event="home_market_enter">
                 {m.home_market_enter()}
               </a>
               <Link className="mh-plain" to={localizeHref('/ritual')}>

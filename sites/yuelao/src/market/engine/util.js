@@ -253,11 +253,20 @@ export const audio = {
   on: true,
   master: null,
   init() {
-    if (this.ctx) return;
+    if (this.ctx) {
+      // 沒有點擊就建立的聲音會被瀏覽器暫停；之後任何一次點擊再叫醒
+      if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+      return;
+    }
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     } catch {
       return;
+    }
+    if (this.ctx.state === 'suspended') {
+      const wake = () => this.ctx?.resume().catch(() => {});
+      window.addEventListener('pointerdown', wake, { once: true, capture: true });
+      window.addEventListener('keydown', wake, { once: true, capture: true });
     }
     this.master = this.ctx.createGain();
     this.master.gain.value = 0.5;
