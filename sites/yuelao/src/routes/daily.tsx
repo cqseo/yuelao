@@ -134,9 +134,7 @@ function DailyPage() {
           </div>
           <footer className="daily-letter-footer">
             <span>{t('一頁心情提示，不是命運預測。', '一页心情提示，不是命运预测。')}</span>
-            <Link to={localizeHref('/chat')}>
-              {t('想多說幾句？與月老聊聊 →', '想多说几句？与月老聊聊 →')}
-            </Link>
+            <a href="/market#yuelao">{t('有心事？去月老殿求一支籤 →', '有心事？去月老殿求一支签 →')}</a>
           </footer>
         </section>
 
@@ -190,9 +188,6 @@ function DailyPage() {
         <span className="serene-eyebrow">{t('讓今天再多一點溫柔', '让今天再多一点温柔')}</span>
         <h2>{t('有心事，還可以慢慢說。', '有心事，还可以慢慢说。')}</h2>
         <div>
-          <Link to={localizeHref('/chat')}>
-            {t('與月老聊聊', '与月老聊聊')} <span>↗</span>
-          </Link>
           <Link to={localizeHref('/ritual')}>
             {t('免費求一支籤', '免费求一支签')} <span>↗</span>
           </Link>

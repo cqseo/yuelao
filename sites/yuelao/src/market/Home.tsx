@@ -20,10 +20,9 @@ export const FAQS = [
 
 const NAV = [
   { to: '/market#enter', label: () => m.home_market_nav_market(), hard: true },
-  // 求籤、問月老都在 3D 月老殿裡；一般版頁面仍在（下方「不進集市也可以」與搜尋引擎用）
+  // 求籤在 3D 月老殿裡；一般版頁面仍在（下方「不進集市也可以」與搜尋引擎用）。問月老對話已拿掉（2026-11-13）
   { to: '/market#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
   { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true },
-  { to: '/market#ask', label: () => m.home_market_nav_chat(), hard: true },
   { to: '/tests', label: () => m.home_market_nav_tests() },
 ];
 
@@ -63,7 +62,6 @@ const STEPS = [
 const WAYS = [
   { to: '/ritual', name: () => m.home_market_way_ritual(), desc: () => m.home_market_way_ritual_desc() },
   { to: '/daily', name: () => m.home_market_way_daily(), desc: () => m.home_market_way_daily_desc() },
-  { to: '/chat', name: () => m.home_market_way_chat(), desc: () => m.home_market_way_chat_desc() },
   { to: '/tests', name: () => m.home_market_way_tests(), desc: () => m.home_market_way_tests_desc() },
 ];
 

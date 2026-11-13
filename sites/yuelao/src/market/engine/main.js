@@ -269,9 +269,8 @@ export function startMarket(root, opts = {}) {
       mode = 'walk';
       applyCam();
       if (h === 'wish') openPool();
-      // #ask：進月老殿直接打開「問月老」
+      // #ask（舊連結，問月老已拿掉）：當成進月老殿求籤
       const roomId = h === 'ask' ? 'yuelao' : h;
-      if (h === 'ask') rooms.yuelao.intent = 'ask';
       net.start();
       const deep = world.rooms.find((x) => x.id === roomId);
       if (deep?.walkOnly) {

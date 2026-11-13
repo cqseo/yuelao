@@ -504,8 +504,6 @@ export function createWorld(renderer, lowQuality) {
         shadow,
         warm,
         screen: '/market/screen-yuelao.webp',
-        model: '/market/yuelao.glb',
-        modelRotY: -Math.PI / 2,
       });
       shrine.pick.traverse((o) => {
         o.userData.room = 'yuelao';
@@ -804,8 +802,6 @@ export function createWorld(renderer, lowQuality) {
       rack: false,
       tube: false,
       screen: '/market/screen-hall.webp',
-      model: '/market/yuelao.glb',
-      modelRotY: -Math.PI / 2,
     });
     Object.assign(room.hall, {
       inside: true,
