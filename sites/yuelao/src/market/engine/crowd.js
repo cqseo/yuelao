@@ -28,9 +28,36 @@ export function createCrowd(world, count) {
     folk.push({ a, to: spot(), speed: rand(1.0, 1.6), wait: rand(0, 6), t0: rand(10) });
   }
   return {
+    /**
+     * 主角在 (x, z) 做了個動作：附近幾個路人停下來、轉身回一個。
+     * 揮手回揮手，作揖、合十回作揖，比心回揮手。
+     */
+    react(x, z, kind) {
+      const reply = kind === 'pray' ? 'bow' : kind === 'heart' ? 'wave' : kind;
+      const near = folk
+        .map((f) => ({ f, d: Math.hypot(f.a.root.position.x - x, f.a.root.position.z - z) }))
+        .filter((o) => o.d < 10)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, 3);
+      near.forEach(({ f }, i) => {
+        f.react = { x, z, kind: reply, at: 0.5 + i * 0.35 + rand(0.3) };
+        f.wait = Math.max(f.wait, 3.5);
+      });
+      return near.length;
+    },
     update(dt, t) {
       for (const f of folk) {
         const p = f.a.root.position;
+        if (f.react) {
+          let turn = Math.atan2(f.react.x - p.x, f.react.z - p.z) - f.a.root.rotation.y;
+          turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+          f.a.root.rotation.y += turn * Math.min(1, dt * 5);
+          f.react.at -= dt;
+          if (f.react.at <= 0) {
+            f.a.emote(f.react.kind);
+            f.react = null;
+          }
+        }
         if (f.wait > 0) {
           f.wait -= dt;
           f.a.update(dt, t + f.t0, 0);

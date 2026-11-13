@@ -175,30 +175,104 @@ export function createAvatar(lowQuality) {
 
   let phase = 0;
   let lean = 0;
-  let bowT = 0;
+  // 動作（一次性）：wave 揮手、bow 作揖、pray 合十、heart 比心
+  const EMOTE_LEN = { wave: 2.2, bow: 1.8, pray: 2.6, heart: 2.4 };
+  let emote = null;
+  let emoteT = 0;
+  // 停留的姿勢：sit 坐、kneel 跪拜；換的時候慢慢過去
+  let hold = null;
+  let holdK = 0;
+  let lastHold = null;
   return {
     root,
     light,
     state,
     apply,
-    /** speed: metres per second the walker is moving at. */
-    /** 鞠躬合十一次（上香、朝拜用），約 1.8 秒。 */
+    /** 鞠躬合十一次（上香用），約 1.8 秒。 */
     bow() {
-      bowT = 1.8;
+      emote = 'bow';
+      emoteT = EMOTE_LEN.bow;
     },
+    /** @param {'wave'|'bow'|'pray'|'heart'} name */
+    emote(name) {
+      if (!EMOTE_LEN[name]) return 0;
+      emote = name;
+      emoteT = EMOTE_LEN[name];
+      return emoteT;
+    },
+    /** @param {'sit'|'kneel'|null} kind */
+    hold(kind) {
+      hold = kind;
+    },
+    get holding() {
+      return hold;
+    },
+    /** speed: metres per second the walker is moving at. */
     update(dt, t, speed) {
-      bowT = Math.max(0, bowT - dt);
-      const bowK = bowT > 0 ? Math.sin(((1.8 - bowT) / 1.8) * Math.PI) : 0;
+      emoteT = Math.max(0, emoteT - dt);
+      if (!emoteT) emote = null;
+      const len = emote ? EMOTE_LEN[emote] : 1;
+      const u = emote ? (len - emoteT) / len : 0; // 0→1
+      // 起落包絡：前後 0.25 進出，中間維持
+      const env = emote ? Math.min(1, u / 0.18, (1 - u) / 0.18) : 0;
+      holdK += ((hold ? 1 : 0) - holdK) * Math.min(1, dt * 5);
       const k = Math.min(1, speed / 4.2);
       phase += dt * (5 + k * 6) * (k > 0.02 ? 1 : 0);
       lean += (k * 0.09 - lean) * Math.min(1, dt * 8);
-      body.rotation.x = lean + bowK * 0.5;
-      body.position.y = Math.abs(Math.sin(phase)) * 0.035 * k + Math.sin(t * 1.6) * 0.004;
+
+      let bodyX = lean;
+      let armL = Math.sin(phase) * 0.55 * k;
+      let armLz = 0;
+      let armR = -0.75 + Math.sin(phase + Math.PI) * 0.12 * k; // lantern arm held forward
+      let armRz = 0;
+      let headX = 0;
+      let drop = 0;
+      if (hold === 'sit' || (!hold && holdK > 0.01 && lastHold === 'sit')) {
+        drop = 0.42 * holdK;
+        armL += -0.55 * holdK;
+        armR += 0.1 * holdK;
+        headX = 0.12 * holdK;
+      } else if (hold === 'kneel' || (!hold && holdK > 0.01 && lastHold === 'kneel')) {
+        drop = 0.5 * holdK;
+        // 跪著時每隔幾秒叩一次
+        const kow = Math.max(0, Math.sin(t * 1.1)) ** 3;
+        bodyX += (0.15 + kow * 0.55) * holdK;
+        armL += -1.25 * holdK;
+        armR += -0.45 * holdK;
+      }
+      if (hold) lastHold = hold;
+      if (emote === 'bow') {
+        const b = Math.sin(u * Math.PI);
+        bodyX += b * 0.5;
+        armL -= b * 1.1;
+        armR -= b * 0.35;
+      } else if (emote === 'wave') {
+        armL = armL * (1 - env) - 2.7 * env;
+        armLz = (-0.35 + Math.sin(u * 28) * 0.35) * env;
+      } else if (emote === 'pray') {
+        armL = armL * (1 - env) - 1.35 * env;
+        armLz = 0.35 * env;
+        armR = armR * (1 - env) - 1.1 * env;
+        armRz = -0.25 * env;
+        headX = Math.max(headX, 0.25 * env);
+        bodyX += 0.08 * env;
+      } else if (emote === 'heart') {
+        // 雙手舉過頭頂、往內收，在頭上合成一顆心
+        armL = armL * (1 - env) - 2.95 * env;
+        armLz = 0.42 * env;
+        armR = armR * (1 - env) - 2.95 * env;
+        armRz = -0.42 * env;
+      }
+      body.rotation.x = bodyX;
+      body.position.y = Math.abs(Math.sin(phase)) * 0.035 * k + Math.sin(t * 1.6) * 0.004 - drop;
       skirt.rotation.z = Math.sin(phase) * 0.035 * k;
       sashTail.rotation.x = -lean * 2 + Math.sin(phase * 2) * 0.1 * k;
-      sleeves[0].rotation.x = Math.sin(phase) * 0.55 * k - bowK * 1.1; // 鞠躬時雙手合十在胸前
-      sleeves[1].rotation.x = -0.75 + Math.sin(phase + Math.PI) * 0.12 * k - bowK * 0.35; // lantern arm held forward
+      sleeves[0].rotation.x = armL;
+      sleeves[0].rotation.z = armLz;
+      sleeves[1].rotation.x = armR;
+      sleeves[1].rotation.z = armRz;
       head.rotation.y = Math.sin(t * 0.5) * 0.06;
+      head.rotation.x = headX;
     },
   };
 }
