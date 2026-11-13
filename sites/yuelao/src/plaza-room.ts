@@ -1,5 +1,14 @@
 import { DurableObject } from 'cloudflare:workers';
-import { PLAZA_CAP, type PlazaPeer, plazaMessage, pubPeer as pub } from './plaza-room-logic';
+import {
+  nextExpiry,
+  PLAZA_CAP,
+  type PlazaPeer,
+  plazaMessage,
+  pubPeer as pub,
+  STATIONS,
+  settleStation,
+  stationState,
+} from './plaza-room-logic';
 
 // 廣場同遊：一個 Durable Object = 一個廣場分身（滿了換下一個）。和大殿一樣只同步
 // 「誰在、站哪、面向哪、做了什麼動作、坐著還是跪著」——沒有聊天、沒有暱稱、不落任何資料庫。
@@ -36,7 +45,9 @@ export class PlazaRoom extends DurableObject {
       .getWebSockets()
       .filter((ws) => ws !== pair[1])
       .map((ws) => pub(ws.deserializeAttachment() as PlazaPeer));
-    pair[1].send(JSON.stringify({ t: 'init', id: peer.id, room, cap: PLAZA_CAP, peers }));
+    const all = this.peers();
+    const stations = Object.keys(STATIONS).map((st) => stationState(all, st));
+    pair[1].send(JSON.stringify({ t: 'init', id: peer.id, room, cap: PLAZA_CAP, peers, stations }));
     this.broadcast({ t: 'j', p: pub(peer) }, pair[1]);
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
@@ -46,7 +57,42 @@ export class PlazaRoom extends DurableObject {
     const out = plazaMessage(peer, raw, Date.now());
     if (!out) return;
     ws.serializeAttachment(peer);
-    this.broadcast(out, ws);
+    if (out.t === '_q') this.settle();
+    else {
+      this.broadcast(out, ws);
+      if (out.t === 's' && peer.s === 'away') this.settle();
+    }
+  }
+
+  /** 鬧鐘：有人用設施用到超時，放掉、輪下一位。 */
+  override async alarm() {
+    this.settle();
+  }
+
+  private peers(): PlazaPeer[] {
+    return this.ctx.getWebSockets().map((ws) => ws.deserializeAttachment() as PlazaPeer);
+  }
+
+  /** 重新整理所有設施：放掉超時的、輪到的人通知他、把最新排隊狀態廣播出去、設下一次鬧鐘。 */
+  private settle() {
+    const sockets = this.ctx.getWebSockets();
+    const list = sockets.map((ws) => ws.deserializeAttachment() as PlazaPeer);
+    const now = Date.now();
+    for (const st of Object.keys(STATIONS)) {
+      const granted = settleStation(list, st, now);
+      for (const g of granted) {
+        const i = list.indexOf(g);
+        try {
+          sockets[i]?.send(JSON.stringify({ t: 'go', st }));
+        } catch {}
+      }
+      this.broadcast(stationState(list, st));
+    }
+    sockets.forEach((ws, i) => {
+      ws.serializeAttachment(list[i]);
+    });
+    const at = nextExpiry(list);
+    if (at) void this.ctx.storage.setAlarm(at);
   }
 
   override webSocketClose(ws: WebSocket) {
@@ -64,7 +110,16 @@ export class PlazaRoom extends DurableObject {
     } catch {
       // 已經關了
     }
-    if (peer) this.broadcast({ t: 'l', id: peer.id }, ws);
+    if (peer) {
+      this.broadcast({ t: 'l', id: peer.id }, ws);
+      // 走掉的人如果在排或在用設施，讓給下一位
+      if (peer.q || peer.use) {
+        peer.q = '';
+        peer.use = '';
+        ws.serializeAttachment(peer);
+        this.settle();
+      }
+    }
   }
 
   private broadcast(msg: unknown, except?: WebSocket) {
