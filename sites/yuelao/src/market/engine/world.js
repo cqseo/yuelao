@@ -495,7 +495,16 @@ export function createWorld(renderer, lowQuality) {
     const len = Math.hypot(s.x, s.z);
     if (s.room === 'yuelao') {
       // 月老殿改成開敞的殿：走進去就到神前，不用進門轉場（參考心安宮）
-      shrine = createShrine({ scene, mat, x: s.x, z: s.z, rot: Math.atan2(-s.x, -s.z), shadow, warm });
+      shrine = createShrine({
+        scene,
+        mat,
+        x: s.x,
+        z: s.z,
+        rot: Math.atan2(-s.x, -s.z),
+        shadow,
+        warm,
+        screen: '/market/screen-yuelao.webp',
+      });
       shrine.pick.traverse((o) => {
         o.userData.room = 'yuelao';
       });
@@ -768,39 +777,46 @@ export function createWorld(renderer, lowQuality) {
   // ---------- 大殿（正北，石台上）、殿前銅爐、化寶爐 ----------
   const HALL_Z = -27;
   let beam;
+  let hallShrine = null;
   {
-    const py = 1.1;
-    scene.add(
-      shadow(box(27, py, 17, mat.stone))
-        .translateY(py / 2)
-        .translateZ(HALL_Z - 6),
-    );
-    for (let i = 0; i < 4; i++)
-      scene.add(
-        shadow(box(9, py - i * 0.27, 0.45, mat.stone))
-          .translateY((py - i * 0.27) / 2)
-          .translateZ(HALL_Z + 2.7 + i * 0.45),
-      );
-    Object.assign(
-      room.hall,
-      house({
-        x: 0,
-        z: HALL_Z,
-        y: py,
-        w: 22,
-        d: 11,
-        h: 5.4,
-        sign: '大殿',
-        banner: '多人同拜',
-        grand: true,
-        lit: true,
-        open: true,
-        tint: room.hall.tint,
-        cloth: '#5a1612',
-      }),
-    );
-    // 門口的落腳點放在台階下（石台本身不能走）
-    room.hall.stand = new THREE.Vector3(2.6, 1.65, HALL_Z + 5.7);
+    // 2026-11-13：大殿也改成正面敞開、走得進去（參考心安宮），不再墊高、不再轉場。
+    // 供的是鎏金月老像；廣場本身已經是多人同場，所以「同拜」就在殿裡發生。
+    hallShrine = createShrine({
+      scene,
+      mat,
+      x: 0,
+      z: HALL_Z + 3.5,
+      rot: 0,
+      shadow,
+      warm,
+      w: 15,
+      d: 10,
+      h: 5.6,
+      plaque: '大殿',
+      plaqueSize: 1.4,
+      outer: ['千里姻緣一線牽', '百年好合月為媒'],
+      inner: ['月下老人', '天作之合'],
+      apron: '心誠則靈',
+      gold: true,
+      statueScale: 1.2,
+      rack: false,
+      tube: false,
+      screen: '/market/screen-hall.webp',
+    });
+    Object.assign(room.hall, {
+      inside: true,
+      walkOnly: true,
+      stand: hallShrine.stand,
+      entry: hallShrine.entry,
+      door: hallShrine.door,
+      label: hallShrine.label,
+      doorMesh: hallShrine.pick,
+      fx: hallShrine.fx,
+      fz: hallShrine.fz,
+    });
+    hallShrine.pick.traverse((m) => {
+      m.userData.room = 'hall';
+    });
     warm(0, 5, HALL_Z + 5.5, 46, 26, 0xffa050);
     // 一束從斜上方打下來的暖光，只照殿門和銅爐：明暗對比都靠它
     beam = new THREE.SpotLight(0xffe2a0, 1400, 60, 0.3, 0.7, 1.6);
@@ -994,9 +1010,9 @@ export function createWorld(renderer, lowQuality) {
     ...shopCircles,
     ...stallCircles,
   ];
-  const blocks = [[-14, 14, -60, HALL_Z + 4.6]]; // 大殿石台與台階
+  const blocks = []; // 大殿改成走得進去的殿，牆與神台由 hallShrine 自己擋
   function walkable(x, z) {
-    if (shrine?.inside(x, z)) return !shrine.blocked(x, z);
+    for (const sh of [shrine, hallShrine]) if (sh?.inside(x, z)) return !sh.blocked(x, z);
     const inPlaza = x * x + z * z < PLAZA_R * PLAZA_R;
     if (!inPlaza && !rects.some(([a, b, c, d]) => x >= a && x <= b && z >= c && z <= d)) return false;
     if (circles.some(([cx, cz, r]) => (x - cx) ** 2 + (z - cz) ** 2 < r * r)) return false;
@@ -1109,8 +1125,9 @@ export function createWorld(renderer, lowQuality) {
       ground.visible = true;
       renderer.shadowMap.autoUpdate = auto;
     },
-    /** 走得進去的月老殿（蒲團位置等）。 */
+    /** 走得進去的月老殿與大殿（蒲團位置等）。 */
     shrine,
+    hallShrine,
     /** 殿前銅爐的位置與可上香的距離。 */
     burner: { x: 0, z: -18.5, r: 3.6 },
     /** 上香：銅爐裡插上三炷新香（香頭發紅），升起一陣煙。新香燒一分鐘後收走，最多留 9 炷。 */
@@ -1176,6 +1193,7 @@ export function createWorld(renderer, lowQuality) {
     setHour,
     update(dt, t, pos) {
       shrine?.update(dt);
+      hallShrine?.update(dt);
       sky.material.uniforms.uT.value = t;
       sky.position.copy(pos);
       if (!lowQuality) {

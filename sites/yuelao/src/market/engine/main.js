@@ -271,7 +271,15 @@ export function startMarket(root, opts = {}) {
       // #ask：進月老殿直接打開「問月老」
       const roomId = h === 'ask' ? 'yuelao' : h;
       if (h === 'ask') rooms.yuelao.intent = 'ask';
-      if (rooms[roomId])
+      net.start();
+      const deep = world.rooms.find((x) => x.id === roomId);
+      if (deep?.walkOnly) {
+        // 大殿走得進去：直接站在供桌前、面向神像
+        Object.assign(me, { x: deep.stand.x, z: deep.stand.z });
+        me.yaw = yawTo(deep.door.x - me.x, deep.door.z - me.z);
+        me.face = me.yaw + Math.PI;
+        applyCam();
+      } else if (rooms[roomId])
         enterRoom(
           world.rooms.find((x) => x.id === roomId),
           true,
@@ -543,11 +551,29 @@ export function startMarket(root, opts = {}) {
     ui.hint('跪下來，靜一靜。想起身就按「起身」，或直接走開。');
     setTimeout(() => ui.hint(''), 4000);
   }
-  /** 月老殿裡的蒲團：站正、面向神像、跪下。 */
+  /** 大殿供桌前上香：鞠躬、香爐冒煙，在場的人也看得到。 */
+  let lastOffer = -99;
+  function hallOffer() {
+    const t = clock.elapsedTime;
+    if (mode !== 'walk' || t - lastOffer < 3) return;
+    lastOffer = t;
+    standUp();
+    const hs = world.hallShrine;
+    me.face = Math.atan2(hs.door.x - me.x, hs.door.z - me.z);
+    avatar.bow();
+    hs.offer();
+    net.act('offer');
+    audio.bell(294, 0.14, 4);
+    emit('market_hall_offer');
+    ui.hint('香已上。願望放在心裡就好。');
+    setTimeout(() => mode === 'walk' && ui.hint(''), 3500);
+  }
+  /** 殿裡的蒲團：站正、面向神像、跪下。 */
   function kneelHere(c) {
     go(async () => {
       await walkPath([[c.x, c.z]], 3);
-      await faceTo(world.shrine.faceTo.x, world.shrine.faceTo.z);
+      const f = (c.shrine || world.shrine).faceTo;
+      await faceTo(f.x, f.z);
       avatar.hold('kneel');
       net.hold('kneel');
       audio.bell(262, 0.1, 4);
@@ -655,6 +681,9 @@ export function startMarket(root, opts = {}) {
     if (a === 'incense') {
       av.emote('bow');
       world.offerIncense(t);
+    } else if (a === 'offer') {
+      av.emote('bow');
+      world.hallShrine?.offer();
     } else if (a === 'feed') {
       av.emote('wave');
       koi.feed(x, z, t);
@@ -731,8 +760,10 @@ export function startMarket(root, opts = {}) {
     if (pool?.isOpen && show && fromCentre > world.pondR + 9) pool.close();
     // 月老殿裡的蒲團：站上去就能跪拜
     nearCushion = null;
-    if (show && world.shrine)
-      for (const c of world.shrine.cushions) if (Math.hypot(c.x - me.x, c.z - me.z) < 0.75) nearCushion = c;
+    if (show)
+      for (const sh of [world.shrine, world.hallShrine])
+        for (const c of sh?.cushions || [])
+          if (Math.hypot(c.x - me.x, c.z - me.z) < 0.75) nearCushion = Object.assign(c, { shrine: sh });
     nearBurner =
       show && !near && !nearPool && Math.hypot(world.burner.x - me.x, world.burner.z - me.z) < world.burner.r;
     const panel = !!pool?.isOpen || !!wardrobe;
@@ -743,7 +774,14 @@ export function startMarket(root, opts = {}) {
     if (inLine) promptEl.textContent = '不排了';
     else if (sitting) promptEl.textContent = '起身';
     else if (nearCushion) promptEl.textContent = '跪拜';
-    else if (near) promptEl.textContent = near.inside ? '求籤' : `進入${near.name}`;
+    else if (near)
+      promptEl.textContent = near.walkOnly
+        ? clock.elapsedTime - lastOffer < 3
+          ? '心意已到'
+          : '上香'
+        : near.inside
+          ? '求籤'
+          : `進入${near.name}`;
     else if (nearPool) promptEl.textContent = '到池邊許願';
     else if (nearBurner)
       promptEl.textContent =
@@ -843,6 +881,14 @@ export function startMarket(root, opts = {}) {
     if (r.inside) pts.push([r.entry.x, r.entry.z]); // 走得進去的殿：先到殿門口再進去
     pts.push([r.stand.x, r.stand.z]);
     await walkPath(pts);
+    if (r.walkOnly) {
+      // 大殿：走進來就到了，不轉場。面向神像，告訴人可以做什麼
+      await faceTo(r.door.x, r.door.z);
+      mode = 'walk';
+      ui.hint('到大殿了。在供桌前可以上香，站上蒲團可以跪拜；在場的人都看得到。');
+      setTimeout(() => mode === 'walk' && ui.hint(''), 5000);
+      return;
+    }
     enterRoom(r, false, true);
   }
 
@@ -879,6 +925,11 @@ export function startMarket(root, opts = {}) {
   }
 
   async function enterRoom(r, instant, arrived) {
+    if (r.walkOnly) {
+      // 走得進去、不用轉場的殿：「進入」就是在供桌前上香
+      hallOffer();
+      return;
+    }
     mode = 'moving';
     if (wardrobe) closeWardrobe();
     pool?.close();
