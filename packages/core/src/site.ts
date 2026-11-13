@@ -105,6 +105,11 @@ export interface SiteConfig {
      * 沒填 Stripe 會拒絕建立結帳；沒開時只影響 Stripe Tax 的稅率判斷。
      */
     taxCode?: string;
+    /**
+     * 標價是否已含稅。'inclusive'：買家付的就是標價，稅從站長收入裡扣（不會在結帳時多一行稅）；
+     * 'exclusive'：稅另計、加在標價上。沒設時由 Stripe 帳戶預設決定。
+     */
+    taxBehavior?: 'inclusive' | 'exclusive';
   };
   analytics?: {
     ga4?: string;

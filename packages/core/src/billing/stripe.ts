@@ -21,6 +21,8 @@ export interface StripeOptions {
   automaticTax: boolean;
   /** 產品稅務分類碼，放進每筆 price_data.product_data（見 SiteConfig.billing.taxCode）。 */
   taxCode?: string;
+  /** 'inclusive' 時買家只付標價（見 SiteConfig.billing.taxBehavior）。 */
+  taxBehavior?: 'inclusive' | 'exclusive';
 }
 
 /** Both ordinary and restricted test-mode Stripe keys are allowed. */
@@ -206,6 +208,7 @@ export class StripeProvider implements PaymentProvider {
             price_data: {
               currency: product.price.currency,
               unit_amount: product.price.amount,
+              ...(this.options.taxBehavior ? { tax_behavior: this.options.taxBehavior } : {}),
               product_data: {
                 name: product.name,
                 ...(this.options.taxCode ? { tax_code: this.options.taxCode } : {}),
