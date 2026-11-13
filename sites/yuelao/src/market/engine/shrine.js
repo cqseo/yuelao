@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { roofGeometry } from './mats.js';
 import { canvasTex, glow, rand, textPlane } from './util.js';
@@ -471,8 +472,10 @@ export function createShrine(o) {
   god.scale.setScalar(o.statueScale ?? 1.05);
   // 有 AI 生成的神像模型（GLB）就換上：量好高度、底部貼齊神台、置中；載不到就留著拼出來的像
   if (o.model)
-    new GLTFLoader().load(o.model, (gltf) => {
+    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(o.model, (gltf) => {
       const m = gltf.scene;
+      m.rotation.y = o.modelRotY ?? 0; // 模型原本面向哪邊不一定，轉到朝殿門
+      m.updateMatrixWorld(true);
       const bb = new THREE.Box3().setFromObject(m);
       const size = bb.getSize(new THREE.Vector3());
       const k = 2.9 / (size.y || 1);
