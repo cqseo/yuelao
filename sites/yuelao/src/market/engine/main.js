@@ -87,6 +87,7 @@ export function startMarket(root, opts = {}) {
     aiStatus: () => opts.aiStatus?.() || { available: false },
     look: () => ({ ...avatar.state }),
     deep: opts.deep || null,
+    spread: opts.spread || null,
     leave: () => leaveRoom(),
     emit: (name, props) => emit(name, props),
   };

@@ -271,6 +271,87 @@ export function Market() {
       },
     };
 
+    // 塔羅館的完整解讀（付費）：一個「牌陣」= 牌組＋三張＋問題雜湊（格式見 packages/core/src/spread.ts）。
+    // 和月老殿一樣：金額、訂單、解鎖都在伺服器；這裡只問狀態、帶去付款、請伺服器動筆。
+    const spreadProduct = findProduct(site, 'spread_1');
+    const SPREAD_PENDING = 'market-spread-pending';
+    const spread = {
+      price: spreadProduct ? formatPrice(priceForLocale(spreadProduct, locale), locale) : '',
+      async check(key: string) {
+        try {
+          const res = await authed(() =>
+            fetch(`/api/account/spread?spread=${encodeURIComponent(key)}&locale=${locale}`, {
+              credentials: 'same-origin',
+              cache: 'no-store',
+            }),
+          );
+          if (res.ok) {
+            const d = (await res.json()) as { state?: string; body?: string };
+            if (d.state === 'ready' && d.body) return { state: 'ready' as const, body: d.body };
+            if (d.state === 'unlocked') return { state: 'unlocked' as const };
+          }
+        } catch {}
+        return { state: 'none' as const };
+      },
+      buy: (key: string) => checkout('spread_1', { spread: key }),
+      async generate(key: string, question: string, sit: string) {
+        try {
+          const res = await authed(() =>
+            fetch('/api/account/spread/generate', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                spread: key,
+                locale,
+                question: question.slice(0, 400),
+                sit,
+                consent: true,
+              }),
+            }),
+          );
+          if (res.status === 202) return 'processing' as const;
+          return res.ok ? ('ready' as const) : ('failed' as const);
+        } catch {
+          return 'failed' as const;
+        }
+      },
+      /** 去付款／登入前記下這一把牌（問題只存在本機，回來重算出同一組牌）。 */
+      save(p: { deck: string; question: string; sit: string; day: string; why: 'pay' | 'login' }) {
+        try {
+          sessionStorage.setItem(
+            SPREAD_PENDING,
+            JSON.stringify({ ...p, question: p.question.slice(0, 100), at: Date.now() }),
+          );
+        } catch {}
+      },
+      take() {
+        try {
+          const raw = sessionStorage.getItem(SPREAD_PENDING);
+          sessionStorage.removeItem(SPREAD_PENDING);
+          const p = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+          if (
+            p &&
+            (p.deck === 'tarot' || p.deck === 'lnm') &&
+            typeof p.question === 'string' &&
+            typeof p.sit === 'string' &&
+            typeof p.day === 'string' &&
+            /^\d{4}-\d{1,2}-\d{1,2}$/.test(p.day) &&
+            typeof p.at === 'number' &&
+            Date.now() - p.at < 45 * 60 * 1000
+          )
+            return {
+              deck: p.deck,
+              question: p.question.slice(0, 100),
+              sit: p.sit,
+              day: p.day,
+              why: p.why === 'pay' ? ('pay' as const) : ('login' as const),
+            };
+        } catch {}
+        return null;
+      },
+    };
+
     let theme: CompanionTheme = 'general';
     let turn = 0;
     const history: { role: 'user' | 'assistant'; text: string }[] = [];
@@ -311,6 +392,7 @@ export function Market() {
         aiStatus: () => ({ available: !!ai?.enabled && !ai.loginRequired && ai.remaining !== 0 }),
         ask,
         deep,
+        spread,
         shop,
         wishes,
       });

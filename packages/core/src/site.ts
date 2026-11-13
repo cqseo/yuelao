@@ -37,11 +37,16 @@ export interface ItemProduct extends ProductBase {
   kind: 'item';
 }
 
-export type Product = UnlockProduct | PackProduct | SubscriptionProduct | ItemProduct;
+/** One full reading of one drawn spread (tarot / Lenormand), bought once; key format in spread.ts. */
+export interface SpreadProduct extends ProductBase {
+  kind: 'spread';
+}
+
+export type Product = UnlockProduct | PackProduct | SubscriptionProduct | ItemProduct | SpreadProduct;
 
 /** A product with the price resolved for one locale — what the payment provider sees. */
 export type CheckoutProduct =
-  | { id: string; kind: 'unlock' | 'pack' | 'item'; name: string; price: Price }
+  | { id: string; kind: 'unlock' | 'pack' | 'item' | 'spread'; name: string; price: Price }
   | { id: string; kind: 'subscription'; name: string; price: Price; interval: 'month' | 'year' };
 
 export function priceForLocale(product: Product, locale: Locale): Price {

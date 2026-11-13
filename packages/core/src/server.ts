@@ -14,6 +14,7 @@ import { errorResponse } from './http';
 import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
 import type { SiteConfig } from './site';
+import { generateSpreadReadingRequest, spreadReadingResponse } from './spread-reading';
 import { createAnonClient, createServiceClient } from './supabase';
 import { listWishesResponse, wishActionRequest } from './wishes';
 
@@ -99,6 +100,16 @@ export function createCore(site: SiteConfig) {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         return paidReadingResponse(request, ctx.supabaseService, user);
+      },
+      spread: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return spreadReadingResponse(request, ctx.supabaseService, user);
+      },
+      spreadGenerate: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return generateSpreadReadingRequest(request, ctx.supabaseService, user, ctx.env);
       },
       snapshot: async (request: Request) => {
         const ctx = context();
