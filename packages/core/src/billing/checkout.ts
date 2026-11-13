@@ -184,11 +184,13 @@ export async function createTestCheckout({
 
   // No paid content is delivered at this redirect. Only a verified Stripe
   // webhook followed by a single transactional DB grant may unlock it.
-  const returnUrl = new URL('/billing/return', siteUrl);
-  returnUrl.searchParams.set('order', order.id);
   // Fixed paths only — never a caller-supplied URL.
-  const cancelPath =
-    selection.from !== 'market' ? '/ritual' : product.kind === 'unlock' ? '/market#yuelao' : '/market';
+  // 從集市發起的付款直接回集市（月老殿會自己向伺服器確認解鎖），不經過核實頁。
+  const marketPath = product.kind === 'unlock' ? '/market#yuelao' : '/market';
+  const returnUrl =
+    selection.from === 'market' ? new URL(marketPath, siteUrl) : new URL('/billing/return', siteUrl);
+  if (selection.from !== 'market') returnUrl.searchParams.set('order', order.id);
+  const cancelPath = selection.from !== 'market' ? '/ritual' : marketPath;
   const cancelUrl = new URL(cancelPath, siteUrl);
   const checkout = await provider.createCheckout({
     orderId: order.id,
