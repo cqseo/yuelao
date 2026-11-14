@@ -1919,3 +1919,90 @@
     animation: none;
   }
 }
+
+/* 大殿靜心上香：呼吸圈（吸四秒、吐四秒） */
+.mk .calm {
+  display: grid;
+  place-items: center;
+  height: 11rem;
+  margin: 0.3rem 0 0.2rem;
+}
+.mk .calm-ring {
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  border: 1px solid rgba(220, 187, 124, 0.6);
+  background: radial-gradient(circle, rgba(255, 176, 96, 0.28), rgba(255, 176, 96, 0) 70%);
+  box-shadow: 0 0 2.5rem -0.5rem rgba(255, 176, 96, 0.55);
+  animation: calm-breathe 8s ease-in-out infinite;
+}
+.mk .calm-ring span {
+  font-size: 1.05rem;
+  letter-spacing: 0.3em;
+  color: var(--paper);
+  animation: calm-counter 8s ease-in-out infinite;
+}
+@keyframes calm-breathe {
+  0%,
+  100% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.55);
+  }
+}
+/* 圈放大時字不跟著變大 */
+@keyframes calm-counter {
+  0%,
+  100% {
+    transform: scale(1.25);
+  }
+  50% {
+    transform: scale(0.65);
+  }
+}
+.mk #panel .calm-left {
+  margin: 0 0 0.4rem;
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mk .calm-ring,
+  .mk .calm-ring span {
+    animation: none;
+  }
+}
+
+/* 日曆：頂欄小字與入口一句（DESIGN.md「節氣與月相」） */
+.mk #hud #almanac {
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--paper-50);
+  white-space: nowrap;
+}
+.mk #hud #almanac.on {
+  color: var(--gold);
+}
+.mk #hud:has(#back:not([hidden])) #almanac {
+  display: none;
+}
+@media (max-width: 430px) {
+  .mk #hud #almanac {
+    display: none;
+  }
+}
+.mk #menu .almanac-line {
+  max-width: 26rem;
+  margin: -1rem 0 1.8rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--gold);
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: #f1d48f;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.75);
+}

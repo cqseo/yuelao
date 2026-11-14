@@ -4,6 +4,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { almanacLabel, todayEvents } from './almanac.js';
 import { createAvatar, HAIRS, OUTFITS } from './avatar.js';
 import { createCrowd } from './crowd.js';
 import { createHall } from './hall.js';
@@ -564,9 +565,28 @@ export function startMarket(root, opts = {}) {
   }
   /** 大殿供桌前上香：鞠躬、香爐冒煙，在場的人也看得到。 */
   let lastOffer = -99;
+  // 靜心上香（DESIGN.md「大殿靜心上香」）：香在 30 秒裡慢慢燒短，跟著圈圈呼吸（吸四秒、吐四秒）。
+  // 隨時可以「先到這裡」；走開也會自己結束。
+  const CALM_SEC = 30;
+  let calm = null; // { stop, timers, x, z }
+  function endCalm(done) {
+    if (!calm) return;
+    const c = calm;
+    calm = null;
+    for (const id of c.timers) clearInterval(id);
+    c.stop();
+    ui.panel('');
+    audio.scene('plaza');
+    if (done) {
+      audio.bell(196, 0.16, 6);
+      ui.hint('香燒完了。今天也好好過。');
+      emit('market_hall_calm_done');
+    } else ui.hint('');
+    setTimeout(() => !calm && mode === 'walk' && ui.hint(''), 4000);
+  }
   function hallOffer() {
     const t = clock.elapsedTime;
-    if (mode !== 'walk' || t - lastOffer < 3) return;
+    if (mode !== 'walk' || calm || t - lastOffer < 3) return;
     lastOffer = t;
     standUp();
     const hs = world.hallShrine;
@@ -575,9 +595,34 @@ export function startMarket(root, opts = {}) {
     hs.offer();
     net.act('offer');
     audio.bell(294, 0.14, 4);
+    audio.scene('shrine');
     emit('market_hall_offer');
-    ui.hint('香已上。願望放在心裡就好。');
-    setTimeout(() => mode === 'walk' && ui.hint(''), 3500);
+    ui.hint('');
+    const started = Date.now();
+    calm = { stop: hs.burn ? hs.burn(CALM_SEC) : () => {}, timers: [], x: me.x, z: me.z };
+    ui.panel(
+      `<p class="kicker">靜心三十秒</p>
+       <div class="calm"><div class="calm-ring"><span id="calm-word">吸氣</span></div></div>
+       <p class="calm-left" id="calm-left">${CALM_SEC}</p>
+       <p class="note">香慢慢燒短。跟著圈圈吸氣、吐氣，心裡想著那件事就好。</p>
+       <button class="ghost" data-a="end">先到這裡</button>`,
+      (a) => a === 'end' && endCalm(false),
+    );
+    const c = calm;
+    c.timers.push(
+      setInterval(() => {
+        if (calm !== c) return;
+        const el = (Date.now() - started) / 1000;
+        const left = Math.max(0, Math.ceil(CALM_SEC - el));
+        const lt = document.getElementById('calm-left');
+        if (lt) lt.textContent = String(left);
+        const w = document.getElementById('calm-word');
+        if (w) w.textContent = Math.floor(el / 4) % 2 ? '吐氣' : '吸氣';
+        // 走開了就收：靜心是站在供桌前的事
+        if (Math.hypot(me.x - c.x, me.z - c.z) > 1.2) return endCalm(false);
+        if (el >= CALM_SEC) endCalm(true);
+      }, 250),
+    );
   }
   /** 殿裡的蒲團：站正、面向神像、跪下。 */
   function kneelHere(c) {
@@ -780,7 +825,8 @@ export function startMarket(root, opts = {}) {
     const panel = !!pool?.isOpen || !!wardrobe;
     const sitting = show && !!avatar.holding;
     const inLine = show && !!queued;
-    const wantPrompt = !panel && (inLine || sitting || !!nearCushion || !!near || nearPool || nearBurner);
+    const wantPrompt =
+      !panel && !calm && (inLine || sitting || !!nearCushion || !!near || nearPool || nearBurner);
     promptEl.classList.toggle('show', wantPrompt);
     if (inLine) promptEl.textContent = '不排了';
     else if (sitting) promptEl.textContent = '起身';
@@ -1470,6 +1516,23 @@ export function startMarket(root, opts = {}) {
   let skyHour = clockHour();
   let skyAt = performance.now();
   const skyBtn = $('#sky');
+  // 日曆：頂欄小字（節日、節氣或農曆日期）；入口畫面有節日就加一句（DESIGN.md「節氣與月相」）
+  {
+    const ev = todayEvents()[0];
+    const tag = $('#almanac');
+    if (tag) {
+      tag.textContent = almanacLabel();
+      if (ev) {
+        tag.title = ev.line;
+        tag.classList.add('on');
+      }
+    }
+    const line = $('#almanac-line');
+    if (line && ev) {
+      line.textContent = ev.line;
+      line.hidden = false;
+    }
+  }
   const nameOf = (h) =>
     h < 5
       ? '深夜'
