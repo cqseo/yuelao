@@ -248,10 +248,29 @@ export function paperTex(draw, w = 512, h = 512) {
 }
 
 // ---------- audio (all synthesized) ----------
+// 開關記在瀏覽器，集市與求籤頁共用（見 DESIGN.md「聲音：記住開關、淡入淡出」）。
+export const SOUND_KEY = 'yuelao:sound';
+export function soundPref() {
+  try {
+    return localStorage.getItem(SOUND_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+const LEVEL = 0.5;
 export const audio = {
   ctx: null,
-  on: true,
+  on: typeof window === 'undefined' ? true : soundPref(),
   master: null,
+  /** 音量不硬切：從現在的值在 sec 秒內滑到 to。 */
+  fade(to, sec) {
+    if (!this.master || !this.ctx) return;
+    const g = this.master.gain;
+    const t = this.ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(to, t + sec);
+  },
   init() {
     if (this.ctx) {
       // 沒有點擊就建立的聲音會被瀏覽器暫停；之後任何一次點擊再叫醒
@@ -269,8 +288,10 @@ export const audio = {
       window.addEventListener('keydown', wake, { once: true, capture: true });
     }
     this.master = this.ctx.createGain();
-    this.master.gain.value = 0.5;
+    // 從無聲淡入；關著就保持無聲（離開再進來也照記住的狀態）
+    this.master.gain.value = 0;
     this.master.connect(this.ctx.destination);
+    this.fade(this.on ? LEVEL : 0, 1.5);
     // ambience: low drone + filtered noise (distant crowd / wind)
     const d = this.ctx.createGain();
     d.gain.value = 0.05;
@@ -309,7 +330,10 @@ export const audio = {
   },
   toggle() {
     this.on = !this.on;
-    if (this.master) this.master.gain.value = this.on ? 0.5 : 0;
+    try {
+      localStorage.setItem(SOUND_KEY, this.on ? 'on' : 'off');
+    } catch {}
+    this.fade(this.on ? LEVEL : 0, 0.3);
     return this.on;
   },
   bell(freq = 520, vol = 0.25, len = 3.2) {

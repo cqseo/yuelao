@@ -632,7 +632,7 @@ export function createYuelao(ui) {
     } else {
       say(r.state === 'closed' ? '完整解籤還沒開張，過些日子再來。' : '這會兒忙不過來，稍後再試一次。');
       ui.panel(
-        `<p class="note">${r.state === 'closed' ? '付費的完整解籤尚未開放。免費的判詞和追問都可以照常用。' : '沒有扣款。可以稍後再試。'}</p>${backToCard}`,
+        `<p class="note">${r.state === 'closed' ? '付費的完整解籤尚未開放。免費的判詞照常可以看。' : '沒有扣款。可以稍後再試。'}</p>${backToCard}`,
         (a) => a === 'card' && verdict(),
       );
     }

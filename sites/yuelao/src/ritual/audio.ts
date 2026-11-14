@@ -4,7 +4,17 @@
 let ac: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
 
+/** 與集市共用的聲音開關（localStorage `yuelao:sound`）；關著就不出聲。 */
+function soundOn(): boolean {
+  try {
+    return localStorage.getItem('yuelao:sound') !== 'off';
+  } catch {
+    return true;
+  }
+}
+
 function audio(): AudioContext | null {
+  if (!soundOn()) return null;
   if (!ac) {
     const Ctx =
       window.AudioContext ??
