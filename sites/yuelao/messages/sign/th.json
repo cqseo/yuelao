@@ -1,12 +1,12 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "sign_back_home": "กลับหน้าแรก",
-  "sign_meta_description": "{no} {grade}: {line} อ่านบทกลอนและคำตัดสินสำหรับคำถามสามแบบ",
+  "sign_meta_description": "{no} {grade}: {line} อ่านบทกลอนและคำทำนายสำหรับคำถามสามแบบ",
   "sign_meta_title": "{no} {grade} — คำทำนายเซียมซีเทพเยว่เหล่า",
   "sign_next": "ใบถัดไป",
   "sign_prev": "ใบก่อนหน้า",
   "sign_related_title": "ใบใกล้เคียง · ระดับเดียวกัน",
   "sign_ritual_cta": "นำเซียมซีใบนี้ไปถามเทพเยว่เหล่า",
   "sign_source": "ที่มาของบทกลอน: {source}",
-  "sign_verdicts_title": "คำตัดสินสำหรับคำถามสามแบบ"
+  "sign_verdicts_title": "คำทำนายสำหรับคำถามสามแบบ"
 }
