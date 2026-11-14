@@ -1,4 +1,5 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { ensureContent } from '~/i18n/content';
 import { contentLocale } from '~/i18n/locale';
 import { pageHead } from '~/i18n/seo';
 import { tr } from '~/i18n/ui';
@@ -8,8 +9,10 @@ import { TestRunner } from '~/tests/components/TestRunner';
 import site from '../../../site.config';
 
 export const Route = createFileRoute('/tests/$slug')({
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
     if (!getTest(params.slug)) throw notFound();
+    // 非中文：站內換頁進來時先載內容字典
+    await ensureContent();
     return {};
   },
   head: ({ params }) => {

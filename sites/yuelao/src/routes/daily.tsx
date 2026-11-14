@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { ensureContent } from '~/i18n/content';
 import { contentLocale } from '~/i18n/locale';
 import { pageHead } from '~/i18n/seo';
 import { tr } from '~/i18n/ui';
@@ -19,6 +20,8 @@ import {
 import site from '../../site.config';
 
 export const Route = createFileRoute('/daily')({
+  // 非中文：站內換頁進來時先載內容字典
+  loader: () => ensureContent(),
   head: () =>
     pageHead(site, {
       title: tr('月老每日運勢與簽到｜每日心箋 · 免費'),
