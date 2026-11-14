@@ -5,7 +5,7 @@ let ac: AudioContext | null = null;
 let noiseBuf: AudioBuffer | null = null;
 
 /** 與集市共用的聲音開關（localStorage `yuelao:sound`）；關著就不出聲。 */
-function soundOn(): boolean {
+export function isSoundOn(): boolean {
   try {
     return localStorage.getItem('yuelao:sound') !== 'off';
   } catch {
@@ -13,8 +13,16 @@ function soundOn(): boolean {
   }
 }
 
+/** 記住開關，回傳新的狀態。 */
+export function setSound(on: boolean): boolean {
+  try {
+    localStorage.setItem('yuelao:sound', on ? 'on' : 'off');
+  } catch {}
+  return on;
+}
+
 function audio(): AudioContext | null {
-  if (!soundOn()) return null;
+  if (!isSoundOn()) return null;
   if (!ac) {
     const Ctx =
       window.AudioContext ??

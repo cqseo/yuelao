@@ -3458,3 +3458,24 @@ a.ask-entry:hover {
 .staging-notice strong {
   color: #f9df9a;
 }
+
+/* 求籤頁的聲音開關（和集市共用設定，見 DESIGN.md「聲音：各空間的背景聲」） */
+.ritual-page .ritual-sound {
+  position: fixed;
+  z-index: 60;
+  top: calc(0.75rem + env(safe-area-inset-top));
+  right: 0.75rem;
+  min-height: 32px;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(232, 200, 120, 0.35);
+  border-radius: 3px;
+  background: rgba(18, 16, 14, 0.55);
+  color: rgba(245, 230, 200, 0.85);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.ritual-page .ritual-sound:hover {
+  border-color: rgba(232, 200, 120, 0.7);
+}
