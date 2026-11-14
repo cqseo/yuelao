@@ -420,6 +420,7 @@ export function Market() {
           </button>
           <span id="hud-title">月下集市</span>
           <button type="button" id="sky" aria-label="天色" />
+          <span id="almanac" />
         </div>
         <div className="right">
           <button type="button" id="view">
@@ -444,6 +445,7 @@ export function Market() {
       <section id="menu">
         <h1>月下集市</h1>
         <p className="lead">一座夜裡的集市，每間鋪子問一種事。四處逛逛，想問什麼，就走進哪一間。</p>
+        <p className="almanac-line" id="almanac-line" hidden />
         <div className="row">
           <button type="button" className="seal" id="enter">
             入市

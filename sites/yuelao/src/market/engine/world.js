@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { moonLight } from './almanac.js';
 import { createMaterials, roofGeometry } from './mats.js';
 import { createShrine } from './shrine.js';
 import { canvasTex, glow, rand, textPlane } from './util.js';
@@ -83,11 +84,13 @@ export function createWorld(renderer, lowQuality) {
         uDay: { value: 0 },
         uDusk: { value: 0 },
         uT: { value: 0 },
+        // 月亮亮面比例（照農曆日：初一 0、十五 1），見 almanac.js
+        uMoonLight: { value: typeof window === 'undefined' ? 0.6 : moonLight() },
       },
       vertexShader:
         'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position.z = gl_Position.w; }',
       fragmentShader: `
-        varying vec3 vD; uniform vec3 uMoon; uniform vec3 uSun; uniform float uDay; uniform float uDusk; uniform float uT;
+        varying vec3 vD; uniform vec3 uMoon; uniform vec3 uSun; uniform float uDay; uniform float uDusk; uniform float uT; uniform float uMoonLight;
         float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
         float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
         float fbm(vec2 p){ float a=0.5, s=0.0; for(int i=0;i<5;i++){ s+=a*n(p); p*=2.03; a*=0.5; } return s; }
@@ -105,8 +108,9 @@ export function createWorld(renderer, lowQuality) {
           col += vec3(1.0,0.86,0.62) * pow(max(sd,0.0), 90.0) * 0.5 * sunUp;      // 日暈
           col += vec3(1.0,0.96,0.86) * smoothstep(0.9989, 0.9994, sd) * 3.0 * sunUp; // 日輪
           float md = dot(d, uMoon);
-          col += vec3(0.75,0.8,1.0) * pow(max(md,0.0), 22.0) * 0.26 * night;      // 月暈
-          col += vec3(1.0,0.96,0.86) * smoothstep(0.9982, 0.9989, md) * night;    // 月輪
+          float full = smoothstep(0.93, 1.0, uMoonLight);                         // 十五前後的滿月
+          col += vec3(0.75,0.8,1.0) * pow(max(md,0.0), 22.0 - 8.0 * full) * (0.12 + 0.24 * uMoonLight + 0.12 * full) * night; // 月暈：滿月更亮更大
+          col += vec3(1.0,0.96,0.86) * smoothstep(0.9982 - 0.0005 * full, 0.9989 - 0.0003 * full, md) * (0.15 + 0.85 * uMoonLight + 0.3 * full) * night; // 月輪：新月幾乎看不見
           vec2 sp = d.xz / (d.y + 0.25) * 90.0;
           float st = step(0.9965, h(floor(sp))) * (0.5 + 0.5 * sin(uT * 2.0 + h(floor(sp) + 3.1) * 40.0));
           col += vec3(0.8,0.85,1.0) * st * up * 0.9 * night * night;

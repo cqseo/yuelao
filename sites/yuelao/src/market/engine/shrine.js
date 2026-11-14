@@ -813,6 +813,7 @@ export function createShrine(o) {
     apron.position.set(0, B + 0.55, tz + 0.52);
     g.add(apron);
     // 燭台（燭火會微微亮）
+    const joss = []; // 香爐裡的三炷香（只有預設的殿有）
     const flames = [];
     for (const s of [-1, 1]) {
       g.add(
@@ -852,7 +853,7 @@ export function createShrine(o) {
         g.add(f);
       }
     }
-    // 小香爐
+    // 小香爐（三炷香：靜心上香時會慢慢燒短，見 burn()）
     const bowl = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.2, 18), mat.bronze));
     bowl.position.set(0, B + 1.16, tz);
     g.add(bowl);
@@ -866,6 +867,7 @@ export function createShrine(o) {
       const tip = glow(0xff5a20, 0.08, 1);
       tip.position.set(ox, B + 1.68, tz);
       g.add(tip);
+      joss.push({ stick, tip, bottom: B + 1.45 - 0.225 });
     }
     // 籤筒
     const tube = shadow(
@@ -918,10 +920,17 @@ export function createShrine(o) {
     rack.position.set(W / 2 - 1.3, B, -D + 4.2);
     rack.rotation.y = -Math.PI / 2;
     if (o.rack !== false) g.add(rack);
-    return { god, tz, cz, cushionsLocal, flames };
+    return { god, tz, cz, cushionsLocal, flames, joss };
   }
   const furnish = o.kind === 'tarot' ? furnishTarot : o.kind === 'sutra' ? furnishSutra : furnishAltar;
-  const { god, tz, cz, cushionsLocal, flames } = furnish({ g, mat, box, shadow, B, W, D, H, zBack, o });
+  const {
+    god,
+    tz,
+    cz,
+    cushionsLocal,
+    flames,
+    joss = [],
+  } = furnish({ g, mat, box, shadow, B, W, D, H, zBack, o });
 
   g.position.set(x, 0, z);
   g.rotation.y = rot;
@@ -962,6 +971,22 @@ export function createShrine(o) {
   let t = 0;
   // 上香：供桌小香爐升起一陣煙（白色光點往上飄、散開）
   const smokes = [];
+  // 靜心上香：香在 total 秒內燒到剩四分之一，期間一直冒煙；燒完兩秒後換上新的
+  let burning = null; // { left, total, puff, rest }
+  const setJoss = (k) => {
+    for (const j of joss) {
+      const h = 0.45 * (1 - 0.75 * k);
+      j.stick.scale.y = h / 0.45;
+      j.stick.position.y = j.bottom + h / 2;
+      j.tip.position.y = j.bottom + h + 0.005;
+    }
+  };
+  const puff = () => {
+    const s2 = glow(0xf2ece0, 0.3, 0.5);
+    s2.position.copy(smokeAt);
+    scene.add(s2);
+    smokes.push({ s: s2, age: 0 });
+  };
   const smokeAt = toWorld(0, B + 1.7, tz);
   return {
     /** 殿內不能走的地方。 */
@@ -1005,10 +1030,34 @@ export function createShrine(o) {
         smokes.push({ s, age: -i * 0.25 });
       }
     },
+    /** 靜心上香：香慢慢燒 sec 秒。回傳 stop()，提早結束時呼叫。 */
+    burn(sec) {
+      burning = { left: sec, total: sec, puff: 0, rest: 0 };
+      return () => {
+        if (burning) burning.left = Math.min(burning.left, 0);
+      };
+    },
     /** 供桌前（上香、求籤時站的地方）。 */
     altarFront: toWorld(0, 0, tz + 1.0),
     update(dt) {
       t += dt;
+      if (burning) {
+        if (burning.left > 0) {
+          burning.left -= dt;
+          setJoss(1 - Math.max(0, burning.left) / burning.total);
+          burning.puff -= dt;
+          if (burning.puff <= 0) {
+            puff();
+            burning.puff = 0.4;
+          }
+        } else {
+          burning.rest += dt;
+          if (burning.rest > 2) {
+            setJoss(0);
+            burning = null;
+          }
+        }
+      }
       for (let i = smokes.length - 1; i >= 0; i--) {
         const m = smokes[i];
         m.age += dt;
