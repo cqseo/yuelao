@@ -285,6 +285,8 @@ export function Market() {
               cache: 'no-store',
             }),
           );
+          // 401：沒登入。付款鈕下方先說要登入，不要按了才被擋。
+          if (res.status === 401) return { state: 'none' as const, guest: true };
           if (res.ok) {
             const d = (await res.json()) as { state?: string; body?: string };
             if (d.state === 'ready' && d.body) return { state: 'ready' as const, body: d.body };

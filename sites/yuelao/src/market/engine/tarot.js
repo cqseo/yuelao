@@ -556,12 +556,18 @@ export function createTarot(ui) {
     ui.panel(
       `<div class="reading lnm">
         <p class="asked">問．${esc(question)}<span>${sitWord()}．${DECKS[deck].name}</span></p>
+        ${ui.spread?.price ? `<button type="button" class="jump-unlock" data-a="jump">想把三張連起來看？完整解讀 ${ui.spread.price} ↓</button>` : ''}
         ${thumbs}
         ${body}
         ${unlockBlock()}
        </div>
        <div class="card-actions"><button class="seal" data-a="again">換一件事問</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (x) => {
+        if (x === 'jump') {
+          // 不用 #unlock 錨點：集市用網址 hash 換房間
+          document.getElementById('unlock')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          return;
+        }
         if (x === 'deep') {
           // 已經解鎖就直接看／動筆；沒有就直接去付款（說明都在牌義下方，不另開一頁）
           if (deepState && deepState.state !== 'none') return openDeep();
@@ -617,6 +623,7 @@ export function createTarot(ui) {
         <p class="deep-teaser">${esc(teaser)}</p>
         <p class="unlock-note">上面是每張牌各自的意思。完整解讀把三張連起來，七段都只寫你問的那件事。</p>
         <button class="offer" id="deep-btn" data-a="deep">解鎖完整解讀　${ui.spread.price}</button>
+        <p class="note small unlock-login" id="deep-login" hidden>需先登入（免費），登入完會回到這一把牌。</p>
         <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
         <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
       </section>`;
@@ -632,6 +639,8 @@ export function createTarot(ui) {
         const btn = document.getElementById('deep-btn');
         if (btn && r.state !== 'none')
           btn.textContent = r.state === 'ready' ? '看完整解讀（已解鎖）' : '請塔羅師動筆（已解鎖）';
+        const login = document.getElementById('deep-login');
+        if (login) login.hidden = !r.guest;
       }),
     );
   }
