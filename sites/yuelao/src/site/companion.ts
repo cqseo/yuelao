@@ -157,37 +157,50 @@ function detectTheme(input: string, previous: CompanionTheme): CompanionTheme {
   const s = input.toLowerCase();
   if (
     /自殺|自杀|自殘|自残|不想活|想死|結束生命|结束生命|家暴|被打|威脅|威胁|傷害自己|伤害自己|暴力/.test(s) ||
-    /suicid|kill myself|want to die|end my life|self[- ]?harm|hurt myself|abus|hits? me|threat|violen/.test(s)
+    /suicid|kill myself|want to die|end my life|self[- ]?harm|hurt myself|abus|hits? me|threat|violen/.test(
+      s,
+    ) ||
+    /死にたい|自殺|自傷|暴力|殴られ|脅され|죽고 싶|자살|자해|폭력|때려|협박|ฆ่าตัวตาย|อยากตาย|ทำร้ายตัวเอง|ความรุนแรง|ทำร้าย|ข่มขู่/.test(
+      s,
+    )
   )
     return 'safety';
   if (
     /分手|前任|複合|复合|斷聯|断联|挽回|回來|回来|重新開始|重新开始/.test(s) ||
-    /break ?up|broke up|\bex\b|get back together|reconcil|no contact|win (him|her|them) back/.test(s)
+    /break ?up|broke up|\bex\b|get back together|reconcil|no contact|win (him|her|them) back/.test(s) ||
+    /別れ|復縁|元彼|元カノ|헤어|이별|재회|전 남친|전 여친|연락이 끊|เลิก|คืนดี|แฟนเก่า|กลับมา/.test(s)
   )
     return 'reunion';
   if (
     /出軌|出轨|騙我|骗我|第三者|曖昧別人|暧昧别人|不信任|欺騙|欺骗|背叛|偷看手機|偷看手机/.test(s) ||
-    /cheat|lying|lied|betray|trust|affair|another (guy|girl|person)/.test(s)
+    /cheat|lying|lied|betray|trust|affair|another (guy|girl|person)/.test(s) ||
+    /浮気|嘘|裏切|信じられ|바람|거짓말|배신|믿을 수|นอกใจ|โกหก|หักหลัง|ไม่ไว้ใจ|มือที่สาม/.test(s)
   )
     return 'trust';
   if (
     /喜歡|喜欢|暗戀|暗恋|曖昧|暧昧|告白|表白|心動|心动|約會|约会|追求/.test(s) ||
-    /crush|\blike (him|her|them|someone)|confess|ask (him|her|them) out|\bdate|dating/.test(s)
+    /crush|\blike (him|her|them|someone)|confess|ask (him|her|them) out|\bdate|dating/.test(s) ||
+    /好き|片思い|告白|デート|좋아|짝사랑|고백|데이트|썸|ชอบ|แอบรัก|สารภาพ|เดท/.test(s)
   )
     return 'crush';
   if (
     /溝通|沟通|冷戰|冷战|吵架|道歉|說清楚|说清楚|怎麼說|怎么说|開口|开口|訊息|消息/.test(s) ||
-    /talk|argu|fight|apolog|message|text|silent|say it/.test(s)
+    /talk|argu|fight|apolog|message|text|silent|say it/.test(s) ||
+    /話し|けんか|喧嘩|謝|連絡|대화|싸움|싸웠|사과|연락|메시지|คุย|ทะเลาะ|ขอโทษ|ข้อความ|แชท/.test(s)
   )
     return 'communication';
   if (
     /難過|难过|孤單|孤单|寂寞|累|焦慮|焦虑|失眠|想太多|壓力|压力|傷心|伤心/.test(s) ||
-    /sad|lonely|alone|tired|anxi|insomnia|can't sleep|overthink|stress|hurt/.test(s)
+    /sad|lonely|alone|tired|anxi|insomnia|can't sleep|overthink|stress|hurt/.test(s) ||
+    /寂し|孤独|疲れ|不安|眠れ|考えすぎ|외로|혼자|피곤|불안|잠을 못|우울|힘들|เหงา|คนเดียว|เหนื่อย|กังวล|นอนไม่หลับ|เศร้า/.test(
+      s,
+    )
   )
     return 'lonely';
   if (
     /自己|界線|界限|底線|底线|委屈|放下|自尊|成長|成长/.test(s) ||
-    /myself|boundar|self-esteem|let go|grow/.test(s)
+    /myself|boundar|self-esteem|let go|grow/.test(s) ||
+    /自分|境界|手放|나 자신|경계|자존감|내려놓|ตัวเอง|ขอบเขต|ปล่อยวาง/.test(s)
   )
     return 'self';
   return previous === 'safety' ? 'general' : previous;

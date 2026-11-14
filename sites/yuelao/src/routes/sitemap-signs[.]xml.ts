@@ -5,7 +5,7 @@ import site from '../../site.config';
 
 // One URL per stick for Chinese (繁/簡 share the path). Languages whose stick
 // content is translated get their own tree too（2026-11-14：English）。
-const CONTENT_LOCALES = ['en'] as const;
+const CONTENT_LOCALES = ['en', 'ja'] as const;
 const SIGN_PAGES = [
   ...STICKS.map((stick) => `/sign/${stick.id}`),
   ...CONTENT_LOCALES.flatMap((l) => STICKS.map((stick) => `/${l}/sign/${stick.id}`)),

@@ -3,6 +3,7 @@ import { proxyRybbit } from '@yuelao/core/analytics';
 import { paraglideMiddleware } from '~/paraglide/server.js';
 import './i18n/strategy';
 import contentEn from './i18n/content/en.json';
+import contentJa from './i18n/content/ja.json';
 import { registerContentDict, registerUiDict } from './i18n/ui';
 import uiEn from './i18n/ui/en.json';
 import uiJa from './i18n/ui/ja.json';
@@ -13,6 +14,7 @@ export { HallRoom } from './hall-room';
 
 // 介面字典只在伺服器全部登記；瀏覽器只載目前語言那份（src/client.tsx）。
 registerContentDict('en', contentEn);
+registerContentDict('ja', contentJa);
 registerUiDict('en', uiEn);
 registerUiDict('ja', uiJa);
 registerUiDict('th', uiTh);
