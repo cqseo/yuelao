@@ -1,6 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "sign_back_home": "回问事总目",
+  "sign_back_home": "回首页",
   "sign_meta_description": "{no}{grade}：{line}，来看签诗和三种问法的判词。",
   "sign_meta_title": "{no} {grade} — 月老灵签解签",
   "sign_next": "下一签",
