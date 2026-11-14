@@ -386,6 +386,14 @@ export function Market() {
       track('market_npc_ask', { npc: 'yuelao', ai: !!o.ai });
       return answer;
     }
+    // 簡體：畫面上的字與分享圖轉成簡體（規則見 market/hans.js，須站長審過）
+    let stopHans: (() => void) | undefined;
+    if (locale === 'zh-Hans')
+      void Promise.all([import('./hans.js'), import('./engine/share.js')]).then(([h, sh]) => {
+        if (gone) return;
+        stopHans = h.watchHans(el);
+        sh.setShareText(h.toHans);
+      });
     void import('./engine/main.js').then(({ startMarket }) => {
       if (gone) return;
       stop = startMarket(el, {
@@ -402,6 +410,7 @@ export function Market() {
     return () => {
       gone = true;
       stop?.();
+      stopHans?.();
     };
   }, []);
 
