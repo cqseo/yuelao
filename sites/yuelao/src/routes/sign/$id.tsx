@@ -1,7 +1,9 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { absoluteUrl } from '@yuelao/core/seo';
-import { contentLocale } from '~/i18n/locale';
+import { ensureContent } from '~/i18n/content';
+import { contentLocale, uiPrefix } from '~/i18n/locale';
 import { pageHead } from '~/i18n/seo';
+import { tr } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { knotImage } from '~/ritual/knots';
@@ -9,6 +11,7 @@ import type { RitualCat } from '~/ritual/physics';
 import { adviceFor } from '~/ritual/stick-advice';
 import { STICKS, stickById } from '~/ritual/sticks';
 import { resolveStick } from '~/ritual/sticks-locale';
+import { STICK_PLAIN } from '~/ritual/sticks-plain';
 import site from '../../../site.config';
 
 // 每支籤獨立 URL（/sign/1…100，P5 程序化 SEO 頁）：籤詩、吉凶、三種問法
@@ -30,8 +33,10 @@ function situationLabel(cat: RitualCat): string {
 export const Route = createFileRoute('/sign/$id')({
   // 無效籤號在 loader 就擲 notFound：元件裡擲只會讓 SSR 報錯後退回客戶端
   // 渲染、HTTP 狀態仍是 200（軟 404）；loader 擲才是真正的 404。
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
     if (!getStick(params.id)) throw notFound();
+    // 非中文：站內換頁進來時先載內容字典（判詞、建議的譯文）
+    await ensureContent();
     return {};
   },
   head: ({ params }) => {
@@ -41,14 +46,14 @@ export const Route = createFileRoute('/sign/$id')({
     const path = localizeHref(`/sign/${stick.id}`, { locale });
     const firstLine = stick.poem.split('\n')[0] ?? '';
     return pageHead(site, {
-      title: m.sign_meta_title({ no: stick.no, grade: stick.grade }),
-      description: m.sign_meta_description({ no: stick.no, grade: stick.grade, line: firstLine }),
+      title: m.sign_meta_title({ no: tr(stick.no), grade: tr(stick.grade) }),
+      description: m.sign_meta_description({ no: tr(stick.no), grade: tr(stick.grade), line: firstLine }),
       path,
       image: `${site.url}/ritual/temple-fair.jpg`,
       jsonLd: [
         {
           '@type': 'Article',
-          headline: `${stick.no} ${stick.grade}`,
+          headline: `${tr(stick.no)} ${tr(stick.grade)}`,
           inLanguage: locale,
           mainEntityOfPage: absoluteUrl(site, path),
         },
@@ -72,15 +77,16 @@ function SignPage() {
   return (
     <article className="sign-page">
       <h1>
-        {s.no} · {s.grade}
+        {tr(s.no)} · {tr(s.grade)}
       </h1>
       <div className="sign-card">
-        <div className="no">{s.no}</div>
-        <div className="grade">{s.grade}</div>
+        <div className="no">{tr(s.no)}</div>
+        <div className="grade">{tr(s.grade)}</div>
         <p className="poem">{s.poem}</p>
-        {s.source && <p className="source">{m.sign_source({ source: s.source })}</p>}
+        {uiPrefix() && STICK_PLAIN[s.id] && <p className="poem-tr">{tr(STICK_PLAIN[s.id]!.plain)}</p>}
+        {s.source && <p className="source">{m.sign_source({ source: tr(s.source) })}</p>}
         <img className="sign-knot-img" src={knotImage(s.knot)} alt="" loading="lazy" />
-        <div className="knot">{s.knotName}</div>
+        <div className="knot">{tr(s.knotName)}</div>
       </div>
       {resolved.fallback && <p className="muted">{m.ritual_locale_note()}</p>}
 
@@ -89,7 +95,7 @@ function SignPage() {
         {SITUATIONS.map((cat) => (
           <div className="sign-situation" key={cat}>
             <p className="eyebrow">{m.ritual_verdict_cat({ cat: situationLabel(cat) })}</p>
-            <p>{s.verdict[cat]}</p>
+            <p>{tr(s.verdict[cat])}</p>
           </div>
         ))}
       </section>
@@ -98,9 +104,9 @@ function SignPage() {
           不再每種問法下各貼一份相同文案。 */}
       <section className="sign-advice">
         <p className="sign-block-label">{m.ritual_verdict_actions_title()}</p>
-        <p>{advice.actions}</p>
+        <p>{tr(advice.actions)}</p>
         <p className="sign-block-label">{m.ritual_verdict_practice_title()}</p>
-        <p>{advice.practice}</p>
+        <p>{tr(advice.practice)}</p>
       </section>
 
       <section className="sign-related">
@@ -110,9 +116,9 @@ function SignPage() {
             <li>
               <Link to={localizeHref(`/sign/${prev.id}`)}>
                 <span>
-                  {m.sign_prev()} · {prev.no}
+                  {m.sign_prev()} · {tr(prev.no)}
                 </span>
-                <span className="grade">{prev.grade}</span>
+                <span className="grade">{tr(prev.grade)}</span>
               </Link>
             </li>
           )}
@@ -120,17 +126,17 @@ function SignPage() {
             <li>
               <Link to={localizeHref(`/sign/${next.id}`)}>
                 <span>
-                  {m.sign_next()} · {next.no}
+                  {m.sign_next()} · {tr(next.no)}
                 </span>
-                <span className="grade">{next.grade}</span>
+                <span className="grade">{tr(next.grade)}</span>
               </Link>
             </li>
           )}
           {sameGrade.map((x) => (
             <li key={x.id}>
               <Link to={localizeHref(`/sign/${x.id}`)}>
-                <span>{x.no}</span>
-                <span className="grade">{x.grade}</span>
+                <span>{tr(x.no)}</span>
+                <span className="grade">{tr(x.grade)}</span>
               </Link>
             </li>
           ))}

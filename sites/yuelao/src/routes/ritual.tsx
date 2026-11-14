@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { ensureContent } from '~/i18n/content';
 import { pageHead } from '~/i18n/seo';
 import { tr } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
@@ -8,6 +9,8 @@ import { Ritual } from '~/ritual/Ritual';
 import site from '../../site.config';
 
 export const Route = createFileRoute('/ritual')({
+  // 非中文：站內換頁進來時先載內容字典（判詞、建議的譯文）
+  loader: () => ensureContent(),
   validateSearch: (search: Record<string, unknown>) => {
     const cat = search.cat;
     const q = search.q;

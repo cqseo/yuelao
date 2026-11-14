@@ -4,6 +4,7 @@ import { track } from '~/lib/track';
 import { COMPANION_STARTERS, type CompanionTheme, guidedReply } from '~/site/companion';
 import site from '../../site.config';
 import './market.css';
+import { ensureContent } from '~/i18n/content';
 import { watchTranslate } from '~/i18n/dom';
 import { LangMenu } from '~/i18n/LangMenu';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
@@ -26,8 +27,18 @@ export function Market() {
     const locale = contentLocale();
     // 非中文介面：引擎寫進來的中文介面字換成當地語言（內容仍是中文）。
     const ui = uiPrefix();
-    const dict = ui ? uiDict(ui) : undefined;
-    const untranslate = ui && dict ? watchTranslate(el, dict, ui) : undefined;
+    let untranslate: (() => void) | undefined;
+    if (ui) {
+      // 介面字典已在入口載好；內容字典（牌義、判詞）進集市才載，載好再換一次字典
+      const dict = uiDict(ui);
+      if (dict) untranslate = watchTranslate(el, dict, ui);
+      void ensureContent(ui).then(() => {
+        const full = uiDict(ui);
+        if (gone || !full) return;
+        untranslate?.();
+        untranslate = watchTranslate(el, full, ui);
+      });
+    }
 
     // 追問月老：預設用站內的引導式回答（免費、不出站）。AI 即時對話只有在
     // 伺服器開放、已登入、而且使用者在面板勾了同意時才用；失敗就退回引導式。

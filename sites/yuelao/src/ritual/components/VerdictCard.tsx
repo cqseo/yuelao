@@ -4,7 +4,8 @@
 // 優先、剪貼板兜底（在 Ritual.tsx）。
 
 import { findProduct, formatPrice, priceForLocale } from '@yuelao/core/site';
-import { contentLocale } from '~/i18n/locale';
+import { contentLocale, uiPrefix } from '~/i18n/locale';
+import { tr } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
 import { getLocale } from '~/paraglide/runtime.js';
 import site from '../../../site.config';
@@ -13,6 +14,7 @@ import type { RitualCat } from '../physics';
 import { adviceFor } from '../stick-advice';
 import type { Stick } from '../sticks';
 import { showLocaleNote } from '../sticks-locale';
+import { STICK_PLAIN } from '../sticks-plain';
 
 export interface Verdict {
   stick: Stick;
@@ -79,31 +81,34 @@ export function VerdictCard({
           </p>
         )}
         <div className="vc-no" id="vc-no">
-          {v.stick.no}
+          {tr(v.stick.no)}
         </div>
         <div className="vc-grade" id="vc-grade">
-          {v.stick.grade}
+          {tr(v.stick.grade)}
         </div>
         <div className="vc-divider" />
         <p className="vc-poem" id="vc-poem">
           {v.stick.poem}
         </p>
+        {uiPrefix() && STICK_PLAIN[v.stick.id] && (
+          <p className="vc-poem-tr">{tr(STICK_PLAIN[v.stick.id]!.plain)}</p>
+        )}
         <div className="vc-knot" id="vc-knot">
           <img src={knotImage(v.stick.knot)} alt="" loading="lazy" />
         </div>
         <div className="vc-knot-name" id="vc-knot-name">
-          {v.stick.knotName}
+          {tr(v.stick.knotName)}
         </div>
         <p className="vc-verdict" id="vc-verdict">
-          {v.stick.verdict[v.cat]}
+          {tr(v.stick.verdict[v.cat])}
         </p>
         <div className="vc-actions">
           <h4>{m.ritual_verdict_actions_title()}</h4>
-          <p>{advice.actions}</p>
+          <p>{tr(advice.actions)}</p>
         </div>
         <div className="vc-practice">
           <h4>{m.ritual_verdict_practice_title()}</h4>
-          <p>{advice.practice}</p>
+          <p>{tr(advice.practice)}</p>
         </div>
         <p className="vc-free-done">{m.ritual_verdict_free_done()}</p>
         <div className="seal stamp" id="seal" key={verdictCount}>
