@@ -2006,3 +2006,91 @@
   color: #f1d48f;
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.75);
 }
+
+/* 送平安符（DESIGN.md「送平安符」） */
+.mk .charm-fold {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.35rem;
+  width: 7.5rem;
+  min-height: 10rem;
+  margin: 0.6rem auto 1rem;
+  padding: 0.8rem 0.6rem;
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.15)),
+    color-mix(in srgb, var(--c, #ffd27a) 22%, #3a0f0c);
+  border: 1px solid var(--c, #ffd27a);
+  box-shadow: 0 0 2rem -0.4rem var(--c, #ffd27a);
+  text-align: center;
+}
+.mk .charm-fold b {
+  writing-mode: vertical-rl;
+  font-size: 1.25rem;
+  letter-spacing: 0.3em;
+  color: var(--c, #ffd27a);
+}
+.mk .charm-fold span {
+  font-size: 0.72rem;
+  color: var(--paper-50);
+}
+.mk .charm-fold.big {
+  width: 9rem;
+  min-height: 12rem;
+}
+.mk .charm-fold.open {
+  width: 100%;
+  min-height: 0;
+  padding: 1.2rem 1rem;
+  animation: slip-open 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mk #panel .charm-line {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.9;
+  color: var(--paper);
+}
+.mk .charm-from {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--paper-70);
+}
+.mk .charm-from input {
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(7, 8, 18, 0.5);
+  color: var(--paper);
+  font: inherit;
+}
+.mk .charm-url {
+  display: block;
+  margin-top: 0.3rem;
+  word-break: break-all;
+  user-select: all;
+  color: var(--gold);
+}
+/* 高階供品：靜心結束後的「下次換一種香」 */
+.mk .incense-shop {
+  list-style: none;
+  margin: 0.4rem 0 0.8rem;
+  padding: 0;
+}
+.mk .incense-shop li {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+.mk .incense-shop span {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--paper-70);
+}
+.mk #panel .incense-shop .offer {
+  margin: 0.3rem 0 0;
+}

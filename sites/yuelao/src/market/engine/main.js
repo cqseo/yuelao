@@ -6,6 +6,17 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { almanacLabel, todayEvents } from './almanac.js';
 import { createAvatar, HAIRS, OUTFITS } from './avatar.js';
+import {
+  activeGlow,
+  addGlow,
+  CHARMS,
+  charmLine,
+  charmLink,
+  cleanFrom,
+  incomingCharm,
+  markSent,
+  sentToday,
+} from './charm.js';
 import { createCrowd } from './crowd.js';
 import { createHall } from './hall.js';
 import { createInteract } from './interact.js';
@@ -14,7 +25,7 @@ import { createPlazaNet } from './plaza-net.js';
 import { createPool } from './pool.js';
 import { createSutra } from './sutra.js';
 import { createTarot } from './tarot.js';
-import { audio, canvasTex, ease, stepTweens, tween, wait } from './util.js';
+import { audio, canvasTex, ease, glow, stepTweens, tween, wait } from './util.js';
 import { createWorld } from './world.js';
 import { createYuelao } from './yuelao.js';
 
@@ -211,6 +222,7 @@ export function startMarket(root, opts = {}) {
       },
     });
     restoreLook();
+    applyAura();
     // 擁有的付費外觀要問過帳戶才知道；回來後再套一次上次的選擇
     shop?.owned().then((ids) => {
       if (dead) return;
@@ -272,6 +284,8 @@ export function startMarket(root, opts = {}) {
       mode = 'walk';
       applyCam();
       if (h === 'wish') openPool();
+      // 朋友傳來的平安符：站在廣場上拆開
+      if (h === 'charm') setTimeout(() => openCharmGift(), 600);
       // #ask（舊連結，問月老已拿掉）：當成進月老殿求籤
       const roomId = h === 'ask' ? 'yuelao' : h;
       // 從首頁鋪子卡片直接進來也要有聲音：先建好，瀏覽器會在第一次點擊時放行
@@ -567,22 +581,85 @@ export function startMarket(root, opts = {}) {
   let lastOffer = -99;
   // 靜心上香（DESIGN.md「大殿靜心上香」）：香在 30 秒裡慢慢燒短，跟著圈圈呼吸（吸四秒、吐四秒）。
   // 隨時可以「先到這裡」；走開也會自己結束。
+  // 高階供品（DESIGN.md「高階供品」）：九品金蓮香、七彩極光香，買了永久擁有，只換香的樣子、不改籤運。
   const CALM_SEC = 30;
+  const INCENSE = [
+    { id: 'plain', name: '清香', item: null, desc: '白煙' },
+    { id: 'lotus', name: '九品金蓮香', item: 'incense_lotus', desc: '金色的煙，花瓣從殿頂飄落' },
+    { id: 'aurora', name: '七彩極光香', item: 'incense_aurora', desc: '煙的顏色慢慢變換' },
+  ];
+  const incenseOk = (x) => !x.item || owned.has(x.item);
+  let incense = 'plain';
+  try {
+    incense = localStorage.getItem('yuelao:incense') || 'plain';
+  } catch {}
+  const pickIncense = () => {
+    const x = INCENSE.find((y) => y.id === incense);
+    return x && incenseOk(x) ? x.id : 'plain';
+  };
   let calm = null; // { stop, timers, x, z }
+  let incenseNote = '';
+  function calmEndPanel() {
+    const forSale = INCENSE.filter((x) => x.item && !owned.has(x.item) && shop?.prices[x.item]);
+    if (!forSale.length && !incenseNote) return ui.panel('');
+    ui.panel(
+      `<p class="kicker">香燒完了</p>
+       <p class="note">今天也好好過。</p>
+       ${
+         forSale.length
+           ? `<p class="kicker">下次換一種香</p>
+              <ul class="incense-shop">${forSale
+                .map(
+                  (x) =>
+                    `<li><b>${x.name}</b><span>${x.desc}。買了以後每次上香都能選，只換香的樣子。</span>
+                     <button class="offer" data-a="buy:${x.item}">買下　${shop.prices[x.item]}</button></li>`,
+                )
+                .join('')}</ul>`
+           : ''
+       }
+       ${incenseNote ? `<p class="note" role="status">${incenseNote}</p>` : ''}
+       <button class="ghost" data-a="close">好</button>`,
+      (a) => {
+        if (a.startsWith('buy:')) return void buyIncense(a.slice(4));
+        incenseNote = '';
+        ui.panel('');
+      },
+      true,
+    );
+  }
+  async function buyIncense(item) {
+    if (!shop) return;
+    incenseNote = '正在準備';
+    calmEndPanel();
+    const r = await shop.buy(item);
+    if (r.state === 'redirect') {
+      shop.leaving();
+      location.assign(r.url);
+      return;
+    }
+    if (r.state === 'owned') {
+      owned.add(item);
+      incenseNote = '這一種香已經是你的了，下次上香就能選。';
+    } else if (r.state === 'login') {
+      shop.leaving();
+      incenseNote = '要先登入才能買，這樣換了裝置也還在。<a href="/login">去登入</a>';
+    } else if (r.state === 'closed') incenseNote = '高階供品還沒開賣。沒有扣款。';
+    else incenseNote = '這會兒忙不過來，稍後再試。沒有扣款。';
+    calmEndPanel();
+  }
   function endCalm(done) {
     if (!calm) return;
     const c = calm;
     calm = null;
     for (const id of c.timers) clearInterval(id);
     c.stop();
-    ui.panel('');
     audio.scene('plaza');
     if (done) {
       audio.bell(196, 0.16, 6);
-      ui.hint('香燒完了。今天也好好過。');
-      emit('market_hall_calm_done');
-    } else ui.hint('');
-    setTimeout(() => !calm && mode === 'walk' && ui.hint(''), 4000);
+      emit('market_hall_calm_done', { incense: c.style });
+      calmEndPanel();
+    } else ui.panel('');
+    ui.hint('');
   }
   function hallOffer() {
     const t = clock.elapsedTime;
@@ -599,14 +676,41 @@ export function startMarket(root, opts = {}) {
     emit('market_hall_offer');
     ui.hint('');
     const started = Date.now();
-    calm = { stop: hs.burn ? hs.burn(CALM_SEC) : () => {}, timers: [], x: me.x, z: me.z };
+    const style = pickIncense();
+    calm = { stop: hs.burn ? hs.burn(CALM_SEC, style) : () => {}, timers: [], x: me.x, z: me.z, style };
+    const choices = INCENSE.filter(incenseOk);
     ui.panel(
       `<p class="kicker">靜心三十秒</p>
+       ${
+         choices.length > 1
+           ? `<div class="chips incense">${choices
+               .map(
+                 (x) =>
+                   `<button type="button" data-a="inc:${x.id}" class="${x.id === style ? 'on' : ''}">${x.name}</button>`,
+               )
+               .join('')}</div>`
+           : ''
+       }
        <div class="calm"><div class="calm-ring"><span id="calm-word">吸氣</span></div></div>
        <p class="calm-left" id="calm-left">${CALM_SEC}</p>
        <p class="note">香慢慢燒短。跟著圈圈吸氣、吐氣，心裡想著那件事就好。</p>
        <button class="ghost" data-a="end">先到這裡</button>`,
-      (a) => a === 'end' && endCalm(false),
+      (a) => {
+        if (a.startsWith('inc:')) {
+          const x = INCENSE.find((y) => y.id === a.slice(4));
+          if (!x || !incenseOk(x) || !calm) return;
+          incense = x.id;
+          calm.style = x.id;
+          try {
+            localStorage.setItem('yuelao:incense', x.id);
+          } catch {}
+          hs.burnStyle?.(x.id);
+          for (const b of document.querySelectorAll('.chips.incense button'))
+            b.classList.toggle('on', b.dataset.a === a);
+          return;
+        }
+        if (a === 'end') endCalm(false);
+      },
     );
     const c = calm;
     c.timers.push(
@@ -652,6 +756,11 @@ export function startMarket(root, opts = {}) {
     if (id === 'wish') {
       standUp();
       goToPool();
+      return;
+    }
+    if (id === 'charm') {
+      standUp();
+      openCharmSend();
       return;
     }
     if (id === 'look') {
@@ -822,7 +931,8 @@ export function startMarket(root, opts = {}) {
           if (Math.hypot(c.x - me.x, c.z - me.z) < 0.75) nearCushion = Object.assign(c, { shrine: sh });
     nearBurner =
       show && !near && !nearPool && Math.hypot(world.burner.x - me.x, world.burner.z - me.z) < world.burner.r;
-    const panel = !!pool?.isOpen || !!wardrobe;
+    // 面板開著（靜心結束、送平安符等）時不顯示地上的動作鈕
+    const panel = !!pool?.isOpen || !!wardrobe || $('#panel').classList.contains('show');
     const sitting = show && !!avatar.holding;
     const inLine = show && !!queued;
     const wantPrompt =
@@ -1305,6 +1415,143 @@ export function startMarket(root, opts = {}) {
     emit('market_view', { third });
     $('#view').textContent = third ? '第一人稱' : '第三人稱';
   }
+  // ---------- 送平安符（DESIGN.md「送平安符」） ----------
+  // 送的人、收到的人都沾三天的光：角色身上一圈和符同色的光（只有自己看得到）。
+  let aura = null;
+  function applyAura() {
+    if (aura) {
+      avatar.root.remove(aura);
+      aura = null;
+    }
+    const g = activeGlow();
+    if (!g) return;
+    // 一團柔光＋六點繞著角色轉的小光點（白天也看得出來）
+    const col = CHARMS[g.kind].color;
+    aura = new THREE.Group();
+    const halo = glow(col, 2.8, 0.55);
+    halo.position.y = 1.0;
+    aura.add(halo);
+    aura.userData.halo = halo;
+    for (let i = 0; i < 6; i++) {
+      const sp = glow(col, 0.22, 1);
+      const a = (i / 6) * Math.PI * 2;
+      sp.position.set(Math.cos(a) * 0.62, 0.5 + (i % 3) * 0.45, Math.sin(a) * 0.62);
+      aura.add(sp);
+    }
+    avatar.root.add(aura);
+  }
+  const escHtml = (t) =>
+    String(t).replace(
+      /[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+    );
+  let charmKind = 'peace';
+  let charmFrom = '';
+  let charmNote = '';
+  function openCharmSend() {
+    if (mode !== 'walk') return;
+    if (pool?.isOpen) pool.close();
+    const c = CHARMS[charmKind];
+    const done = sentToday();
+    ui.panel(
+      `<h2>送朋友一張符</h2>
+       <div class="chips charms">${Object.entries(CHARMS)
+         .map(
+           ([k, x]) =>
+             `<button type="button" data-a="kind:${k}" class="${k === charmKind ? 'on' : ''}">${x.name}</button>`,
+         )
+         .join('')}</div>
+       <div class="charm-fold" style="--c:${c.css}"><b>${c.name}</b><span>打開前看不到裡面寫什麼</span></div>
+       <label class="charm-from"><span>署名（可不填，最多 8 字）</span><input id="charm-from" maxlength="8" autocomplete="off" value="${escHtml(charmFrom)}"></label>
+       <p class="note small">朋友打開連結，會在月下集市裡拆開這張符。送的人和收到的人都會沾三天的光。每天可以送一張。</p>
+       ${charmNote ? `<p class="note" role="status">${charmNote}</p>` : ''}
+       ${done ? '<p class="note">今天已經送過一張了，明天再送。</p>' : '<button class="seal" data-a="send">送出</button>'}
+       <button class="ghost" data-a="close">${done ? '好' : '先不送'}</button>`,
+      (a) => {
+        const input = document.getElementById('charm-from');
+        if (input) charmFrom = cleanFrom(input.value);
+        if (a.startsWith('kind:')) {
+          charmKind = a.slice(5) in CHARMS ? a.slice(5) : 'peace';
+          charmNote = '';
+          return openCharmSend();
+        }
+        if (a === 'send') return void sendCharm();
+        charmNote = '';
+        ui.panel('');
+      },
+    );
+  }
+  async function sendCharm() {
+    const c = CHARMS[charmKind];
+    const url = charmLink(charmKind, charmFrom);
+    const text = `${charmFrom ? `${charmFrom}送` : '有人送'}你一張${c.name}，到月下集市打開看看。`;
+    let ok = false;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `送你一張${c.name}`, text, url });
+        ok = true;
+      } catch (e) {
+        if (e?.name === 'AbortError') return;
+      }
+    }
+    if (!ok) {
+      try {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        ok = true;
+        charmNote = '連結已複製，貼給朋友就好。';
+      } catch {
+        charmNote = `把這個連結傳給朋友：<br><span class="charm-url">${escHtml(url)}</span>`;
+        ok = true;
+      }
+    } else charmNote = '送出去了。';
+    markSent();
+    addGlow(charmKind);
+    applyAura();
+    emit('market_charm_send', { kind: charmKind });
+    audio.bell(523, 0.12, 3);
+    openCharmSend();
+  }
+  function openCharmGift() {
+    const g = incomingCharm();
+    if (!g) return;
+    // 拆過就把網址收乾淨，重新整理不會再拆一次
+    history.replaceState(null, '', location.pathname);
+    const c = CHARMS[g.kind];
+    const who = g.from ? `${escHtml(g.from)} 送你` : '有人送你';
+    const show = (open) =>
+      ui.panel(
+        `<p class="kicker">${who}</p>
+         <h2>一張${c.name}</h2>
+         <div class="charm-fold big${open ? ' open' : ''}" style="--c:${c.css}">${
+           open
+             ? `<p class="charm-line">${charmLine(g.kind, g.from)}</p>`
+             : `<b>${c.name}</b><span>點「拆開」</span>`
+         }</div>
+         ${
+           open
+             ? `<p class="note small">你和送符的人都沾了三天的光（角色身上那一圈）。</p>
+                ${sentToday() ? '' : '<button class="seal" data-a="send">也送一張給別人</button>'}
+                <button class="ghost" data-a="close">逛逛集市</button>`
+             : '<button class="seal" data-a="open">拆開</button>'
+         }`,
+        (a) => {
+          if (a === 'open') {
+            addGlow(g.kind);
+            applyAura();
+            audio.bell(587, 0.14, 3.5);
+            emit('market_charm_open', { kind: g.kind });
+            return show(true);
+          }
+          if (a === 'send') {
+            charmKind = g.kind;
+            return openCharmSend();
+          }
+          ui.panel('');
+        },
+      );
+    show(false);
+  }
+
   // ---------- 外觀：免費款隨便換；付費款可試穿，買了才留得住 ----------
   const saved = {};
   const owned = new Set();
@@ -1578,6 +1825,11 @@ export function startMarket(root, opts = {}) {
       tp += (want - tp) * Math.min(1, dt * 5);
       if (mode !== 'walk') applyCam();
       avatar.update(dt, t, mode === 'walk' || mode === 'moving' ? me.speed : 0);
+      if (aura) {
+        aura.userData.halo.material.opacity = 0.45 + 0.15 * Math.sin(t * 2.2);
+        aura.rotation.y += dt * 0.9;
+        aura.visible = tp > 0.3;
+      }
       // 天色慢慢追上目標時辰（跟著訪客的時鐘，或手動預覽的時段）
       const goal = skyPick === null ? clockHour() : skyPick;
       const gap = ((((goal - skyHour) % 24) + 36) % 24) - 12;

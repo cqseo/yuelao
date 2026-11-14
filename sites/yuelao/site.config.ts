@@ -39,6 +39,20 @@ export default defineSite({
       prices: usd(299),
     },
     {
+      // 大殿靜心上香的高階供品：永久擁有，只換香的樣子（煙色、落花），不改籤運。
+      // 價位照站長給的 item 價位（US$2.99 / 3.99 / 4.99）。上線後 id 不改。
+      id: 'incense_lotus',
+      kind: 'item',
+      name: '九品金蓮香',
+      prices: usd(299),
+    },
+    {
+      id: 'incense_aurora',
+      kind: 'item',
+      name: '七彩極光香',
+      prices: usd(399),
+    },
+    {
       id: 'pack_3',
       kind: 'pack',
       name: '問事包 · 3 次',
