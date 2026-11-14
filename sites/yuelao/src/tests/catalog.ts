@@ -1,5 +1,7 @@
 // Data-driven emotional self-reflection quizzes. No clinical diagnosis or infidelity prediction.
 // Questions share a frequency scale; the bands are editorial prompts, not validated cutoffs.
+import { tr } from '~/i18n/ui';
+
 export type Locale = 'zh-Hant' | 'zh-Hans';
 export type Localized = Record<Locale, string>;
 export type Band = 'low' | 'review' | 'attention';
@@ -19,8 +21,9 @@ const t = (traditional: string, simplified: string): Localized => ({
   'zh-Hant': traditional,
   'zh-Hans': simplified,
 });
+// 非中文介面拿到的是繁體，再查內容字典換成當地語言（查不到就顯示繁體）。
 export const inLocale = (value: Localized, locale: string): string =>
-  value[locale === 'zh-Hans' ? 'zh-Hans' : 'zh-Hant'];
+  locale === 'zh-Hans' ? value['zh-Hans'] : tr(value['zh-Hant']);
 
 export const TESTS: TestDefinition[] = [
   {

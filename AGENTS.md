@@ -25,9 +25,11 @@
 
 ## 3. 語言
 
-- 繁體中文是主站語言，簡體是第二語言；`messages/` 只有 `zh-Hant` / `zh-Hans` 兩套。
-- 繁/簡是同路徑切換（P7，抄 kaucim）：頂欄按鈕寫 `PARAGLIDE_LOCALE` cookie 再整頁重載，伺服器讀 cookie 做 SSR，網址不帶語言。舊 `/hk/*` 一律 301 到去掉前綴的同一路徑。sitemap、canonical、llms.txt 都是單棵樹，沒有指向簡體的 hreflang（簡體沒有獨立網址）。
-- 不要用英文文案頂替中文；不要把簡體文案機器轉換後不經人審就上線。
+- 繁體中文是主站語言，簡體是第二語言；兩者同路徑切換（P7，抄 kaucim）：寫 `PARAGLIDE_LOCALE` cookie 再整頁重載，伺服器讀 cookie 做 SSR。舊 `/hk/*` 一律 301 到去掉前綴的同一路徑。
+- 2026-11-14 起另有 English、日本語、ไทย、한국어，各自獨立網址 `/en` `/ja` `/th` `/ko`（站長要求、同意機器翻譯先上線並標示「翻譯審核中」）。判斷語言只看 `src/i18n/locale.ts` 的 custom-path 策略；hreflang 與 sitemap 列出各語言。
+- 文案分三層：Paraglide 訊息（`messages/<組>/<語言>.json`）；頁面寫死的介面字走 `tr()`，字典在 `src/i18n/ui/<語言>.json`（鍵是繁體原文，`pnpm i18n:check` 查漏翻）；內容（判詞、牌義、心箋、測驗）的譯文在 `src/i18n/content/<語言>.json`，目前只有 English。3D 集市引擎寫的字由 `src/i18n/dom.ts` 監聽翻譯。
+- 內容與 API 只有繁、簡兩種（`contentLocale()`）；非中文介面讀繁體再查字典。付費解讀用 `ui` 參數決定寫作語言，權益的鍵仍是繁體。
+- 不要把簡體文案機器轉換後不經人審就上線（#66 等站長審）。
 
 ## 4. 驗證
 

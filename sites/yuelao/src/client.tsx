@@ -13,8 +13,8 @@ const UI = {
   th: () => import('./i18n/ui/th.json'),
   ko: () => import('./i18n/ui/ko.json'),
 };
-// 伺服器渲染了內容的頁面（籤頁、一般版求籤），內容字典也要先載好才能 hydrate。
-const NEEDS_CONTENT = /^\/[a-z]{2}\/(sign|ritual)(\/|$)/;
+// 伺服器渲染了內容的頁面（籤頁、一般版求籤、心箋、測驗），內容字典也要先載好才能 hydrate。
+const NEEDS_CONTENT = /^\/[a-z]{2}\/(sign|ritual|daily|tests)(\/|$)/;
 
 async function boot() {
   const ui = prefixOf(window.location.pathname);

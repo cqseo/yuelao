@@ -4,7 +4,9 @@ import {
   extractChatText,
   generatePaidReading,
   generateWithOpenAI,
+  outputLanguage,
   parseGenerationInput,
+  READING_INSTRUCTIONS,
   relayBaseUrl,
 } from '../packages/core/src/ai-reading';
 import { testCheckoutAllowed } from '../packages/core/src/billing/allowlist';
@@ -32,6 +34,19 @@ assert.equal(
   parseGenerationInput({ stickId: 1, category: 'him', locale: 'zh-Hant', consent: true })?.question,
   '',
 );
+// 非中文介面：只收固定清單；決定寫作語言，不改權益的鍵（locale 仍是繁體）
+assert.equal(
+  parseGenerationInput({ stickId: 1, category: 'him', locale: 'zh-Hant', consent: true, ui: 'en' })?.ui,
+  'en',
+);
+assert.equal(
+  parseGenerationInput({ stickId: 1, category: 'him', locale: 'zh-Hant', consent: true, ui: 'fr' })?.ui,
+  undefined,
+);
+assert.equal(outputLanguage('zh-Hant', 'en'), 'English');
+assert.equal(outputLanguage('zh-Hans'), '簡體中文');
+assert.match(READING_INSTRUCTIONS, /outputLanguage 不是中文/);
+console.log('PASS: paid readings follow the interface language without changing the entitlement key');
 assert.equal(
   aiGenerationEnabled({
     AI_ENABLE_TEST_GENERATION: 'false',

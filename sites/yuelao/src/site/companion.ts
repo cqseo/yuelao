@@ -1,3 +1,5 @@
+import { tr } from '~/i18n/ui';
+
 export type CompanionLocale = 'zh-Hant' | 'zh-Hans';
 export type CompanionTheme =
   | 'reunion'
@@ -153,16 +155,41 @@ const reflections: Record<
 
 function detectTheme(input: string, previous: CompanionTheme): CompanionTheme {
   const s = input.toLowerCase();
-  if (/自殺|自杀|自殘|自残|不想活|想死|結束生命|结束生命|家暴|被打|威脅|威胁|傷害自己|伤害自己|暴力/.test(s))
+  if (
+    /自殺|自杀|自殘|自残|不想活|想死|結束生命|结束生命|家暴|被打|威脅|威胁|傷害自己|伤害自己|暴力/.test(s) ||
+    /suicid|kill myself|want to die|end my life|self[- ]?harm|hurt myself|abus|hits? me|threat|violen/.test(s)
+  )
     return 'safety';
-  if (/分手|前任|複合|复合|斷聯|断联|挽回|回來|回来|重新開始|重新开始/.test(s)) return 'reunion';
-  if (/出軌|出轨|騙我|骗我|第三者|曖昧別人|暧昧别人|不信任|欺騙|欺骗|背叛|偷看手機|偷看手机/.test(s))
+  if (
+    /分手|前任|複合|复合|斷聯|断联|挽回|回來|回来|重新開始|重新开始/.test(s) ||
+    /break ?up|broke up|\bex\b|get back together|reconcil|no contact|win (him|her|them) back/.test(s)
+  )
+    return 'reunion';
+  if (
+    /出軌|出轨|騙我|骗我|第三者|曖昧別人|暧昧别人|不信任|欺騙|欺骗|背叛|偷看手機|偷看手机/.test(s) ||
+    /cheat|lying|lied|betray|trust|affair|another (guy|girl|person)/.test(s)
+  )
     return 'trust';
-  if (/喜歡|喜欢|暗戀|暗恋|曖昧|暧昧|告白|表白|心動|心动|約會|约会|追求/.test(s)) return 'crush';
-  if (/溝通|沟通|冷戰|冷战|吵架|道歉|說清楚|说清楚|怎麼說|怎么说|開口|开口|訊息|消息/.test(s))
+  if (
+    /喜歡|喜欢|暗戀|暗恋|曖昧|暧昧|告白|表白|心動|心动|約會|约会|追求/.test(s) ||
+    /crush|\blike (him|her|them|someone)|confess|ask (him|her|them) out|\bdate|dating/.test(s)
+  )
+    return 'crush';
+  if (
+    /溝通|沟通|冷戰|冷战|吵架|道歉|說清楚|说清楚|怎麼說|怎么说|開口|开口|訊息|消息/.test(s) ||
+    /talk|argu|fight|apolog|message|text|silent|say it/.test(s)
+  )
     return 'communication';
-  if (/難過|难过|孤單|孤单|寂寞|累|焦慮|焦虑|失眠|想太多|壓力|压力|傷心|伤心/.test(s)) return 'lonely';
-  if (/自己|界線|界限|底線|底线|委屈|放下|自尊|成長|成长/.test(s)) return 'self';
+  if (
+    /難過|难过|孤單|孤单|寂寞|累|焦慮|焦虑|失眠|想太多|壓力|压力|傷心|伤心/.test(s) ||
+    /sad|lonely|alone|tired|anxi|insomnia|can't sleep|overthink|stress|hurt/.test(s)
+  )
+    return 'lonely';
+  if (
+    /自己|界線|界限|底線|底线|委屈|放下|自尊|成長|成长/.test(s) ||
+    /myself|boundar|self-esteem|let go|grow/.test(s)
+  )
+    return 'self';
   return previous === 'safety' ? 'general' : previous;
 }
 
@@ -180,18 +207,22 @@ export function guidedReply(
       text:
         locale === 'zh-Hans'
           ? '听到这些，我更关心你现在是否安全。如果有人正在伤害或威胁你，先离开危险环境，联系你信任的人或当地紧急服务；如果你有伤害自己的念头，也请尽快寻求现实中的专业支持。这里的对话无法替代即时帮助。'
-          : '聽到這些，我更關心你現在是否安全。如果有人正在傷害或威脅你，先離開危險環境，聯絡你信任的人或當地緊急服務；如果你有傷害自己的念頭，也請儘快尋求現實中的專業支持。這裡的對話無法取代即時幫助。',
+          : tr(
+              '聽到這些，我更關心你現在是否安全。如果有人正在傷害或威脅你，先離開危險環境，聯絡你信任的人或當地緊急服務；如果你有傷害自己的念頭，也請儘快尋求現實中的專業支持。這裡的對話無法取代即時幫助。',
+            ),
       followups: [],
     };
   }
   const category = reflections[theme];
   const index = Math.max(0, turn) % category.answer.length;
+  // 非中文介面拿到的是繁體，再查內容字典換成當地語言
+  const say = (v: Bilingual) => (locale === 'zh-Hans' ? v[locale] : tr(v['zh-Hant']));
   return {
-    text: `${category.answer[index]![locale]}\n\n${category.followups[index]![locale]}`,
+    text: `${say(category.answer[index]!)}\n\n${say(category.followups[index]!)}`,
     theme,
     followups: [
-      category.followups[(index + 1) % category.followups.length]![locale],
-      locale === 'zh-Hans' ? '我想先照顾自己的感受。' : '我想先照顧自己的感受。',
+      say(category.followups[(index + 1) % category.followups.length]!),
+      locale === 'zh-Hans' ? '我想先照顾自己的感受。' : tr('我想先照顧自己的感受。'),
     ],
   };
 }

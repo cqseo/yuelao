@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { uiPrefix } from '~/i18n/locale';
 import { tr } from '~/i18n/ui';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 
@@ -95,6 +96,7 @@ function Reading() {
           stickId: Number(params.get('stickId')),
           category: params.get('category'),
           locale: params.get('locale'),
+          ui: uiPrefix(),
           question,
           consent: true,
         }),
@@ -123,7 +125,11 @@ function Reading() {
       <p className="auth-kicker">{t('月老 · 專屬解讀', '月老 · 专属解读')}</p>
       <h1>{t('我的深度解讀', '我的深度解读')}</h1>
       {status === 'loading' && <p role="status">{t('正在核對已購權益…', '正在核对已购权益…')}</p>}
-      {status === 'ready' && <div className="private-reading-body">{body}</div>}
+      {status === 'ready' && (
+        <div className="private-reading-body">
+          {uiPrefix() ? body.replace(/【([^】]{1,12})】/g, (_, h: string) => tr(h)) : body}
+        </div>
+      )}
       {status === 'login' && (
         <p>
           {t('請先登入帳戶後查看已購內容。', '请先登录账户后查看已购内容。')}

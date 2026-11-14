@@ -231,6 +231,7 @@ export function Market() {
                 stickId,
                 category,
                 locale,
+                ui: uiPrefix(),
                 question: question.slice(0, 400),
                 consent: true,
               }),
@@ -326,6 +327,7 @@ export function Market() {
               body: JSON.stringify({
                 spread: key,
                 locale,
+                ui: uiPrefix(),
                 question: question.slice(0, 400),
                 sit,
                 consent: true,

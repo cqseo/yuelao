@@ -1,5 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { aiGenerationEnabled, relayBaseUrl, runModel } from './ai-reading';
+import {
+  aiGenerationEnabled,
+  FOREIGN_LANGUAGE_RULE,
+  outputLanguage,
+  parseUiLanguage,
+  relayBaseUrl,
+  runModel,
+  type UiLanguage,
+} from './ai-reading';
 import type { SessionUser } from './auth';
 import { sameOriginPost } from './auth-session';
 import type { CoreEnv } from './env';
@@ -34,14 +42,22 @@ export const SPREAD_INSTRUCTIONS = `你是一位在夜市塔羅館裡替人看�
   【時間上的提示】只說快慢與階段感（例如「幾週內會有動靜」「需要一兩個月」），不說具體日期。
   【留給你的一句話】一句溫暖、不空泛的話。
 - 最後另起一行寫：「牌義解讀供自我反思，不代表現實預測。」
-- 使用資料內指定的繁體或簡體中文。`;
+- 使用資料內指定的 outputLanguage（繁體中文、簡體中文或其他語言）。
+${FOREIGN_LANGUAGE_RULE}`;
 
-type SpreadInput = { spread: ParsedSpread; locale: 'zh-Hant' | 'zh-Hans'; question: string; sit: string };
+type SpreadInput = {
+  spread: ParsedSpread;
+  locale: 'zh-Hant' | 'zh-Hans';
+  question: string;
+  sit: string;
+  /** 非中文介面的語言（只決定解讀用什麼語言寫）。 */
+  ui?: UiLanguage;
+};
 
 export function spreadUserInput(input: SpreadInput): string {
   const pos = SPREAD_POSITIONS[input.spread.deck];
   return JSON.stringify({
-    outputLanguage: input.locale === 'zh-Hans' ? '簡體中文' : '繁體中文',
+    outputLanguage: outputLanguage(input.locale, input.ui),
     deck: input.spread.deck === 'tarot' ? '塔羅（偉特）' : '雷諾曼',
     cards: input.spread.cards.map((c, i) => ({
       position: pos[i],
@@ -88,7 +104,8 @@ export function parseSpreadGeneration(value: unknown): SpreadInput | null {
   const question = v.question === undefined ? '' : v.question;
   if (typeof question !== 'string' || question.length > 400) return null;
   const sit = typeof v.sit === 'string' && v.sit in SITS ? v.sit : '';
-  return { spread, locale: v.locale, question: question.trim(), sit };
+  const ui = parseUiLanguage(v.ui);
+  return { spread, locale: v.locale, question: question.trim(), sit, ...(ui ? { ui } : {}) };
 }
 
 export async function generateSpreadReading(

@@ -69,6 +69,16 @@ assert.equal(ui.situation, '曖昧中');
 assert.match(SPREAD_INSTRUCTIONS, /不要提到自己是 AI/);
 console.log('PASS: generation input names the cards, positions and orientation');
 
+// 非中文介面：解讀改用該語言寫；清單外的值當沒給
+assert.equal(ui.outputLanguage, '繁體中文');
+const en = parseSpreadGeneration({ spread: input.spread.key, locale: 'zh-Hant', consent: true, ui: 'en' });
+assert.ok(en);
+assert.equal(JSON.parse(spreadUserInput(en)).outputLanguage, 'English');
+const odd = parseSpreadGeneration({ spread: input.spread.key, locale: 'zh-Hant', consent: true, ui: 'xx' });
+assert.equal(odd?.ui, undefined);
+assert.match(SPREAD_INSTRUCTIONS, /outputLanguage 不是中文/);
+console.log('PASS: spread readings follow the interface language');
+
 // 生成流程：用假的資料庫與假的模型
 const body = `【三張牌湊在一起】${'牌面解讀。'.repeat(40)}\n\n牌義解讀供自我反思，不代表現實預測。`;
 const user = { id: '00000000-0000-4000-8000-0000000000c1', email: 'a@example.invalid' } as never;

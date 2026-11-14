@@ -10,7 +10,32 @@ export type ReadingGenerationInput = {
   category: 'him' | 'single' | 'reunion';
   locale: 'zh-Hant' | 'zh-Hans';
   question: string;
+  /** 非中文介面的語言（只決定解讀用什麼語言寫，不影響權益與儲存的鍵）。 */
+  ui?: UiLanguage;
 };
+
+export const UI_LANGUAGES = {
+  en: 'English',
+  ja: '日本語',
+  th: 'ภาษาไทย (Thai)',
+  ko: '한국어 (Korean)',
+} as const;
+export type UiLanguage = keyof typeof UI_LANGUAGES;
+
+/** 解讀要用的語言：非中文介面用該語言，否則繁體或簡體中文。 */
+export function outputLanguage(locale: 'zh-Hant' | 'zh-Hans', ui?: UiLanguage): string {
+  if (ui) return UI_LANGUAGES[ui];
+  return locale === 'zh-Hans' ? '簡體中文' : '繁體中文';
+}
+
+/** 從請求裡讀介面語言：只收固定清單，其他一律當沒給。 */
+export function parseUiLanguage(value: unknown): UiLanguage | undefined {
+  return typeof value === 'string' && Object.hasOwn(UI_LANGUAGES, value) ? (value as UiLanguage) : undefined;
+}
+
+/** 兩份提示詞共用：outputLanguage 不是中文時怎麼寫。 */
+export const FOREIGN_LANGUAGE_RULE =
+  '- 如果 outputLanguage 不是中文：每節小標那一行仍照抄上面的中文小標（連同全形方括號），其餘內文與最後一行聲明都改用 outputLanguage 書寫，自然、口語，不要夾中文；篇幅約 450-650 個英文單字，或該語言的相應長度。籤詩原句可以引用中文，但要緊接著用 outputLanguage 解釋。';
 
 /** The customer's question is never saved or logged. Only the output is stored
  * in the private per-unlock row. AI provider may still have its own logs. */
@@ -33,7 +58,8 @@ export const READING_INSTRUCTIONS = `你是「月老」文化籤詩與情感反�
   【三天內可以做的一步】一件小到今天就能開始的事。
   【留給你的一句話】一句溫暖、不空泛的話。
 - 最後另起一行寫：「籤詩解讀供自我反思，不代表現實預測。」
-- 使用資料內指定的繁體或簡體中文。當沒有個人問題時不要捏造個人事實。`;
+- 使用資料內指定的 outputLanguage（繁體中文、簡體中文或其他語言）。當沒有個人問題時不要捏造個人事實。
+${FOREIGN_LANGUAGE_RULE}`;
 
 type GenerationData = {
   user: SessionUser;
@@ -128,7 +154,7 @@ export async function generateWithOpenAI(
   baseUrl: string | null = null,
 ): Promise<string> {
   const userInput = JSON.stringify({
-    outputLanguage: input.locale === 'zh-Hans' ? '簡體中文' : '繁體中文',
+    outputLanguage: outputLanguage(input.locale, input.ui),
     category: input.category,
     stick: { number: stick.no, grade: stick.grade, poem: stick.poem, freeVerdict: stick.verdict },
     userQuestionUntrusted: input.question || '沒有提供個人情況，請只作象徵性建議',
@@ -195,7 +221,8 @@ export function parseGenerationInput(value: unknown): ReadingGenerationInput | n
   if (!parsed || v.consent !== true) return null;
   const question = v.question === undefined ? '' : v.question;
   if (typeof question !== 'string' || question.length > 400) return null;
-  return { ...parsed, question: question.trim() };
+  const ui = parseUiLanguage(v.ui);
+  return { ...parsed, question: question.trim(), ...(ui ? { ui } : {}) };
 }
 
 export function aiGenerationEnabled(env: CoreEnv): boolean {

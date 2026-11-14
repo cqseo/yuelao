@@ -1,3 +1,4 @@
+import { tr } from '~/i18n/ui';
 export type DailyFocus = 'connection' | 'communication' | 'self' | 'courage';
 export type DailyLocale = 'zh-Hant' | 'zh-Hans';
 export type DailyRecord = { lastDate: string; streak: number; checkedDates: string[] };
@@ -175,7 +176,8 @@ function hash(input: string): number {
 
 export function dailyReading(day: string, focus: DailyFocus, locale: DailyLocale) {
   const card = messages[hash(`${day}:${focus}`) % messages.length]!;
-  const pick = (value: Bilingual) => value[locale];
+  // 非中文介面拿到的是繁體，再查內容字典換成當地語言
+  const pick = (value: Bilingual) => (locale === 'zh-Hans' ? value[locale] : tr(value['zh-Hant']));
   return {
     name: pick(card.name),
     verse: pick(card.verse),

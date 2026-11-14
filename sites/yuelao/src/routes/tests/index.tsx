@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { ensureContent } from '~/i18n/content';
 import { contentLocale } from '~/i18n/locale';
 import { pageHead } from '~/i18n/seo';
 import { tr } from '~/i18n/ui';
@@ -7,6 +8,8 @@ import { inLocale, TESTS } from '~/tests/catalog';
 import site from '../../../site.config';
 
 export const Route = createFileRoute('/tests/')({
+  // 非中文：站內換頁進來時先載內容字典
+  loader: () => ensureContent(),
   head: () => {
     const locale = contentLocale();
     const zh = locale === 'zh-Hans';

@@ -69,6 +69,8 @@ export const EXTRA_KEYS = [
   '{0} 年 {1} 月 {2} 日',
   '{0}，{1}，正位。',
   '{0}，{1}，逆位。',
+  // 付費解讀的小標（AI 照抄中文小標，介面再換）
+  '【{0}】',
   // 店鋪招牌下的小字（world.js 的 labels，畫在 DOM 上）
   '求籤問緣',
   '三張牌陣',
@@ -88,19 +90,32 @@ export const EXTRA_KEYS = [
 ];
 
 const HELPERS = new Set(['tr', 'trf', 't', 'text', 'copy']);
-const ENT = { '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&middot;': '·' };
+const ENT = {
+  '&nbsp;': ' ',
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&middot;': '·',
+};
 const decode = (s) => s.replace(/&[a-z#0-9]+;/g, (e) => ENT[e] ?? e);
 const MARK = '\u0000';
 
 function parse(file) {
   const src = readFileSync(join(SITE, file), 'utf8');
-  const kind = file.endsWith('x') ? ts.ScriptKind.TSX : file.endsWith('.js') ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+  const kind = file.endsWith('x')
+    ? ts.ScriptKind.TSX
+    : file.endsWith('.js')
+      ? ts.ScriptKind.JS
+      : ts.ScriptKind.TS;
   return ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, kind);
 }
 
 function literalText(n) {
   if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) return n.text;
-  if (ts.isTemplateExpression(n)) return n.head.text + n.templateSpans.map((s) => MARK + s.literal.text).join('');
+  if (ts.isTemplateExpression(n))
+    return n.head.text + n.templateSpans.map((s) => MARK + s.literal.text).join('');
   return null;
 }
 
@@ -178,7 +193,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (flag === '--missing') {
     const loc = process.argv[3];
     const dict = JSON.parse(readFileSync(join(SITE, `src/i18n/ui/${loc}.json`), 'utf8'));
-    console.log(JSON.stringify(keys.filter((k) => !(k in dict)), null, 1));
+    console.log(
+      JSON.stringify(
+        keys.filter((k) => !(k in dict)),
+        null,
+        1,
+      ),
+    );
   } else if (flag === '--keys') {
     console.log(JSON.stringify(keys, null, 1));
   } else {
