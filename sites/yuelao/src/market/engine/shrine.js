@@ -229,12 +229,18 @@ function statue(mat, gold = false) {
   const head = new THREE.Group();
   head.position.set(0, 2.38, 0);
   head.add(sh(new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 18), skin)));
-  const beard = sh(new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.95, 18), white));
+  // 白鬚從嘴下才開始、上窄下長：原本 0.34 粗的圓錐從鼻下蓋到下巴，遠看像戴口罩
+  const beard = sh(new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.95, 18), white));
   beard.rotation.x = Math.PI;
-  beard.position.set(0, -0.5, 0.2);
+  beard.scale.z = 0.7;
+  beard.position.set(0, -0.66, 0.26);
   head.add(beard);
-  const mous = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.05, 8, 16, Math.PI), white);
-  mous.position.set(0, -0.12, 0.36);
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.016, 6, 12, Math.PI), dark);
+  mouth.position.set(0, -0.2, 0.37);
+  mouth.rotation.z = Math.PI;
+  head.add(mouth);
+  const mous = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.04, 8, 16, Math.PI), white);
+  mous.position.set(0, -0.12, 0.37);
   mous.rotation.z = Math.PI;
   head.add(mous);
   for (const s of [-1, 1]) {

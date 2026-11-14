@@ -326,7 +326,11 @@ export function startMarket(root, opts = {}) {
       const fz = -Math.cos(me.yaw) * Math.cos(p);
       let d = 4.6 * tp;
       while (d > 1.2 && !world.walkable(me.x - fx * d, me.z - fz * d)) d -= 0.35;
-      c.position.set(me.x - fx * d, Math.max(0.5, eyeY + 0.05 * tp - fy * d), me.z - fz * d);
+      // 越肩鏡頭：一律往右偏一點，角色不擋住正前方的神像和供桌；被擠近（殿內）時再多偏一些
+      const side = tp * (0.55 + Math.max(0, Math.min(1, (3.4 - d) / 2)) * 0.25);
+      const rx = Math.cos(me.yaw) * side;
+      const rz = -Math.sin(me.yaw) * side;
+      c.position.set(me.x - fx * d + rx, Math.max(0.5, eyeY + 0.05 * tp - fy * d), me.z - fz * d + rz);
     }
     avatar.root.position.set(me.x, me.gy, me.z);
     avatar.root.rotation.y = me.face;

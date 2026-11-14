@@ -102,11 +102,13 @@
   flex-direction: column;
   justify-content: flex-end;
   padding: 0 clamp(1.5rem, 6vw, 5rem) calc(clamp(2rem, 7vh, 4.5rem) + env(safe-area-inset-bottom));
+  /* 白天背景是淺色天空和白牆：標題這一段要壓深，字才看得清 */
   background: linear-gradient(
     180deg,
     rgba(7, 8, 18, 0.25) 0%,
-    rgba(7, 8, 18, 0) 35%,
-    rgba(7, 8, 18, 0.86) 100%
+    rgba(7, 8, 18, 0) 30%,
+    rgba(7, 8, 18, 0.6) 52%,
+    rgba(7, 8, 18, 0.9) 100%
   );
   opacity: 0;
   pointer-events: none;
@@ -130,6 +132,7 @@
   font-size: 1.0625rem;
   line-height: 1.9;
   color: var(--paper-70);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.75);
 }
 .mk #menu .row {
   display: flex;
@@ -223,6 +226,27 @@
   #hud-title {
     font-size: 1rem;
     letter-spacing: 0.16em;
+  }
+}
+/* 窄手機（≤ 430px）：大殿前頂欄有五個按鈕，「我的」會被擠出畫面。收起天色鈕、縮小間距 */
+@media (max-width: 430px) {
+  .mk #hud {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .mk #hud .left {
+    gap: 0.5rem;
+  }
+  .mk #hud .right {
+    gap: 0.25rem;
+  }
+  .mk #hud #sky {
+    display: none;
+  }
+  .mk #hud button,
+  .mk #hud .right a {
+    padding: 0 0.45rem;
+    letter-spacing: 0.02em;
   }
 }
 .mk .swatches {

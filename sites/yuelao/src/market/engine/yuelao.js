@@ -175,7 +175,8 @@ export function createYuelao(ui) {
 
   // candles
   const flames = [];
-  for (const x of [-1.55, 1.55]) {
+  // 燭台放在供桌兩端（原本 ±1.55 正好擋在月老身前）
+  for (const x of [-2.15, 2.15]) {
     const c = new THREE.Mesh(
       new THREE.CylinderGeometry(0.06, 0.07, 0.5, 12),
       new THREE.MeshStandardMaterial({ color: 0xa3201a, roughness: 0.4 }),
@@ -266,8 +267,9 @@ export function createYuelao(ui) {
 
   // 掌櫃：月老站在供桌左後方
   const npc = createNpc('yuelao');
-  npc.root.position.set(-1.5, 0, -3.75);
-  npc.root.rotation.y = 0.38;
+  // 月老坐在籤筒左後方、靠近畫面中間：寬螢幕右側有面板，不能太靠右；也不能被燭台擋住
+  npc.root.position.set(-1.0, 0, -3.7);
+  npc.root.rotation.y = 0.26;
   scene.add(npc.root);
   const npcLight = new THREE.PointLight(0xffc890, 5, 5, 1.8);
   npcLight.position.set(-1.1, 2.1, -2.6);
