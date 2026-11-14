@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { STICKS } from '../../ritual/sticks';
 import { STICK_PLAIN } from '../../ritual/sticks-plain';
 import { createNpc } from './npc.js';
+import { yuelaoSampleHtml } from './samples.js';
+import { shareVerdict } from './share.js';
 import { audio, canvasTex, ease, glow, lerp, rand, textPlane, tween, wait, woodTex } from './util.js';
 
 const CATS = [
@@ -526,6 +528,7 @@ export function createYuelao(ui) {
         <p class="unlock-note">這一段還沒說完。解鎖之後它會完整，另外六段只寫你問的那件事。</p>
         <button class="offer" id="deep-btn" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>
         <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
+        ${yuelaoSampleHtml()}
         <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
       </section>`;
   }
@@ -548,8 +551,21 @@ export function createYuelao(ui) {
        </div>
        ${explainBlock()}
        ${unlockBlock()}
+       <button type="button" class="share-btn" data-a="share">分享籤圖</button>
        <div class="card-actions"><button class="seal" data-a="again">再求一支</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (a) => {
+        if (a === 'share') {
+          // 分享圖不放問的那句話（私事），只放籤、判詞與站名
+          void shareVerdict({
+            no: stick.no,
+            grade: stick.grade,
+            poem: stick.poem,
+            source: stick.source,
+            verdict: stick.verdict[cat],
+            cat: c.word,
+          }).then((r) => r === 'saved' && say('籤圖存好了，可以傳給朋友。'));
+          return;
+        }
         ui.card('');
         if (a === 'deep') {
           // 已經解鎖過就直接看／動筆；沒有就直接去付款（說明都在判詞下方，不另開一頁）
