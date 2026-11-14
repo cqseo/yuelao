@@ -51,6 +51,8 @@
     "SUPABASE_URL": "https://ichsqdfrwymlizqgxnqw.supabase.co",
     "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImljaHNxZGZyd3ltbGl6cWd4bnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4ODMyNjYsImV4cCI6MjEwOTQ1OTI2Nn0.nmuGBobYejLEzjlODojRBLngScHbTI1iYlyHiAVQRGA",
     // 收款模式：不設 BILLING_MODE 就是測試模式（只收測試金鑰、只開給白名單）。切正式見 docs/STRIPE_LIVE_SWITCH.md。
+    // 正式收款（站長 2026-11-14：正式金鑰與 webhook 密鑰已放進 Cloudflare）。要退回測試：刪掉這一行並把金鑰換回測試的。
+    "BILLING_MODE": "live",
     "BILLING_ENABLE_TEST_CHECKOUT": "true",
     // 測試卡號是公開的，測試結帳只開給這些信箱（逗號分隔）；其他人看到「尚未開放」。
     "BILLING_TEST_ALLOWED_EMAILS": "1054935976@qq.com",
