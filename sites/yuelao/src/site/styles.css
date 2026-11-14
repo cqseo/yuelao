@@ -106,16 +106,6 @@ a {
   color: var(--color-paper);
 }
 
-/* 和首頁頂欄同一個樣子：品牌字加粗、字距開，導航靠右 */
-.site-header .brand {
-  font-family: var(--font-serif-tc);
-  color: var(--color-paper);
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-decoration: none;
-}
-
 @media (min-width: 641px) {
   .site-header .site-nav {
     margin-left: auto;
@@ -183,6 +173,16 @@ a {
   color: var(--color-gold-soft);
   font-size: 1.5rem;
   letter-spacing: 0.08em;
+}
+
+/* 和首頁頂欄同一個樣子：品牌字加粗、字距開，導航靠右 */
+.site-header .brand {
+  font-family: var(--font-serif-tc);
+  color: var(--color-paper);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-decoration: none;
 }
 
 .locale-switch {

@@ -1691,3 +1691,60 @@
     max-height: 80vh;
   }
 }
+
+/* 分享籤圖／牌圖：判詞卡與牌義下方一行金字（見 DESIGN.md「分享圖與付費範例」） */
+.mk .share-btn {
+  appearance: none;
+  display: block;
+  width: min(24rem, calc(100vw - 2.5rem));
+  min-height: 44px;
+  margin: 0.25rem auto 0.5rem;
+  border: 1px dashed rgba(220, 187, 124, 0.45);
+  border-radius: 3px;
+  background: none;
+  color: var(--gold);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.mk #panel .share-btn {
+  width: 100%;
+}
+.mk .share-btn:hover {
+  border-style: solid;
+  background: rgba(220, 187, 124, 0.08);
+}
+/* 付費完整解讀的範例：預設收起。用容器內距，不靠子元素 margin（面板的 p 規則會蓋掉） */
+.mk .deep-sample {
+  margin: 0.5rem 0 1rem;
+  padding: 0 0.9rem;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(7, 8, 18, 0.35);
+}
+.mk .deep-sample summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--gold);
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.mk .deep-sample[open] summary {
+  margin: 0 -0.9rem;
+  padding: 0 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+.mk #panel .deep-sample .sample-head,
+.mk .deep-sample .sample-head {
+  margin: 0.8rem 0 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--paper-70);
+}
+.mk #panel .deep-sample .note,
+.mk .deep-sample .note {
+  margin: 0.4rem 0 0.8rem;
+}

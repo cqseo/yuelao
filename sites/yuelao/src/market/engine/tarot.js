@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { drawThree, flowLine, POSITION_DESC, POSITIONS, TONE_WORD } from '../../ritual/lenormand';
 import { drawTarot, TAROT_POSITION_DESC, TAROT_POSITIONS } from '../../ritual/tarot';
 import { createNpc } from './npc.js';
+import { tarotSampleHtml } from './samples.js';
+import { shareSpread } from './share.js';
 import { audio, canvasTex, ease, FONT, glow, lerp, rand, tween, wait } from './util.js';
 import { SITS } from './yuelao.js';
 
@@ -563,8 +565,29 @@ export function createTarot(ui) {
         ${body}
         ${unlockBlock()}
        </div>
+       <button type="button" class="share-btn" data-a="share">分享牌圖</button>
        <div class="card-actions"><button class="seal" data-a="again">換一件事問</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (x) => {
+        if (x === 'share') {
+          // 分享圖不放問的那句話（私事），只放牌、位置、牌名與關鍵詞
+          const pos = deck === 'lnm' ? POSITIONS : TAROT_POSITIONS;
+          void shareSpread({
+            deckName: DECKS[deck].name,
+            cards: drawn.map((d, k) =>
+              deck === 'lnm'
+                ? { img: imgUrl(deck, d), pos: pos[k], name: d.name, tag: TONE_WORD[d.tone], kw: d.kw }
+                : {
+                    img: imgUrl(deck, d),
+                    pos: pos[k],
+                    name: d.card.name,
+                    tag: d.rev ? '逆位' : '正位',
+                    kw: d.card.kw,
+                    rev: d.rev,
+                  },
+            ),
+          }).then((r) => r === 'saved' && say('牌圖存好了，可以傳給朋友。'));
+          return;
+        }
         if (x === 'jump') {
           // 不用 #unlock 錨點：集市用網址 hash 換房間
           document.getElementById('unlock')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -630,6 +653,7 @@ export function createTarot(ui) {
         <button class="offer" id="deep-btn" data-a="deep">解鎖完整解讀　${ui.spread.price}</button>
         <p class="note small unlock-login" id="deep-login" hidden>需先登入（免費），登入完會回到這一把牌。</p>
         <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
+        ${tarotSampleHtml()}
         <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
       </section>`;
   }
