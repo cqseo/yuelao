@@ -9,7 +9,7 @@ import { localDayKey } from '../../site/daily';
 
 const SEED_KEY = 'yuelao:seed';
 
-function deviceSeed() {
+export function deviceSeed() {
   try {
     let s = localStorage.getItem(SEED_KEY);
     if (!s) {

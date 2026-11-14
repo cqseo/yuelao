@@ -2094,3 +2094,13 @@
 .mk #panel .incense-shop .offer {
   margin: 0.3rem 0 0;
 }
+
+/* 今天已有 N 人在大殿上過香 */
+.mk #panel .calm-count {
+  min-height: 1.4em;
+  margin: -0.2rem 0 0.6rem;
+  text-align: center;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--paper-70);
+}

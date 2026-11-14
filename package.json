@@ -30,7 +30,9 @@
     "test:spread:db": "bash tools/run-spread-readings.sh",
     "test:spread": "tsx tools/test-spread.ts",
     "test:daily:db": "bash tools/run-daily-checkins.sh",
-    "test:daily": "tsx tools/test-daily-checkin.ts"
+    "test:daily": "tsx tools/test-daily-checkin.ts",
+    "test:hall:db": "bash tools/run-hall-offerings.sh",
+    "test:hall": "tsx tools/test-hall-offering.ts"
   },
   "type": "module"
 }

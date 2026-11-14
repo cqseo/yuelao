@@ -11,6 +11,7 @@ import { isStripeTestApiKey, StripeProvider } from './billing/stripe';
 import { companionChatRequest, companionStatus } from './companion-chat';
 import { dailyCheckinRequest } from './daily-checkin';
 import type { CoreEnv } from './env';
+import { hallOfferingRequest } from './hall-offering';
 import { errorResponse } from './http';
 import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
@@ -72,6 +73,12 @@ export function createCore(site: SiteConfig) {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         return companionChatRequest(request, ctx.supabaseService, user, ctx.env);
+      },
+    },
+    hall: {
+      offering: async (request: Request) => {
+        const ctx = context();
+        return hallOfferingRequest(request, ctx.supabaseService, site.id);
       },
     },
     wishes: {
