@@ -1632,3 +1632,38 @@
 .mk .reading .spread figure.rev img {
   transform: rotate(180deg);
 }
+
+/* 塔羅館：牌義開頭提早說有完整解讀；未登入先說要登入（見 DESIGN.md 2026-11-14） */
+.mk #panel .jump-unlock {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: -0.4rem 0 1rem;
+  padding: 0.55rem 0;
+  border: none;
+  border-bottom: 1px dashed rgba(220, 187, 124, 0.35);
+  background: none;
+  color: var(--gold);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-align: left;
+  cursor: pointer;
+}
+.mk #panel .jump-unlock:hover {
+  color: #f1d48f;
+}
+.mk #panel .unlock-login {
+  margin: -0.25rem 0 0.75rem;
+}
+/* 手機：桌上三張大牌就在面板上方，面板裡不再重複縮圖 */
+@media (max-width: 899px) {
+  .mk .reading .spread {
+    display: none;
+  }
+}
+/* 手機的提問面板（抽牌、求籤）放高一點：問的時候不必看場景，選項和主按鈕要一次看得到 */
+@media (max-width: 899px) {
+  .mk #panel.scroll:has([data-a="go"]) {
+    max-height: 80vh;
+  }
+}
