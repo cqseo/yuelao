@@ -11,3 +11,4 @@ routeTree.gen.ts
 .DS_Store
 supabase/.branches
 supabase/.temp
+.tanstack
