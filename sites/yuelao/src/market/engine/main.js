@@ -18,6 +18,7 @@ import {
   sentToday,
 } from './charm.js';
 import { createCrowd } from './crowd.js';
+import { deviceSeed } from './daily-draw.js';
 import { createHall } from './hall.js';
 import { createInteract } from './interact.js';
 import { createKoi } from './koi.js';
@@ -599,12 +600,29 @@ export function startMarket(root, opts = {}) {
   };
   let calm = null; // { stop, timers, x, z }
   let incenseNote = '';
+  // 今天在大殿上過香的人數（伺服器算，一人一天一次）；拿不到就不顯示
+  let hallCount = 0;
+  async function countOffering() {
+    try {
+      const res = await fetch('/api/plaza/offering', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ visitor: deviceSeed() }),
+      });
+      if (!res.ok) return;
+      const d = await res.json();
+      if (typeof d.count !== 'number' || d.count < 1) return;
+      hallCount = d.count;
+      const el = document.getElementById('calm-count');
+      if (el) el.textContent = `今天已有 ${hallCount} 人在大殿上過香`;
+    } catch {}
+  }
   function calmEndPanel() {
     const forSale = INCENSE.filter((x) => x.item && !owned.has(x.item) && shop?.prices[x.item]);
-    if (!forSale.length && !incenseNote) return ui.panel('');
     ui.panel(
       `<p class="kicker">香燒完了</p>
-       <p class="note">今天也好好過。</p>
+       <p class="note">今天也好好過。${hallCount > 1 ? `今天你和另外 ${hallCount - 1} 個人都在這裡上過香。` : ''}</p>
        ${
          forSale.length
            ? `<p class="kicker">下次換一種香</p>
@@ -676,6 +694,7 @@ export function startMarket(root, opts = {}) {
     emit('market_hall_offer');
     ui.hint('');
     const started = Date.now();
+    void countOffering();
     const style = pickIncense();
     calm = { stop: hs.burn ? hs.burn(CALM_SEC, style) : () => {}, timers: [], x: me.x, z: me.z, style };
     const choices = INCENSE.filter(incenseOk);
@@ -693,6 +712,7 @@ export function startMarket(root, opts = {}) {
        }
        <div class="calm"><div class="calm-ring"><span id="calm-word">吸氣</span></div></div>
        <p class="calm-left" id="calm-left">${CALM_SEC}</p>
+       <p class="calm-count" id="calm-count">${hallCount ? `今天已有 ${hallCount} 人在大殿上過香` : ''}</p>
        <p class="note">香慢慢燒短。跟著圈圈吸氣、吐氣，心裡想著那件事就好。</p>
        <button class="ghost" data-a="end">先到這裡</button>`,
       (a) => {
