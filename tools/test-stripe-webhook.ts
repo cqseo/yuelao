@@ -299,3 +299,18 @@ const productionEvent = await settleStripeWebhook({
 });
 assert.equal(productionEvent.status, 403);
 console.log('PASS: unsigned, forged and live-mode signed events are rejected');
+// 正式模式：只收正式事件，測試事件反過來被拒
+const liveProvider = new StripeProvider({
+  secretKey: 'sk_live_yuelao_qa_only_not_real',
+  webhookSecret,
+  automaticTax: false,
+  live: true,
+});
+const liveParsed = await liveProvider.parseWebhook(
+  signedWebhook('checkout.session.completed', session, 'evt_live_ok', true),
+);
+assert.equal(liveParsed.eventId, 'evt_live_ok');
+await assert.rejects(() =>
+  liveProvider.parseWebhook(signedWebhook('checkout.session.completed', session, 'evt_test_in_live', false)),
+);
+console.log('PASS: live mode accepts live events and rejects test events');

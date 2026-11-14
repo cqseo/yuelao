@@ -4,10 +4,10 @@ import { aiGenerationEnabled, generatePaidReadingRequest } from './ai-reading';
 import { getUserFromRequest, type SessionUser } from './auth';
 import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCode } from './auth-handlers';
 import { sameOriginPost } from './auth-session';
-import { testCheckoutAllowed } from './billing/allowlist';
 import { createTestCheckout } from './billing/checkout';
+import { billingMode, buyerAllowed, checkoutGate, keyMatchesMode } from './billing/mode';
 import { settleStripeWebhook } from './billing/settle';
-import { isStripeTestApiKey, StripeProvider } from './billing/stripe';
+import { StripeProvider } from './billing/stripe';
 import { companionChatRequest, companionStatus } from './companion-chat';
 import { dailyCheckinRequest } from './daily-checkin';
 import type { CoreEnv } from './env';
@@ -127,11 +127,7 @@ export function createCore(site: SiteConfig) {
       snapshot: async (request: Request) => {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
-        const enabled =
-          ctx.env.BILLING_ENABLE_TEST_CHECKOUT === 'true' &&
-          isStripeTestApiKey(ctx.env.STRIPE_SECRET_KEY) &&
-          Boolean(ctx.env.STRIPE_WEBHOOK_SECRET) &&
-          Boolean(ctx.supabaseService);
+        const enabled = checkoutGate(ctx.env) === null && Boolean(ctx.supabaseService);
         return accountSnapshot(ctx.supabaseService, user, enabled, aiGenerationEnabled(ctx.env));
       },
     },
@@ -139,32 +135,32 @@ export function createCore(site: SiteConfig) {
       checkout: async (request: Request) => {
         if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
         const ctx = context();
-        if (ctx.env.BILLING_ENABLE_TEST_CHECKOUT !== 'true') return errorResponse(503, 'checkout_disabled');
+        // 測試模式要 BILLING_ENABLE_TEST_CHECKOUT 與測試金鑰；正式模式（BILLING_MODE=live）只收正式金鑰。
+        const gate = checkoutGate(ctx.env);
+        if (gate) return errorResponse(503, gate);
         // A staging purchase must never redirect back to the live site.
         if (new URL(ctx.baseURL).origin !== new URL(request.url).origin) {
           return errorResponse(503, 'checkout_origin_mismatch');
         }
         // Do not accept any payment before an AI fulfillment pipeline is available.
         if (!aiGenerationEnabled(ctx.env)) return errorResponse(503, 'paid_content_unavailable');
-        // Never launch a live charge through an unreviewed test-only checkout path.
-        if (!isStripeTestApiKey(ctx.env.STRIPE_SECRET_KEY)) return errorResponse(503, 'test_key_required');
         if (!ctx.supabaseAnon || !ctx.supabaseService) return errorResponse(503, 'supabase_not_configured');
-        if (!ctx.env.STRIPE_WEBHOOK_SECRET) return errorResponse(503, 'webhook_not_configured');
         const { data: deliveryReady, error: deliveryError } =
           await ctx.supabaseService.rpc('paid_ai_delivery_ready');
         if (deliveryError || deliveryReady !== true) return errorResponse(503, 'delivery_schema_unavailable');
         const user = await getUserFromRequest(request, ctx.env);
         if (!user) return errorResponse(401, 'login_required');
-        // 測試卡號是公開的：只讓白名單上的帳號走測試結帳，其他人看到的跟「沒開賣」一樣。
-        if (!testCheckoutAllowed(ctx.env.BILLING_TEST_ALLOWED_EMAILS, user.email)) {
+        // 測試模式：測試卡號是公開的，只讓白名單上的帳號結帳，其他人看到的跟「沒開賣」一樣。正式模式不限。
+        if (!buyerAllowed(ctx.env, user.email)) {
           return errorResponse(503, 'checkout_disabled');
         }
         const provider = new StripeProvider({
-          secretKey: ctx.env.STRIPE_SECRET_KEY,
-          webhookSecret: ctx.env.STRIPE_WEBHOOK_SECRET,
+          secretKey: required(ctx.env, 'STRIPE_SECRET_KEY'),
+          webhookSecret: required(ctx.env, 'STRIPE_WEBHOOK_SECRET'),
           automaticTax: site.billing.automaticTax,
           taxCode: site.billing.taxCode,
           taxBehavior: site.billing.taxBehavior,
+          live: billingMode(ctx.env) === 'live',
         });
         return createTestCheckout({
           request,
@@ -178,9 +174,9 @@ export function createCore(site: SiteConfig) {
       webhook: (request: Request) => {
         const ctx = context();
         // Keep refund events processable even when checkout is switched off,
-        // but never accept live API keys in this test-only application.
-        if (!isStripeTestApiKey(ctx.env.STRIPE_SECRET_KEY)) {
-          return errorResponse(503, 'test_webhook_only');
+        // but only with a key that matches the billing mode (test key in test mode, live key in live mode).
+        if (!keyMatchesMode(ctx.env)) {
+          return errorResponse(503, 'key_mode_mismatch');
         }
         const provider = new StripeProvider({
           secretKey: required(ctx.env, 'STRIPE_SECRET_KEY'),
@@ -188,6 +184,7 @@ export function createCore(site: SiteConfig) {
           automaticTax: site.billing.automaticTax,
           taxCode: site.billing.taxCode,
           taxBehavior: site.billing.taxBehavior,
+          live: billingMode(ctx.env) === 'live',
         });
         return settleStripeWebhook({
           site,

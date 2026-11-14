@@ -15,6 +15,8 @@ export interface CoreEnv {
   /** Configure the set matching billing.provider in site.config.ts. */
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  /** 收款模式："live" 才收正式金鑰、對所有登入的人開放結帳；不設或其他值都是測試模式（見 billing/mode.ts）。 */
+  BILLING_MODE?: string;
   /** Test checkouts are disabled unless explicitly set to "true". */
   BILLING_ENABLE_TEST_CHECKOUT?: string;
   /** 測試結帳只開給這些信箱（逗號分隔）；沒設就誰都不開。 */

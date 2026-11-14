@@ -23,6 +23,13 @@ export interface StripeOptions {
   taxCode?: string;
   /** 'inclusive' 時買家只付標價（見 SiteConfig.billing.taxBehavior）。 */
   taxBehavior?: 'inclusive' | 'exclusive';
+  /** 正式收款模式（BILLING_MODE=live）：只接受 livemode=true 的事件；預設 false，只接受測試事件。 */
+  live?: boolean;
+}
+
+/** Both ordinary and restricted live-mode Stripe keys (only used when BILLING_MODE is "live"). */
+export function isStripeLiveApiKey(key: unknown): key is string {
+  return typeof key === 'string' && (key.startsWith('sk_live_') || key.startsWith('rk_live_'));
 }
 
 /** Both ordinary and restricted test-mode Stripe keys are allowed. */
@@ -249,9 +256,9 @@ export class StripeProvider implements PaymentProvider {
     } catch (error) {
       throw new WebhookSignatureError(error instanceof Error ? error.message : 'invalid signature');
     }
-    // The only enabled integration is TEST Stripe Checkout. A correctly
-    // signed live-mode event must not grant entitlements via this handler.
-    if (event.livemode !== false) throw new WebhookModeError();
+    // 事件的模式必須和收款模式一致：測試模式只收測試事件，正式模式只收正式事件。
+    // 簽名正確但模式不符的事件一律不發放任何東西。
+    if (event.livemode !== Boolean(this.options.live)) throw new WebhookModeError();
     return { eventId: event.id, type: event.type, target: webhookTarget(event) };
   }
 

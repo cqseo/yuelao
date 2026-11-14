@@ -32,7 +32,8 @@
     "test:daily:db": "bash tools/run-daily-checkins.sh",
     "test:daily": "tsx tools/test-daily-checkin.ts",
     "test:hall:db": "bash tools/run-hall-offerings.sh",
-    "test:hall": "tsx tools/test-hall-offering.ts"
+    "test:hall": "tsx tools/test-hall-offering.ts",
+    "test:billing:mode": "tsx tools/test-billing-mode.ts"
   },
   "type": "module"
 }
