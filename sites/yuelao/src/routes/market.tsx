@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { pageHead } from '@yuelao/core/seo';
+import { pageHead } from '~/i18n/seo';
+import { tr } from '~/i18n/ui';
 import { Market } from '~/market/Market';
 import { m } from '~/paraglide/messages.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
@@ -8,7 +9,7 @@ import site from '../../site.config';
 export const Route = createFileRoute('/market')({
   head: () =>
     pageHead(site, {
-      title: m.common_market_meta_title({ name: site.name }),
+      title: m.common_market_meta_title({ name: tr(site.name) }),
       description: m.common_market_meta_description(),
       path: localizeHref('/market', { locale: getLocale() }),
     }),

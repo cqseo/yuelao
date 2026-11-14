@@ -5,6 +5,7 @@
 
 import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { tr, trf } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
 import { localizeHref } from '~/paraglide/runtime.js';
 import { isSoundOn, setSound } from './audio';
@@ -142,10 +143,10 @@ export function Ritual({ initialCat, initialQ }: { initialCat?: RitualCat; initi
     const s = verdict.stick;
     const qLine = verdict.question ? `${m.ritual_verdict_question({ q: verdict.question })}\n` : '';
     const text =
-      '我把手機當籤筒，雙手搖出了月老的籤——\n' +
-      `問「${catName(verdict.cat)}」· ${s.no} ${s.grade}\n` +
+      `${tr('我把手機當籤筒，雙手搖出了月老的籤——')}\n` +
+      `${trf('問「{0}」· {1} {2}', catName(verdict.cat), s.no, s.grade)}\n` +
       qLine +
-      `「${s.poem}」\n判詞：${s.verdict[verdict.cat]}\n（${s.knotName} · 月老已批）`;
+      trf('「{0}」\n判詞：{1}\n（{2} · 月老已批）', s.poem, s.verdict[verdict.cat], s.knotName);
     const toast = (msg: string): void => {
       engineRef.current?.toast(msg);
     };

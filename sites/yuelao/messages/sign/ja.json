@@ -1,0 +1,12 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "sign_back_home": "ホームへ戻る",
+  "sign_meta_description": "{no} {grade}：{line}。おみくじの詩と、3種類の質問へのお告げを読む。",
+  "sign_meta_title": "{no} {grade} — 月老霊籤の解説",
+  "sign_next": "次のおみくじ",
+  "sign_prev": "前のおみくじ",
+  "sign_related_title": "前後のおみくじ・同じ吉凶",
+  "sign_ritual_cta": "このおみくじを月老に持っていく",
+  "sign_source": "詩の出典：{source}",
+  "sign_verdicts_title": "3種類の質問へのお告げ"
+}

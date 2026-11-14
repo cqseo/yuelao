@@ -33,7 +33,8 @@
     "test:daily": "tsx tools/test-daily-checkin.ts",
     "test:hall:db": "bash tools/run-hall-offerings.sh",
     "test:hall": "tsx tools/test-hall-offering.ts",
-    "test:billing:mode": "tsx tools/test-billing-mode.ts"
+    "test:billing:mode": "tsx tools/test-billing-mode.ts",
+    "i18n:check": "node tools/i18n-extract.mjs"
   },
   "type": "module"
 }

@@ -1,11 +1,13 @@
 import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
-import { getLocale, localizeHref } from '~/paraglide/runtime.js';
+import { contentLocale, uiPrefix } from '~/i18n/locale';
+import { tr } from '~/i18n/ui';
+import { localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
 
 export const Route = createFileRoute('/account')({
   head: () => ({
-    meta: [{ title: '月老 · 我的姻緣簿' }, { name: 'robots', content: 'noindex, nofollow' }],
+    meta: [{ title: tr('月老 · 我的姻緣簿') }, { name: 'robots', content: 'noindex, nofollow' }],
   }),
   component: AccountRoute,
 });
@@ -55,8 +57,8 @@ async function accountRequest(): Promise<Response> {
 }
 
 function Account() {
-  const zh = getLocale() === 'zh-Hans';
-  const t = (hant: string, hans: string) => (zh ? hans : hant);
+  const zh = contentLocale() === 'zh-Hans';
+  const t = (hant: string, hans: string) => (zh ? hans : tr(hant));
   const [data, setData] = useState<AccountData | null>(null);
   const [view, setView] = useState<'loading' | 'ready' | 'login' | 'error'>('loading');
   // 全站統一以美元結帳（2026-11-12）；舊訂單可能是港幣或新台幣，顯示時照原幣種。
@@ -123,7 +125,7 @@ function Account() {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ productId, currency, locale: getLocale() }),
+        body: JSON.stringify({ productId, currency, locale: contentLocale(), ui: uiPrefix() }),
       });
       if (!response.ok) {
         setMessage(
@@ -168,7 +170,7 @@ function Account() {
           packId: pack.id,
           stickId,
           category: redeemCategory,
-          locale: getLocale(),
+          locale: contentLocale(),
         }),
       });
       if (!response.ok) {
@@ -181,7 +183,9 @@ function Account() {
         return;
       }
       window.location.assign(
-        `/account/reading?stickId=${stickId}&category=${redeemCategory}&locale=${getLocale()}`,
+        localizeHref(
+          `/account/reading?stickId=${stickId}&category=${redeemCategory}&locale=${contentLocale()}`,
+        ),
       );
     } catch {
       setMessage(t('連線失敗，請確認紀錄再重試。', '连接失败，请先核对记录后重试。'));
@@ -366,7 +370,9 @@ function Account() {
                       </Link>
                     ) : (
                       <a
-                        href={`/account/reading?stickId=${item.stick_id}&category=${encodeURIComponent(item.category)}&locale=${encodeURIComponent(item.locale)}`}
+                        href={localizeHref(
+                          `/account/reading?stickId=${item.stick_id}&category=${encodeURIComponent(item.category)}&locale=${encodeURIComponent(item.locale)}`,
+                        )}
                       >
                         {t('第', '第')}
                         {item.stick_id}

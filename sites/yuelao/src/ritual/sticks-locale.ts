@@ -31,5 +31,7 @@ export function resolveStick(stick: Stick, locale: Locale): ResolvedStick {
 
 /** 是否需要在籤卡下方顯示「籤文為繁體原文，簡體譯本審核中」。 */
 export function showLocaleNote(locale: Locale): boolean {
+  // 非中文介面：籤詩仍是中文原文，一樣提示。
+  if (locale !== 'zh-Hant' && locale !== 'zh-Hans') return true;
   return locale === 'zh-Hans' && REVIEWED_ZH_HANS.size === 0;
 }

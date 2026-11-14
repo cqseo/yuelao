@@ -1,14 +1,16 @@
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
+import { contentLocale } from '~/i18n/locale';
+import { tr } from '~/i18n/ui';
 import { track } from '~/lib/track';
-import { getLocale, localizeHref } from '~/paraglide/runtime.js';
+import { localizeHref } from '~/paraglide/runtime.js';
 import { getTest, inLocale, type TestDefinition } from '../catalog';
 import { type Answer, evaluateQuiz } from '../engine';
 
 export function TestRunner({ test }: { test: TestDefinition }) {
-  const locale = getLocale();
+  const locale = contentLocale();
   const zh = locale === 'zh-Hans';
-  const copy = (traditional: string, simplified: string) => (zh ? simplified : traditional);
+  const copy = (traditional: string, simplified: string) => (zh ? simplified : tr(traditional));
   const [answers, setAnswers] = useState<Array<Answer | null>>(() =>
     Array.from({ length: test.questions.length }, () => null),
   );

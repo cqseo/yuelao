@@ -1,0 +1,12 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "sign_back_home": "홈으로",
+  "sign_meta_description": "{no} {grade}: {line} — 점괘 시와 세 가지 질문에 대한 판사를 읽어 보세요.",
+  "sign_meta_title": "{no} {grade} — 월하노인 영첨 풀이",
+  "sign_next": "다음 점괘",
+  "sign_prev": "이전 점괘",
+  "sign_related_title": "앞뒤 점괘 · 같은 등급",
+  "sign_ritual_cta": "이 점괘를 들고 월하노인에게 묻기",
+  "sign_source": "시의 출처: {source}",
+  "sign_verdicts_title": "세 가지 질문에 대한 판사"
+}

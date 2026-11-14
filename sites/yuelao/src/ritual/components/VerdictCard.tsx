@@ -4,6 +4,7 @@
 // 優先、剪貼板兜底（在 Ritual.tsx）。
 
 import { findProduct, formatPrice, priceForLocale } from '@yuelao/core/site';
+import { contentLocale } from '~/i18n/locale';
 import { m } from '~/paraglide/messages.js';
 import { getLocale } from '~/paraglide/runtime.js';
 import site from '../../../site.config';
@@ -57,7 +58,7 @@ export function VerdictCard({
   onShare: () => void;
 }) {
   const v = verdict ?? PLACEHOLDER;
-  const locale = getLocale();
+  const locale = contentLocale();
   const advice = adviceFor(v.stick.id, locale);
   const poemLines = v.stick.poem.split('\n');
   const teaserLine = poemLines[1] ?? poemLines[0] ?? '';

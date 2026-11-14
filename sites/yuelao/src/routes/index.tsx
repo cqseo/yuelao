@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { pageHead } from '@yuelao/core/seo';
+import { pageHead } from '~/i18n/seo';
+import { tr } from '~/i18n/ui';
 import { FAQS, Home } from '~/market/Home';
 import { m } from '~/paraglide/messages.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
@@ -10,7 +11,7 @@ import site from '../../site.config';
 export const Route = createFileRoute('/')({
   head: () => {
     const head = pageHead(site, {
-      title: m.home_meta_title({ name: site.name }),
+      title: m.home_meta_title({ name: tr(site.name) }),
       description: m.home_meta_description(),
       // Canonical 是單棵樹（P7：繁/簡同路徑切換，網址不帶語言）。
       path: localizeHref('/', { locale: getLocale() }),
@@ -18,7 +19,7 @@ export const Route = createFileRoute('/')({
       jsonLd: [
         {
           '@type': 'WebApplication',
-          name: site.name,
+          name: tr(site.name),
           url: site.url,
           applicationCategory: 'LifestyleApplication',
           operatingSystem: 'Web',

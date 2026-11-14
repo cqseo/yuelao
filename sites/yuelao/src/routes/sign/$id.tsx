@@ -1,5 +1,7 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
-import { absoluteUrl, pageHead } from '@yuelao/core/seo';
+import { absoluteUrl } from '@yuelao/core/seo';
+import { contentLocale } from '~/i18n/locale';
+import { pageHead } from '~/i18n/seo';
 import { m } from '~/paraglide/messages.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { knotImage } from '~/ritual/knots';
@@ -60,9 +62,9 @@ function SignPage() {
   const { id } = Route.useParams();
   const stick = getStick(id);
   if (!stick) throw notFound();
-  const resolved = resolveStick(stick, getLocale());
+  const resolved = resolveStick(stick, contentLocale());
   const s = resolved.stick;
-  const advice = adviceFor(stick.id, getLocale());
+  const advice = adviceFor(stick.id, contentLocale());
   const prev = stick.id > 1 ? stickById(stick.id - 1) : null;
   const next = stick.id < STICKS.length ? stickById(stick.id + 1) : null;
   const sameGrade = STICKS.filter((x) => x.grade === stick.grade && x.id !== stick.id).slice(0, 3);
