@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { drawThree, flowLine, POSITION_DESC, POSITIONS, TONE_WORD } from '../../ritual/lenormand';
 import { drawTarot, TAROT_POSITION_DESC, TAROT_POSITIONS } from '../../ritual/tarot';
+import { dailyTarot, todayLabel } from './daily-draw.js';
 import { createNpc } from './npc.js';
 import { tarotSampleHtml } from './samples.js';
-import { shareSpread } from './share.js';
+import { shareDaily, shareSpread } from './share.js';
 import { audio, canvasTex, ease, FONT, glow, lerp, rand, tween, wait } from './util.js';
 import { SITS } from './yuelao.js';
 
@@ -319,7 +320,8 @@ export function createTarot(ui) {
     ui.hint('');
     const render = (note = '') => {
       ui.panel(
-        `<h2>你想問什麼</h2>
+        `<button type="button" class="daily-link" data-a="daily">☾ 今日一牌<span>每天一張，不用寫問題</span></button>
+         <h2>你想問什麼</h2>
          <div class="chips decks">${Object.entries(DECKS)
            .map(
              ([k, d]) =>
@@ -338,6 +340,7 @@ export function createTarot(ui) {
          <button class="seal" data-a="go">抽牌</button>
          <p class="note small">同一天問同一件事，抽到的永遠是同一組牌。</p>`,
         (a) => {
+          if (a === 'daily') return dailyCard();
           if (a.startsWith('deck:')) {
             deck = a.slice(5) === 'lnm' ? 'lnm' : 'tarot';
             try {
@@ -374,6 +377,59 @@ export function createTarot(ui) {
         };
     };
     render();
+  }
+
+  // 今日一牌：每天一張、不用寫問題（DESIGN.md「今日一籤／今日一牌」）。面板裡翻一張牌，可以存成今日運勢卡。
+  function dailyCard() {
+    state = 'daily';
+    const d = dailyTarot();
+    const tag = d.rev ? '逆位' : '正位';
+    say('今天替你翻一張。不用問，看它想跟你說什麼。');
+    const show = (open) =>
+      ui.panel(
+        `<p class="kicker">今日一牌．${todayLabel()}</p>
+         <div class="daily-card${open ? ' open' : ''}" style="--energy:${d.color}">
+           <div class="daily-flip"><div class="face back">☾</div>
+             <div class="face front"><img src="/market/cards/rws/${d.card.img}.webp" alt="${d.card.name}"${d.rev ? ' class="rev"' : ''}></div></div>
+         </div>
+         ${
+           open
+             ? `<h2 class="daily-name">${d.card.name}<small>${tag}・${d.element}</small></h2>
+                <p class="daily-kws" style="--energy:${d.color}">${d.card.kw.map((w) => `<span>${w}</span>`).join('')}</p>
+                <p class="daily-line">${d.line}</p>
+                <p class="note small">每天一張，今天再來還是這一張。牌義屬文化體驗與自我認知參考，不代表現實預測。</p>
+                <button type="button" class="share-btn" data-a="share">存成今日運勢卡</button>
+                <button class="seal" data-a="ask">想問一件具體的事</button>
+                <button class="ghost" data-a="leave">回到廣場</button>`
+             : `<button class="seal" data-a="flip">翻開今日一牌</button>`
+         }`,
+        (a) => {
+          if (a === 'flip') {
+            audio.flip();
+            show(true);
+            say(`今天是${d.card.name}，${tag}。`);
+            return;
+          }
+          if (a === 'share') {
+            void shareDaily({
+              kind: 'tarot',
+              title: '今日一牌',
+              dateLabel: todayLabel(),
+              name: d.card.name,
+              sub: tag,
+              kw: d.card.kw.slice(0, 3),
+              line: d.line,
+              color: d.color,
+              img: `/market/cards/rws/${d.card.img}.webp`,
+            }).then((r) => r === 'saved' && say('存好了，可以放進限時動態。'));
+            return;
+          }
+          if (a === 'leave') return ui.leave();
+          intro();
+        },
+        true,
+      );
+    show(false);
   }
 
   async function shuffle() {
