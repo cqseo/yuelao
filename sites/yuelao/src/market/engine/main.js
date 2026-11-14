@@ -1370,9 +1370,12 @@ export function startMarket(root, opts = {}) {
   $('#look').onclick = () => (wardrobe ? closeWardrobe() : openWardrobe());
   $('#enter').onclick = enterMarket;
   $('#back').onclick = leaveRoom;
+  const soundLabel = () => (audio.on ? '聲音　開' : '聲音　關');
+  $('#sound').textContent = soundLabel();
   $('#sound').onclick = (e) => {
     audio.init();
-    e.currentTarget.textContent = audio.toggle() ? '聲音　開' : '聲音　關';
+    audio.toggle();
+    e.currentTarget.textContent = soundLabel();
   };
 
   function walk(dt) {
