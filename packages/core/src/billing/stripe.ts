@@ -234,7 +234,7 @@ export class StripeProvider implements PaymentProvider {
         success_url: request.successUrl,
         cancel_url: request.cancelUrl,
       },
-      { idempotencyKey: `checkout:${request.orderId}` },
+      { idempotencyKey: `checkout:${request.orderId}${request.retry ? ':retry' : ''}` },
     );
     if (!session.url) throw new Error('stripe checkout session has no url');
     return { url: session.url, checkoutRef: session.id };

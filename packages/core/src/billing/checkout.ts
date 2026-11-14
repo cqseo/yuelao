@@ -50,6 +50,32 @@ function parseSelection(raw: unknown): CheckoutSelection | null {
   return { productId, locale, currency, stickId: null, category: null, spread, from, ui };
 }
 
+/** Stripe's "No such customer": the id we stored is not visible to the key in use. */
+function isMissingCustomer(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { code?: unknown; param?: unknown };
+  return e.code === 'resource_missing' && e.param === 'customer';
+}
+
+/** Log why Stripe refused, without the message (it can echo ids) — just the error class and code. */
+function logCheckoutFailure(step: string, error: unknown) {
+  const e = (error && typeof error === 'object' ? error : {}) as {
+    type?: unknown;
+    code?: unknown;
+    param?: unknown;
+  };
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      message: 'checkout session not created',
+      step,
+      type: typeof e.type === 'string' ? e.type : null,
+      code: typeof e.code === 'string' ? e.code : null,
+      param: typeof e.param === 'string' ? e.param : null,
+    }),
+  );
+}
+
 export interface CheckoutDeps {
   request: Request;
   site: SiteConfig;
@@ -231,18 +257,48 @@ export async function createTestCheckout({
   if (selection.from !== 'market') returnUrl.searchParams.set('order', order.id);
   const cancelPath = selection.from !== 'market' ? '/ritual' : marketPath;
   const cancelUrl = new URL(prefix + cancelPath, siteUrl);
-  let checkout: { url: string; checkoutRef: string };
+  let checkout: { url: string; checkoutRef: string } | null = null;
+  const checkoutRequest = {
+    orderId: order.id,
+    siteId: site.id,
+    product: checkoutProduct,
+    userId: user.id,
+    customerRef,
+    successUrl: returnUrl.toString(),
+    cancelUrl: cancelUrl.toString(),
+  };
   try {
-    checkout = await provider.createCheckout({
-      orderId: order.id,
-      siteId: site.id,
-      product: checkoutProduct,
-      userId: user.id,
-      customerRef,
-      successUrl: returnUrl.toString(),
-      cancelUrl: cancelUrl.toString(),
-    });
-  } catch {
+    checkout = await provider.createCheckout(checkoutRequest);
+  } catch (error) {
+    // The stored customer may belong to the other Stripe mode: an account that paid in test mode
+    // keeps a test customer id, which the live key cannot see. Make a customer in this mode, swap
+    // it in (only if the profile still holds the stale id) and try once more.
+    if (isMissingCustomer(error)) {
+      try {
+        const fresh = await provider.createCustomer({
+          id: user.id,
+          email: user.email,
+          name: '',
+          siteId: site.id,
+        });
+        const { data: swapped } = await database
+          .from('profiles')
+          .update({ stripe_customer_id: fresh })
+          .eq('id', user.id)
+          .eq('stripe_customer_id', customerRef)
+          .select('stripe_customer_id')
+          .maybeSingle();
+        if (swapped?.stripe_customer_id === fresh) {
+          checkout = await provider.createCheckout({ ...checkoutRequest, customerRef: fresh, retry: true });
+        }
+      } catch (retryError) {
+        logCheckoutFailure('retry', retryError);
+      }
+    } else {
+      logCheckoutFailure('create', error);
+    }
+  }
+  if (!checkout) {
     // Stripe 沒建出結帳頁：這張訂單不可能被付款，直接作廢，不要永遠卡在 pending。
     await database
       .from('orders')
