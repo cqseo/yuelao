@@ -249,6 +249,7 @@ export function paperTex(draw, w = 512, h = 512) {
 
 // ---------- audio (all synthesized) ----------
 // 開關記在瀏覽器，集市與求籤頁共用（見 DESIGN.md「聲音：記住開關、淡入淡出」）。
+// 每個空間有自己的背景聲（DESIGN.md「聲音：各空間的背景聲」），換場景時交叉淡化。
 export const SOUND_KEY = 'yuelao:sound';
 export function soundPref() {
   try {
@@ -258,18 +259,28 @@ export function soundPref() {
   }
 }
 const LEVEL = 0.5;
+// 背景聲整體再推高一點（約 +5 dB）：拿掉聽不到的低鳴後，聽得到的部分不能比以前小
+const BED_LEVEL = 1.8;
+const pick = (xs) => xs[Math.floor(Math.random() * xs.length)];
+// 五聲音階（宮商角徵羽），風鈴、鈴聲都從這裡挑，聽起來不會亂
+const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51];
+
 export const audio = {
   ctx: null,
   on: typeof window === 'undefined' ? true : soundPref(),
   master: null,
+  sfx: null,
+  bed: null, // { name, gain, nodes, timers }
   /** 音量不硬切：從現在的值在 sec 秒內滑到 to。 */
   fade(to, sec) {
     if (!this.master || !this.ctx) return;
-    const g = this.master.gain;
+    this.ramp(this.master.gain, to, sec);
+  },
+  ramp(param, to, sec) {
     const t = this.ctx.currentTime;
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(to, t + sec);
+    param.cancelScheduledValues(t);
+    param.setValueAtTime(param.value, t);
+    param.linearRampToValueAtTime(to, t + sec);
   },
   init() {
     if (this.ctx) {
@@ -291,41 +302,39 @@ export const audio = {
     // 從無聲淡入；關著就保持無聲（離開再進來也照記住的狀態）
     this.master.gain.value = 0;
     this.master.connect(this.ctx.destination);
+    this.sfx = this.ctx.createGain();
+    this.sfx.gain.value = 1;
+    this.sfx.connect(this.master);
     this.fade(this.on ? LEVEL : 0, 1.5);
-    // ambience: low drone + filtered noise (distant crowd / wind)
-    const d = this.ctx.createGain();
-    d.gain.value = 0.05;
-    d.connect(this.master);
-    for (const f of [55, 82.4, 110.3]) {
-      const o = this.ctx.createOscillator();
-      o.type = 'sine';
-      o.frequency.value = f;
-      o.connect(d);
-      o.start();
-    }
-    const nb = this.noiseBuf(4);
-    const ns = this.ctx.createBufferSource();
-    ns.buffer = nb;
-    ns.loop = true;
-    const lp = this.ctx.createBiquadFilter();
-    lp.type = 'bandpass';
-    lp.frequency.value = 420;
-    lp.Q.value = 0.4;
-    const ng = this.ctx.createGain();
-    ng.gain.value = 0.035;
-    ns.connect(lp).connect(ng).connect(this.master);
-    ns.start();
+    // 直接從連結進房間時，房間比聲音先準備好：補上當時要的那一段
+    this.scene(this.want || 'plaza');
   },
   /** 離開集市時收聲；下次進來會重新建立。 */
   stop() {
+    this.dropBed(0);
     this.ctx?.close().catch(() => {});
     this.ctx = null;
     this.master = null;
+    this.sfx = null;
   },
-  noiseBuf(sec) {
+  noiseBuf(sec, pink = false) {
     const b = this.ctx.createBuffer(1, this.ctx.sampleRate * sec, this.ctx.sampleRate);
     const d = b.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    // 粉紅噪聲（Paul Kellet 簡化版）比白噪聲柔，像遠處人聲、風聲，不像電視雪花
+    let b0 = 0;
+    let b1 = 0;
+    let b2 = 0;
+    for (let i = 0; i < d.length; i++) {
+      const w = Math.random() * 2 - 1;
+      if (!pink) {
+        d[i] = w;
+        continue;
+      }
+      b0 = 0.99765 * b0 + w * 0.099046;
+      b1 = 0.963 * b1 + w * 0.2965164;
+      b2 = 0.57 * b2 + w * 1.0526913;
+      d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.2;
+    }
     return b;
   },
   toggle() {
@@ -336,39 +345,247 @@ export const audio = {
     this.fade(this.on ? LEVEL : 0, 0.3);
     return this.on;
   },
+
+  // ---------- 背景聲 ----------
+  /** 換到某個空間的背景聲：舊的 1.2 秒淡出、新的 1.5 秒淡入。plaza／shrine／tarot／sutra。 */
+  scene(name) {
+    this.want = name;
+    if (!this.ctx || this.bed?.name === name) return;
+    this.dropBed(1.2);
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0;
+    gain.connect(this.master);
+    const bed = { name, gain, nodes: [], timers: [] };
+    this.bed = bed;
+    const build = {
+      plaza: this.bedPlaza,
+      shrine: this.bedShrine,
+      tarot: this.bedTarot,
+      sutra: this.bedSutra,
+    }[name];
+    build?.call(this, bed);
+    this.ramp(gain.gain, BED_LEVEL, 1.5);
+  },
+  dropBed(sec) {
+    const bed = this.bed;
+    if (!bed) return;
+    this.bed = null;
+    for (const t of bed.timers) clearTimeout(t);
+    bed.timers.length = 0;
+    bed.dead = true;
+    if (!this.ctx) return;
+    this.ramp(bed.gain.gain, 0, sec);
+    const end = this.ctx.currentTime + sec + 0.1;
+    for (const n of bed.nodes) {
+      try {
+        n.stop?.(end);
+      } catch {}
+    }
+    setTimeout(() => bed.gain.disconnect(), (sec + 0.2) * 1000);
+  },
+  /** 不斷重複的噪聲層：pink 噪聲 → 濾波 → 音量，振幅慢慢起伏（LFO）。 */
+  noiseLayer(bed, { type = 'bandpass', freq, q = 0.7, vol, wobble = 0, rate = 0.07 }) {
+    const src = this.ctx.createBufferSource();
+    src.buffer = this._pink ??= this.noiseBuf(6, true);
+    src.loop = true;
+    src.loopStart = rand(0, 3);
+    const f = this.ctx.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    f.Q.value = q;
+    const g = this.ctx.createGain();
+    g.gain.value = vol;
+    src.connect(f).connect(g).connect(bed.gain);
+    src.start(this.ctx.currentTime, rand(0, 5));
+    bed.nodes.push(src);
+    if (wobble) {
+      const lfo = this.ctx.createOscillator();
+      lfo.frequency.value = rate;
+      const lg = this.ctx.createGain();
+      lg.gain.value = vol * wobble;
+      lfo.connect(lg).connect(g.gain);
+      lfo.start();
+      bed.nodes.push(lfo);
+    }
+  },
+  /** 每隔 a～b 秒做一次 fn（場景換掉就停）。 */
+  every(bed, a, b, fn) {
+    const loop = () => {
+      if (bed.dead) return;
+      fn();
+      bed.timers.push(setTimeout(loop, rand(a, b) * 1000));
+    };
+    bed.timers.push(setTimeout(loop, rand(a * 0.4, b * 0.6) * 1000));
+  },
+  /** 風鈴：五聲音階上兩三個音，輕輕錯開。 */
+  chime(out, vol = 0.05) {
+    const n = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < n; i++) {
+      const f = pick(PENTA) * 2;
+      this.tone(out, f, vol * rand(0.6, 1), rand(1.6, 2.8), i * rand(0.09, 0.22), [
+        [1, 1],
+        [2.76, 0.25],
+      ]);
+    }
+  },
+  /** 一個帶泛音的鈴聲，接到指定輸出。 */
+  tone(out, freq, vol, len, delay = 0, partials = [[1, 1]]) {
+    const t = this.ctx.currentTime + delay;
+    for (const [m, v] of partials) {
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.frequency.value = freq * m * rand(0.998, 1.002);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol * v, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + len / m ** 0.5);
+      o.connect(g).connect(out);
+      o.start(t);
+      o.stop(t + len + 0.05);
+    }
+  },
+  // 廣場：遠處人聲的起伏（兩段頻帶、慢慢起伏）＋偶爾的風鈴＋很久一次的遠鐘
+  bedPlaza(bed) {
+    this.noiseLayer(bed, { freq: 520, q: 0.9, vol: 0.09, wobble: 0.45, rate: 0.11 });
+    this.noiseLayer(bed, { freq: 1250, q: 1.4, vol: 0.035, wobble: 0.6, rate: 0.23 });
+    this.noiseLayer(bed, { type: 'lowpass', freq: 220, q: 0.5, vol: 0.03 });
+    this.every(bed, 7, 15, () => this.chime(bed.gain, 0.035));
+    this.every(bed, 35, 60, () =>
+      this.tone(bed.gain, 196, 0.05, 6, 0, [
+        [1, 1],
+        [2.01, 0.4],
+        [2.76, 0.25],
+      ]),
+    );
+  },
+  // 殿內（月老殿、大殿）：安靜的室內底噪＋門外的風鈴，偶爾一聲輕磬
+  bedShrine(bed) {
+    this.noiseLayer(bed, { type: 'lowpass', freq: 300, q: 0.4, vol: 0.06, wobble: 0.25, rate: 0.05 });
+    this.noiseLayer(bed, { freq: 900, q: 0.6, vol: 0.012, wobble: 0.5, rate: 0.09 });
+    this.every(bed, 6, 13, () => this.chime(bed.gain, 0.03));
+    this.every(bed, 25, 45, () =>
+      this.tone(bed.gain, 587.33, 0.04, 5, 0, [
+        [1, 1],
+        [2.71, 0.3],
+        [5.1, 0.12],
+      ]),
+    );
+  },
+  // 塔羅館：溫暖的低音鋪底（A 小三和弦，低通、慢慢呼吸）＋偶爾一點閃光
+  bedTarot(bed) {
+    const lp = this.ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 700;
+    lp.Q.value = 0.6;
+    const pad = this.ctx.createGain();
+    pad.gain.value = 0.022;
+    lp.connect(pad).connect(bed.gain);
+    for (const f of [110, 130.81, 164.81, 220]) {
+      for (const det of [-6, 6]) {
+        const o = this.ctx.createOscillator();
+        o.type = 'triangle';
+        o.frequency.value = f;
+        o.detune.value = det;
+        o.connect(lp);
+        o.start();
+        bed.nodes.push(o);
+      }
+    }
+    const lfo = this.ctx.createOscillator();
+    lfo.frequency.value = 0.06;
+    const lg = this.ctx.createGain();
+    lg.gain.value = 260;
+    lfo.connect(lg).connect(lp.frequency);
+    lfo.start();
+    bed.nodes.push(lfo);
+    this.noiseLayer(bed, { type: 'lowpass', freq: 260, q: 0.4, vol: 0.03 });
+    this.every(bed, 9, 18, () => {
+      const base = pick([880, 987.77, 1318.51]);
+      for (let i = 0; i < 3; i++) this.tone(bed.gain, base * [1, 1.5, 2][i], 0.018, 2.4, i * 0.12);
+    });
+  },
+  // 抄經閣：很靜的室內＋偶爾一聲木魚
+  bedSutra(bed) {
+    this.noiseLayer(bed, { type: 'lowpass', freq: 260, q: 0.4, vol: 0.045, wobble: 0.2, rate: 0.04 });
+    this.every(bed, 14, 26, () => this.woodblock(bed.gain, 0.12));
+    this.every(bed, 10, 20, () => this.chime(bed.gain, 0.02));
+  },
+
+  // ---------- 動作音效 ----------
   bell(freq = 520, vol = 0.25, len = 3.2) {
     if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    for (const [m, v] of [
+    // 鐘聲：非整數倍的泛音＋敲擊瞬間的一點雜音，比純正弦更像銅器
+    this.tone(this.sfx, freq, vol, len, 0, [
       [1, 1],
       [2.01, 0.5],
       [2.76, 0.35],
       [5.4, 0.15],
-    ]) {
-      const o = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      o.frequency.value = freq * m;
-      g.gain.setValueAtTime(vol * v, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + len / m ** 0.5);
-      o.connect(g).connect(this.master);
-      o.start(t);
-      o.stop(t + len);
-    }
+    ]);
+    this.burst({ freq: freq * 4, q: 2, vol: vol * 0.25, len: 0.05 });
   },
   tick(freq = 1800, vol = 0.12, len = 0.06) {
+    this.burst({ freq, q: 3, vol, len });
+  },
+  /** 一小段濾波噪聲。 */
+  burst({ freq, q = 3, vol, len, delay = 0, type = 'bandpass', sweep = 0 }) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime + delay;
+    const s = this.ctx.createBufferSource();
+    s.buffer = this._nb ??= this.noiseBuf(0.5);
+    s.playbackRate.value = rand(0.85, 1.15);
+    const f = this.ctx.createBiquadFilter();
+    f.type = type;
+    f.frequency.setValueAtTime(freq, t);
+    if (sweep) f.frequency.exponentialRampToValueAtTime(freq * sweep, t + len);
+    f.Q.value = q;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + Math.min(0.004, len / 4));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    s.connect(f).connect(g).connect(this.sfx);
+    s.start(t, rand(0, 0.3));
+    s.stop(t + len + 0.03);
+  },
+  /** 洗牌：一長串紙牌互相撥過的細碎聲，中間密、兩頭疏。 */
+  riffle(sec = 0.55, vol = 0.09) {
+    if (!this.ctx) return;
+    const n = 26;
+    for (let i = 0; i < n; i++) {
+      const k = i / (n - 1);
+      const at = sec * (k + 0.06 * Math.sin(k * Math.PI) * Math.random());
+      this.burst({
+        type: 'highpass',
+        freq: rand(2200, 3600),
+        q: 0.8,
+        vol: vol * (0.5 + Math.sin(k * Math.PI) * 0.5),
+        len: 0.022,
+        delay: at,
+      });
+    }
+    this.burst({ type: 'lowpass', freq: 500, q: 0.7, vol: vol * 1.2, len: 0.07, delay: sec });
+  },
+  /** 翻牌：紙張劃過空氣的「唰」（頻率往上掃）＋落桌一下。 */
+  flip(vol = 0.16) {
+    this.burst({ freq: 900, q: 0.9, vol, len: 0.14, sweep: 3.2 });
+    this.burst({ type: 'lowpass', freq: 420, q: 0.7, vol: vol * 0.8, len: 0.06, delay: 0.13 });
+  },
+  /** 牌放到桌上：短短一聲悶響。 */
+  place(vol = 0.14) {
+    this.burst({ type: 'lowpass', freq: 380, q: 0.7, vol, len: 0.07 });
+    this.burst({ freq: 2600, q: 1.2, vol: vol * 0.3, len: 0.03 });
+  },
+  /** 木魚：短促、帶一點音高的木頭聲。 */
+  woodblock(out = this.sfx, vol = 0.15) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    const s = this.ctx.createBufferSource();
-    s.buffer = this._nb ??= this.noiseBuf(0.3);
-    const f = this.ctx.createBiquadFilter();
-    f.type = 'bandpass';
-    f.frequency.value = freq;
-    f.Q.value = 3;
+    const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    s.connect(f).connect(g).connect(this.master);
-    s.start(t);
-    s.stop(t + len + 0.02);
+    o.frequency.setValueAtTime(420, t);
+    o.frequency.exponentialRampToValueAtTime(330, t + 0.12);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + 0.2);
   },
 };

@@ -273,6 +273,8 @@ export function startMarket(root, opts = {}) {
       if (h === 'wish') openPool();
       // #ask（舊連結，問月老已拿掉）：當成進月老殿求籤
       const roomId = h === 'ask' ? 'yuelao' : h;
+      // 從首頁鋪子卡片直接進來也要有聲音：先建好，瀏覽器會在第一次點擊時放行
+      audio.init();
       net.start();
       const deep = world.rooms.find((x) => x.id === roomId);
       if (deep?.walkOnly) {
@@ -985,6 +987,7 @@ export function startMarket(root, opts = {}) {
     $('#hud-title').textContent = active.title;
     $('#back').hidden = false;
     active.enter();
+    audio.scene({ tarot: 'tarot', sutra: 'sutra' }[r.id] || 'shrine');
     mode = 'room';
     await wait(0.15);
     fade.classList.remove('on');
@@ -998,6 +1001,7 @@ export function startMarket(root, opts = {}) {
     const r = active.from;
     active.exit();
     active = null;
+    audio.scene('plaza');
     composer.passes[0].scene = world.scene;
     composer.passes[0].camera = world.camera;
     bloom.strength = world.sky.bloom;

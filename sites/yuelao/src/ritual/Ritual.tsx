@@ -7,6 +7,7 @@ import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { m } from '~/paraglide/messages.js';
 import { localizeHref } from '~/paraglide/runtime.js';
+import { isSoundOn, setSound } from './audio';
 import { JiaoArena } from './components/JiaoArena';
 import { TubeStage } from './components/TubeStage';
 import { type Verdict, VerdictCard } from './components/VerdictCard';
@@ -187,9 +188,18 @@ export function Ritual({ initialCat, initialQ }: { initialCat?: RitualCat; initi
   }, [verdict]);
 
   const presets = cat ? catQuestions(cat) : [];
+  // 聲音開關：和集市共用 localStorage `yuelao:sound`（見 ritual/audio.ts）
+  const [soundOn, setSoundOn] = useState<boolean | null>(null);
+  useEffect(() => setSoundOn(isSoundOn()), []);
+  const toggleSound = () => setSoundOn(setSound(!isSoundOn()));
 
   return (
     <div className="ritual-page" ref={rootRef}>
+      {soundOn !== null && (
+        <button type="button" className="ritual-sound" aria-pressed={soundOn} onClick={toggleSound}>
+          {soundOn ? m.ritual_sound_on() : m.ritual_sound_off()}
+        </button>
+      )}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
         <defs>
           <filter id="ink-rough" x="-20%" y="-20%" width="140%" height="140%">

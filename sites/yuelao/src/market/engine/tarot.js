@@ -391,7 +391,7 @@ export function createTarot(ui) {
     );
     const order = cards.map((_, i) => i).sort(() => Math.random() - 0.5);
     for (let r = 0; r < 3; r++) {
-      audio.tick(2600, 0.12, 0.2);
+      audio.riffle(0.3, 0.08);
       await Promise.all(
         cards.map((c, k) => {
           const from = c.position.clone();
@@ -424,7 +424,9 @@ export function createTarot(ui) {
           },
           ease.out,
           k * 0.035,
-        ).then(() => k % 3 === 0 && audio.tick(3200, 0.05, 0.03));
+        ).then(
+          () => k % 4 === 0 && audio.burst({ type: 'highpass', freq: 3000, q: 0.8, vol: 0.03, len: 0.02 }),
+        );
       }),
     );
     state = 'choose';
@@ -443,7 +445,7 @@ export function createTarot(ui) {
     const k = chosen.length;
     c.userData.card = drawn[k];
     chosen.push(c);
-    audio.tick(2400, 0.14, 0.06);
+    audio.place(0.12);
     const from = c.position.clone();
     const to = slot(k);
     const ry = c.rotation.y;
@@ -493,7 +495,7 @@ export function createTarot(ui) {
     const tex = await faces[k];
     const face = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.72 });
     c.material = [edge, edge, back, face, edge, edge];
-    audio.tick(1900, 0.2, 0.09);
+    audio.flip();
     const pos = deck === 'lnm' ? POSITIONS : TAROT_POSITIONS;
     say(`${pos[k]}，${d.card.name}${deck === 'tarot' ? (d.rev ? '，逆位' : '，正位') : ''}。`);
     const y0 = c.position.y;
