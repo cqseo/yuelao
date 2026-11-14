@@ -12,6 +12,7 @@ export const ACT_TABS = [
       { id: 'wish', name: '許願', sub: '池邊繫紅線' },
       { id: 'room:yuelao', name: '求籤', sub: '月老殿' },
       { id: 'room:sutra', name: '抄經', sub: '每日心箋' },
+      { id: 'charm', name: '送平安符', sub: '傳給朋友' },
     ],
   },
   { id: 'halls', name: '殿堂', items: [] }, // 由 main.js 依 world.rooms 填

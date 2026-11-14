@@ -972,7 +972,10 @@ export function createShrine(o) {
   // 上香：供桌小香爐升起一陣煙（白色光點往上飄、散開）
   const smokes = [];
   // 靜心上香：香在 total 秒內燒到剩四分之一，期間一直冒煙；燒完兩秒後換上新的
-  let burning = null; // { left, total, puff, rest }
+  // style：plain 清香（白煙）／lotus 九品金蓮香（金煙、金色花瓣從上方飄落）／aurora 七彩極光香（煙色慢慢換）
+  let burning = null; // { left, total, puff, rest, style, petal }
+  const petals = [];
+  const petalAt = toWorld(0, B + 4.2, tz + 1.2);
   const setJoss = (k) => {
     for (const j of joss) {
       const h = 0.45 * (1 - 0.75 * k);
@@ -981,8 +984,19 @@ export function createShrine(o) {
       j.tip.position.y = j.bottom + h + 0.005;
     }
   };
+  const smokeColor = () => {
+    if (burning?.style === 'lotus') return 0xffd27a;
+    if (burning?.style === 'aurora') return new THREE.Color().setHSL((t * 0.08) % 1, 0.8, 0.7).getHex();
+    return 0xf2ece0;
+  };
+  const dropPetal = () => {
+    const p = glow(Math.random() < 0.5 ? 0xffd27a : 0xffb0c0, 0.16, 0.9);
+    p.position.set(petalAt.x + rand(-1.6, 1.6), petalAt.y + rand(0, 0.6), petalAt.z + rand(-1, 1));
+    scene.add(p);
+    petals.push({ p, age: 0, sway: rand(6.28), vx: rand(-0.15, 0.15) });
+  };
   const puff = () => {
-    const s2 = glow(0xf2ece0, 0.3, 0.5);
+    const s2 = glow(smokeColor(), 0.3, 0.5);
     s2.position.copy(smokeAt);
     scene.add(s2);
     smokes.push({ s: s2, age: 0 });
@@ -1031,11 +1045,15 @@ export function createShrine(o) {
       }
     },
     /** 靜心上香：香慢慢燒 sec 秒。回傳 stop()，提早結束時呼叫。 */
-    burn(sec) {
-      burning = { left: sec, total: sec, puff: 0, rest: 0 };
+    burn(sec, style = 'plain') {
+      burning = { left: sec, total: sec, puff: 0, rest: 0, style, petal: 0 };
       return () => {
         if (burning) burning.left = Math.min(burning.left, 0);
       };
+    },
+    /** 靜心中換一種香（只換樣子）。 */
+    burnStyle(style) {
+      if (burning) burning.style = style;
     },
     /** 供桌前（上香、求籤時站的地方）。 */
     altarFront: toWorld(0, 0, tz + 1.0),
@@ -1050,12 +1068,30 @@ export function createShrine(o) {
             puff();
             burning.puff = 0.4;
           }
+          if (burning.style === 'lotus') {
+            burning.petal -= dt;
+            if (burning.petal <= 0) {
+              dropPetal();
+              burning.petal = 0.18;
+            }
+          }
         } else {
           burning.rest += dt;
           if (burning.rest > 2) {
             setJoss(0);
             burning = null;
           }
+        }
+      }
+      for (let i = petals.length - 1; i >= 0; i--) {
+        const q = petals[i];
+        q.age += dt;
+        q.p.position.y -= dt * 0.6;
+        q.p.position.x += Math.sin(q.age * 2 + q.sway) * dt * 0.3 + q.vx * dt;
+        q.p.material.opacity = Math.max(0, 0.9 * (1 - q.age / 6));
+        if (q.age > 6 || q.p.position.y < B) {
+          scene.remove(q.p);
+          petals.splice(i, 1);
         }
       }
       for (let i = smokes.length - 1; i >= 0; i--) {

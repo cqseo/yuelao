@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { moonLight } from './almanac.js';
+import { moonLight, todayEvents } from './almanac.js';
 import { createMaterials, roofGeometry } from './mats.js';
 import { createShrine } from './shrine.js';
 import { canvasTex, glow, rand, textPlane } from './util.js';
@@ -58,6 +58,8 @@ export function createWorld(renderer, lowQuality) {
   camera.rotation.order = 'YXZ';
   const mat = createMaterials();
   const lattice = latticeTex();
+  let moonPool = null; // 滿月時池面的月影
+  let loveRibbons = null; // 七夕等節日亮起來的紅線
   const lanternSpots = [];
   const labels = [];
   const flick = [];
@@ -634,6 +636,28 @@ export function createWorld(renderer, lowQuality) {
     water.rotation.x = -Math.PI / 2;
     water.position.y = 0.47;
     g.add(water);
+    // 滿月（十五前後、中秋）：池面倒映一輪月亮（DESIGN.md「節日陳設」）；只在夜裡看得到
+    if (typeof window !== 'undefined' && moonLight() > 0.93) {
+      moonPool = new THREE.Mesh(
+        new THREE.CircleGeometry(0.95, 40),
+        new THREE.MeshBasicMaterial({
+          color: 0xfff0c8,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      );
+      moonPool.rotation.x = -Math.PI / 2;
+      // 放在池子靠山門那一側（從池邊望進去看得到，不被中間的樹台擋住）
+      moonPool.position.set(-1.8, 0.48, POND_R * 0.62);
+      g.add(moonPool);
+      const halo = glow(0xfff0c8, 3.2, 0.35);
+      halo.position.set(-1.8, 0.55, POND_R * 0.62);
+      halo.material.opacity = 0;
+      moonPool.userData.halo = halo;
+      g.add(halo);
+    }
     // 池面的蓮花燈
     const lamp = new THREE.MeshBasicMaterial({ color: 0xffc070 });
     for (let i = 0; i < 16; i++) {
@@ -668,11 +692,16 @@ export function createWorld(renderer, lowQuality) {
       flatShading: true,
     });
     const canopy = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), leaf, 130);
+    // 七夕、情人節、520：許願樹上的紅線亮起來、微微呼吸（DESIGN.md「節日陳設」）
+    const loveDay =
+      typeof window !== 'undefined' &&
+      todayEvents().some((e) => ['qixi', 'valentine', '520'].includes(e.key));
     const ribbons = new THREE.InstancedMesh(
       new THREE.PlaneGeometry(0.05, 0.55),
-      new THREE.MeshBasicMaterial({ color: 0xa81e16, side: THREE.DoubleSide }),
+      new THREE.MeshBasicMaterial({ color: loveDay ? 0xff3b2e : 0xa81e16, side: THREE.DoubleSide }),
       520,
     );
+    if (loveDay) loveRibbons = ribbons;
     const m4 = new THREE.Matrix4();
     const q = new THREE.Quaternion();
     for (let i = 0; i < 130; i++) {
@@ -1104,6 +1133,10 @@ export function createWorld(renderer, lowQuality) {
     for (const l of warmLights) l.intensity = l.userData.base * lamp;
     if (beam) beam.intensity = 1400 * night;
     if (lanternGlow) lanternGlow.material.opacity = 0.4 * (0.1 + night * 0.9);
+    if (moonPool) {
+      moonPool.material.opacity = 0.32 * night;
+      moonPool.userData.halo.material.opacity = 0.38 * night;
+    }
     embers.material.opacity = 0.85 * night;
     state.lamp = lamp;
   }
@@ -1226,6 +1259,10 @@ export function createWorld(renderer, lowQuality) {
     sky: state,
     setHour,
     update(dt, t, pos) {
+      if (loveRibbons) {
+        const k = 0.78 + 0.22 * Math.sin(t * 1.6);
+        loveRibbons.material.color.setRGB(1 * k, 0.23 * k, 0.18 * k);
+      }
       shrine?.update(dt);
       hallShrine?.update(dt);
       for (const sh of extraShrines) sh.update(dt);
