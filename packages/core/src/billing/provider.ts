@@ -12,6 +12,8 @@ export interface CheckoutRequest {
   customerRef: string;
   successUrl: string;
   cancelUrl: string;
+  /** Second try for the same order (after replacing a stale customer): needs its own idempotency key. */
+  retry?: boolean;
 }
 
 /** Current state of a payment at the provider. */
