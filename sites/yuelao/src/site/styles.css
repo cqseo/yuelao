@@ -3479,3 +3479,24 @@ a.ask-entry:hover {
 .ritual-page .ritual-sound:hover {
   border-color: rgba(232, 200, 120, 0.7);
 }
+
+/* 籤頁寬螢幕兩欄：右欄放「前後籤・同籤等」，不讓右邊三分之一空著（DESIGN.md 2026-11-14） */
+@media (min-width: 1024px) {
+  .sign-page {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 46rem) minmax(13rem, 1fr);
+    column-gap: 3rem;
+    align-items: start;
+  }
+  .sign-page > * {
+    grid-column: 1;
+  }
+  .sign-page > .sign-related {
+    grid-column: 2;
+    grid-row: 2 / span 4;
+    position: sticky;
+    top: 2rem;
+    margin-top: 0;
+  }
+}

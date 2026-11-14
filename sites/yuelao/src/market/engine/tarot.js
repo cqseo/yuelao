@@ -616,10 +616,13 @@ export function createTarot(ui) {
   function unlockBlock() {
     if (!ui.spread?.price) return '';
     const [a, b, c] = drawn;
+    // 先寫他問的事和現況，一看就知道完整解讀是照他的問題寫的（不只重說第三張的牌義）
+    const q = [...question];
+    const asked = `你問「${q.length > 22 ? `${q.slice(0, 22).join('')}…` : question}」，現在是${sitWord()}。`;
     const teaser =
       deck === 'lnm'
-        ? `${flowLine(a, b, c)}${c.love}`
-        : `${a.card.name}、${b.card.name}、${c.card.name}放在一起看，${(c.rev ? c.card.rev : c.card.up).replace(/。$/, '')}，而這和你問的事有關的地方在於……`;
+        ? `${asked}${flowLine(a, b, c)}${c.love}`
+        : `${asked}${a.card.name}、${b.card.name}、${c.card.name}放在一起看，答案不在哪一張單牌裡，而在${a.card.name}走到${c.card.name}的這段路上：先要放下的是……`;
     return `<section class="unlock" id="unlock">
         <h3>解鎖完整解讀</h3>
         <p class="deep-teaser">${esc(teaser)}</p>

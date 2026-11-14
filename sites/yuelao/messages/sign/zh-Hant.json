@@ -1,6 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "sign_back_home": "回問事總目",
+  "sign_back_home": "回首頁",
   "sign_meta_description": "{no}{grade}：{line}，來看籤詩和三種問法的判詞。",
   "sign_meta_title": "{no} {grade} — 月老靈籤解籤",
   "sign_next": "下一籤",

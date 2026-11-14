@@ -93,37 +93,28 @@ function Layout() {
         <Link to="/" className="brand">
           {site.name}
         </Link>
-        {/* 主導航（P8）：只留已上線的問事總目。姻緣簿、香燈簿、我的
-            未建，不在頂欄佔位，等頁面建好再加回來。 */}
+        {/* 主導航：和首頁同一組、同一順序（DESIGN.md「頂欄一致」）。左上「月老」回首頁；
+            隱私權、服務條款只在頁腳。求籤、每日心箋都在 3D 集市裡，一般版頁面仍在。 */}
         <nav className="site-nav" aria-label={m.common_nav_label()}>
-          <Link to="/" aria-current={location.pathname === '/' ? 'true' : undefined}>
-            {m.common_nav_home()}
-          </Link>
-          <a href="/market#enter">{m.common_nav_market()}</a>
+          <a href="/market#enter">{m.home_market_nav_market()}</a>
+          <a href="/market#yuelao">{m.home_market_nav_ritual()}</a>
+          <a href="/market#sutra">{m.home_market_nav_daily()}</a>
           <Link
             to={localizeHref('/tests')}
             aria-current={location.pathname.startsWith('/tests') ? 'true' : undefined}
           >
-            {locale === 'zh-Hans' ? '情感测试' : '情感測驗'}
+            {m.home_market_nav_tests()}
           </Link>
-          {/* 每日心箋在 3D 抄經閣；/daily 一般版仍在 */}
-          <a href="/market#sutra">{locale === 'zh-Hans' ? '每日心笺' : '每日心箋'}</a>
           {import.meta.env.VITE_AUTH_ENABLED === 'true' && (
             <Link
               to={localizeHref('/account')}
               aria-current={location.pathname === '/account' ? 'true' : undefined}
             >
-              {locale === 'zh-Hans' ? '我的' : '我的'}
+              {m.home_market_nav_account()}
             </Link>
           )}
         </nav>
         <nav className="site-meta">
-          <Link className="nav-legal" to="/privacy">
-            {m.common_footer_privacy()}
-          </Link>
-          <Link className="nav-legal" to="/terms">
-            {m.common_footer_terms()}
-          </Link>
           {/* 繁/簡切換（P7，kaucim 式）：同一路徑、不跳頁——setLocale 寫
               PARAGLIDE_LOCALE cookie 再整頁重載，伺服器讀 cookie 做 SSR，
               網址不變。 */}
