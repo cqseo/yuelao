@@ -96,7 +96,7 @@ export function createWorld(renderer, lowQuality) {
           float up = clamp(d.y, 0.0, 1.0);
           float night = 1.0 - uDay;
           vec3 nightCol = mix(vec3(0.085,0.075,0.16), vec3(0.012,0.016,0.045), pow(up, 0.55));
-          vec3 dayCol = mix(vec3(0.78,0.86,0.95), vec3(0.22,0.47,0.84), pow(up, 0.6));
+          vec3 dayCol = mix(vec3(0.66,0.79,0.95), vec3(0.16,0.42,0.86), pow(up, 0.5));
           vec3 col = mix(nightCol, dayCol, uDay);
           col += vec3(0.32,0.14,0.05) * pow(1.0 - up, 7.0) * 0.55 * night;       // 夜裡地平線上的燈火
           float sd = dot(d, uSun);
@@ -1052,7 +1052,7 @@ export function createWorld(renderer, lowQuality) {
     hemiGroundNight: hex3(0x2c2018),
     hemiGroundDay: hex3(0x8f8272),
     fogNight: hex3(0x090a14),
-    fogDay: hex3(0xbfd2e8),
+    fogDay: hex3(0xaac6ea),
     fogDusk: hex3(0x6a4250),
   };
   const smooth = (a, b, x) => {
