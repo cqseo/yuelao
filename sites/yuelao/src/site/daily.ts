@@ -184,3 +184,42 @@ export function dailyReading(day: string, focus: DailyFocus, locale: DailyLocale
     focus: pick(DAILY_FOCI[focus].label),
   };
 }
+
+/**
+ * 登入的人把簽到同步到帳號（DESIGN.md「每日簽到同步到帳號」）：check = true 時簽今天，
+ * 並把瀏覽器裡近 30 天的紀錄一起補登。沒登入、伺服器不可用或網路錯誤都回 null，
+ * 呼叫端照舊只用瀏覽器紀錄。
+ */
+export async function syncDailyRecord(
+  local: DailyRecord,
+  today: string,
+  check: boolean,
+): Promise<DailyRecord | null> {
+  if (!safeDateKey(today)) return null;
+  const t = dayNumber(today);
+  const backfill = local.checkedDates.filter(
+    (d) => safeDateKey(d) && dayNumber(d) <= t && t - dayNumber(d) < 30,
+  );
+  const post = () =>
+    fetch('/api/account/daily', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ today, check, backfill: backfill.slice(-30) }),
+    });
+  try {
+    let res = await post();
+    if (res.status === 401) {
+      // 登入狀態可能只是過期：換一次再試；真的沒登入就算了
+      const refreshed = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin' });
+      if (!refreshed.ok) return null;
+      res = await post();
+    }
+    if (!res.ok) return null;
+    const d = (await res.json()) as { streak?: unknown; lastDate?: unknown; checkedDates?: unknown };
+    if (typeof d.lastDate !== 'string' || !d.lastDate) return null;
+    return sanitizeDailyRecord(d);
+  } catch {
+    return null;
+  }
+}

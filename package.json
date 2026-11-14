@@ -28,7 +28,9 @@
     "test:checkout": "tsx tools/test-checkout-failure.ts",
     "test:plaza": "tsx tools/test-plaza.ts",
     "test:spread:db": "bash tools/run-spread-readings.sh",
-    "test:spread": "tsx tools/test-spread.ts"
+    "test:spread": "tsx tools/test-spread.ts",
+    "test:daily:db": "bash tools/run-daily-checkins.sh",
+    "test:daily": "tsx tools/test-daily-checkin.ts"
   },
   "type": "module"
 }

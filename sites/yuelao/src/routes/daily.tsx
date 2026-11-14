@@ -12,6 +12,7 @@ import {
   emptyDailyRecord,
   localDayKey,
   sanitizeDailyRecord,
+  syncDailyRecord,
 } from '~/site/daily';
 import site from '../../site.config';
 
@@ -45,11 +46,20 @@ function DailyPage() {
     setToday(day);
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
+      const previous = raw ? sanitizeDailyRecord(JSON.parse(raw)) : emptyDailyRecord();
       if (raw) {
-        const previous = sanitizeDailyRecord(JSON.parse(raw));
         setRecord(previous);
         setSaved(previous.lastDate === day);
       }
+      // 登入的人：帳號裡的紀錄為準（換裝置也在），順便把這台的紀錄補上去
+      void syncDailyRecord(previous, day, false).then((r) => {
+        if (!r) return;
+        setRecord(r);
+        setSaved(r.lastDate === day);
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(r));
+        } catch {}
+      });
     } catch {
       // Private / quota-limited browsers still get today's local daily card.
     }
@@ -62,6 +72,14 @@ function DailyPage() {
   yesterday.setDate(yesterday.getDate() - 1);
   const currentStreak = done ? record.streak : record.lastDate === localDayKey(yesterday) ? record.streak : 0;
 
+  function keep(next: DailyRecord, key: string) {
+    setRecord(next);
+    setSaved(next.lastDate === key);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {}
+  }
+
   function signToday() {
     const key = localDayKey(new Date());
     setToday(key);
@@ -73,6 +91,7 @@ function DailyPage() {
     } catch {
       setSaved(false);
     }
+    void syncDailyRecord(next, key, true).then((r) => r && keep(r, key));
   }
 
   return (
@@ -174,8 +193,8 @@ function DailyPage() {
           )}
           <p className="daily-privacy">
             {t(
-              '目前是免費的瀏覽器本機簽到，不計入充值餘額，也不跨設備同步。清除網站資料會失去紀錄。',
-              '目前是免费的浏览器本地签到，不计入充值余额，也不跨设备同步。清除网站数据会失去记录。',
+              '簽到免費，不計入充值餘額。登入後會存到你的帳號，換裝置也在；沒登入只記在這台裝置的瀏覽器裡，清除網站資料會失去紀錄。',
+              '签到免费，不计入充值余额。登录后会存到你的账号，换设备也在；没登录只记在这台设备的浏览器里，清除网站数据会失去记录。',
             )}
           </p>
           <div className="daily-side-ornament" aria-hidden="true">
