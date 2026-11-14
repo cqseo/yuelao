@@ -11,6 +11,20 @@ const PAPER = '#efe5cf';
 const INK = '#2a1d14';
 const RED = '#a8291f';
 
+// 簡體用戶：圖上的字跟畫面一樣轉成簡體（Market.tsx 在 zh-Hans 時設定）
+let convert = (t) => t;
+export function setShareText(fn) {
+  convert = typeof fn === 'function' ? fn : (t) => t;
+}
+function hook(g) {
+  const fill = g.fillText.bind(g);
+  const measure = g.measureText.bind(g);
+  g.fillText = (t, x, y, w) =>
+    w === undefined ? fill(convert(String(t)), x, y) : fill(convert(String(t)), x, y, w);
+  g.measureText = (t) => measure(convert(String(t)));
+  return g;
+}
+
 const loadImg = (src) =>
   new Promise((res) => {
     const im = new Image();
@@ -107,7 +121,7 @@ export async function shareVerdict({ no, grade, poem, source, verdict, cat }) {
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
-  const g = c.getContext('2d');
+  const g = hook(c.getContext('2d'));
   night(g);
   // 米紙
   const px = 96;
@@ -181,7 +195,7 @@ export async function shareSpread({ deckName, cards }) {
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
-  const g = c.getContext('2d');
+  const g = hook(c.getContext('2d'));
   night(g);
   g.textAlign = 'center';
   g.fillStyle = GOLD;
@@ -252,7 +266,7 @@ export async function shareDaily({ kind, dateLabel, title, name, sub, kw = [], l
   const c = document.createElement('canvas');
   c.width = SW;
   c.height = SH;
-  const g = c.getContext('2d');
+  const g = hook(c.getContext('2d'));
   const bg = g.createLinearGradient(0, 0, 0, SH);
   bg.addColorStop(0, '#0d0e22');
   bg.addColorStop(1, NIGHT);
