@@ -1,7 +1,9 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { LangMenu } from '~/i18n/LangMenu';
+import { tr } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
-import { getLocale, localizeHref, setLocale } from '~/paraglide/runtime.js';
+import { localizeHref } from '~/paraglide/runtime.js';
 import { SUPPORT_EMAIL } from '~/site/legal';
 import site from '../../site.config';
 import './home.css';
@@ -66,7 +68,6 @@ const WAYS = [
 ];
 
 export function Home() {
-  const locale = getLocale();
   const navigate = useNavigate();
   const [no, setNo] = useState('');
   const [bad, setBad] = useState(false);
@@ -86,12 +87,12 @@ export function Home() {
     <div className="mh">
       <header className="mh-top">
         <Link to="/" className="mh-brand">
-          {site.name}
+          {tr(site.name)}
         </Link>
         <nav className="mh-nav" aria-label={m.home_market_nav_label()}>
           {NAV.map((n) =>
             n.hard ? (
-              <a key={n.to} href={n.to}>
+              <a key={n.to} href={localizeHref(n.to)}>
                 {n.label()}
               </a>
             ) : (
@@ -104,23 +105,7 @@ export function Home() {
             <Link to={localizeHref('/account')}>{m.home_market_nav_account()}</Link>
           )}
         </nav>
-        {/* 繁/簡同路徑切換（P7）：寫 cookie 後整頁重載。 */}
-        <span className="mh-locale">
-          <button
-            type="button"
-            onClick={() => setLocale('zh-Hant')}
-            aria-current={locale === 'zh-Hant' ? 'true' : undefined}
-          >
-            繁體
-          </button>
-          <button
-            type="button"
-            onClick={() => setLocale('zh-Hans')}
-            aria-current={locale === 'zh-Hans' ? 'true' : undefined}
-          >
-            簡體
-          </button>
-        </span>
+        <LangMenu className="mh-lang" />
       </header>
 
       <main>
@@ -130,7 +115,11 @@ export function Home() {
             <h1 id="mh-title">{m.home_market_title()}</h1>
             <p className="mh-lead">{m.home_market_lead()}</p>
             <div className="mh-actions">
-              <a className="mh-enter" href="/market#enter" data-rybbit-event="home_market_enter">
+              <a
+                className="mh-enter"
+                href={localizeHref('/market#enter')}
+                data-rybbit-event="home_market_enter"
+              >
                 {m.home_market_enter()}
               </a>
               <Link className="mh-plain" to={localizeHref('/ritual')}>
@@ -150,7 +139,10 @@ export function Home() {
                 <h3>{r.name()}</h3>
                 <p>{r.desc()}</p>
                 {r.hash ? (
-                  <a href={`/market#${r.hash}`} data-rybbit-event={`home_market_room_${r.hash}`}>
+                  <a
+                    href={localizeHref(`/market#${r.hash}`)}
+                    data-rybbit-event={`home_market_room_${r.hash}`}
+                  >
                     {m.home_market_room_go()}
                   </a>
                 ) : (
@@ -223,7 +215,7 @@ export function Home() {
       </main>
 
       <footer className="mh-foot">
-        <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: site.name })}</span>
+        <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: tr(site.name) })}</span>
         <nav>
           <Link to="/privacy">{m.common_footer_privacy()}</Link>
           <Link to="/terms">{m.common_footer_terms()}</Link>

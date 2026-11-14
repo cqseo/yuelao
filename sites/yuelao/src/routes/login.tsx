@@ -1,17 +1,18 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
+import { tr } from '~/i18n/ui';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 
 export const Route = createFileRoute('/login')({
   head: () => ({
-    meta: [{ title: '月老 · 登入' }, { name: 'robots', content: 'noindex, nofollow' }],
+    meta: [{ title: tr('月老 · 登入') }, { name: 'robots', content: 'noindex, nofollow' }],
   }),
   component: Login,
 });
 
 function Login() {
   const zh = getLocale() === 'zh-Hans';
-  const text = (hant: string, hans: string) => (zh ? hans : hant);
+  const text = (hant: string, hans: string) => (zh ? hans : tr(hant));
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [step, setStep] = useState<'email' | 'code'>('email');
@@ -89,8 +90,8 @@ function Login() {
         // 從集市的月老殿過來登入的，登入後回月老殿（固定路徑，不接受外部傳入的網址）。
         let next = localizeHref('/account');
         try {
-          if (sessionStorage.getItem('market-pending') !== null) next = '/market#yuelao';
-          else if (sessionStorage.getItem('market-back') !== null) next = '/market';
+          if (sessionStorage.getItem('market-pending') !== null) next = localizeHref('/market#yuelao');
+          else if (sessionStorage.getItem('market-back') !== null) next = localizeHref('/market');
         } catch {}
         window.location.assign(next);
         return;

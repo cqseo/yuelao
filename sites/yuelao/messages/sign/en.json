@@ -1,0 +1,12 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "sign_back_home": "Back to home",
+  "sign_meta_description": "{no} {grade}: {line} — read the verse and the verdicts for three kinds of questions.",
+  "sign_meta_title": "{no} {grade} — Yue Lao fortune stick reading",
+  "sign_next": "Next stick",
+  "sign_prev": "Previous stick",
+  "sign_related_title": "Nearby sticks · same grade",
+  "sign_ritual_cta": "Take this stick to Yue Lao",
+  "sign_source": "Source of the verse: {source}",
+  "sign_verdicts_title": "Verdicts for three kinds of questions"
+}

@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { pageHead } from '@yuelao/core/seo';
 import { useEffect, useState } from 'react';
+import { contentLocale } from '~/i18n/locale';
+import { pageHead } from '~/i18n/seo';
+import { tr } from '~/i18n/ui';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import {
   checkedInToday,
@@ -19,9 +21,10 @@ import site from '../../site.config';
 export const Route = createFileRoute('/daily')({
   head: () =>
     pageHead(site, {
-      title: '月老每日運勢與簽到｜每日心箋 · 免費',
-      description:
+      title: tr('月老每日運勢與簽到｜每日心箋 · 免費'),
+      description: tr(
         '每天來月老領一封心箋，免費簽到記錄一點點溫柔；選擇緣分、溝通、心境或行動，收下今天的自我反思指引。',
+      ),
       path: localizeHref('/daily', { locale: getLocale() }),
     }),
   component: DailyPage,
@@ -32,9 +35,9 @@ const FOCI: DailyFocus[] = ['connection', 'communication', 'self', 'courage'];
 const STAMP_DAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 function DailyPage() {
-  const locale = getLocale();
+  const locale = contentLocale();
   const zh = locale === 'zh-Hans';
-  const t = (hant: string, hans: string) => (zh ? hans : hant);
+  const t = (hant: string, hans: string) => (zh ? hans : tr(hant));
   const [today, setToday] = useState('');
   const [focus, setFocus] = useState<DailyFocus>('connection');
   const [record, setRecord] = useState<DailyRecord>(emptyDailyRecord);
@@ -102,7 +105,7 @@ function DailyPage() {
       </div>
 
       <header className="daily-heading">
-        <span className="serene-eyebrow">A LETTER FOR TODAY / 月下日曆</span>
+        <span className="serene-eyebrow">{tr('A LETTER FOR TODAY / 月下日曆')}</span>
         <h1>{t('每日，與心相見。', '每日，与心相见。')}</h1>
         <p>{t('不問明天一定如何，只陪你把今天過得更清楚。', '不问明天一定如何，只陪你把今天过得更清楚。')}</p>
       </header>
@@ -127,7 +130,7 @@ function DailyPage() {
                   aria-pressed={focus === key}
                   onClick={() => setFocus(key)}
                 >
-                  {DAILY_FOCI[key].label[locale]}
+                  {tr(DAILY_FOCI[key].label[locale])}
                 </button>
               ))}
             </div>
@@ -135,7 +138,7 @@ function DailyPage() {
             {reading ? (
               <div className="daily-reading" id="daily-letter-title" aria-live="polite">
                 <span className="daily-reading-focus">
-                  {t('今日心語', '今日心语')} / {reading.focus}
+                  {t('今日心語', '今日心语')} / {tr(reading.focus)}
                 </span>
                 <h2>{reading.name}</h2>
                 <blockquote>{reading.verse}</blockquote>
@@ -153,7 +156,9 @@ function DailyPage() {
           </div>
           <footer className="daily-letter-footer">
             <span>{t('一頁心情提示，不是命運預測。', '一页心情提示，不是命运预测。')}</span>
-            <a href="/market#yuelao">{t('有心事？去月老殿求一支籤 →', '有心事？去月老殿求一支签 →')}</a>
+            <a href={localizeHref('/market#yuelao')}>
+              {t('有心事？去月老殿求一支籤 →', '有心事？去月老殿求一支签 →')}
+            </a>
           </footer>
         </section>
 

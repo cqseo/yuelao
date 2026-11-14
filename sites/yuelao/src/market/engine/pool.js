@@ -1,4 +1,4 @@
-import { audio } from './util.js';
+import { audio, localPath } from './util.js';
 
 // 許願池：池邊的面板。寫一句願望、繫一條紅線；看樹上大家掛的願望牌，替別人「同願」，或檢舉。
 // 讀寫都經 Market.tsx 傳進來的 api（它再呼叫 /api/wishes），這裡不碰網路細節。
@@ -185,7 +185,7 @@ export function createPool({ ui, world, api, emit, onClose }) {
     if (cmd === 'close') return close();
     if (cmd === 'login') {
       api.leaving();
-      location.assign('/login');
+      location.assign(localPath('/login'));
       return;
     }
     if (cmd === 'care-ok') {

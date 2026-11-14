@@ -1,10 +1,14 @@
 import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
 import { useEffect, useRef } from 'react';
 import { track } from '~/lib/track';
-import { getLocale } from '~/paraglide/runtime.js';
 import { COMPANION_STARTERS, type CompanionTheme, guidedReply } from '~/site/companion';
 import site from '../../site.config';
 import './market.css';
+import { watchTranslate } from '~/i18n/dom';
+import { LangMenu } from '~/i18n/LangMenu';
+import { contentLocale, uiPrefix } from '~/i18n/locale';
+import { tr, uiDict } from '~/i18n/ui';
+import { localizeHref } from '~/paraglide/runtime.js';
 
 type AiStatus = { enabled: boolean; loginRequired: boolean; dailyLimit: number; remaining?: number };
 
@@ -19,7 +23,11 @@ export function Market() {
     if (!el) return;
     let stop: (() => void) | undefined;
     let gone = false;
-    const locale = getLocale();
+    const locale = contentLocale();
+    // 非中文介面：引擎寫進來的中文介面字換成當地語言（內容仍是中文）。
+    const ui = uiPrefix();
+    const dict = ui ? uiDict(ui) : undefined;
+    const untranslate = ui && dict ? watchTranslate(el, dict, ui) : undefined;
 
     // 追問月老：預設用站內的引導式回答（免費、不出站）。AI 即時對話只有在
     // 伺服器開放、已登入、而且使用者在面板勾了同意時才用；失敗就退回引導式。
@@ -55,6 +63,7 @@ export function Market() {
             credentials: 'same-origin',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({
+              ui: uiPrefix(),
               productId,
               currency: product?.prices[locale].currency,
               locale,
@@ -165,7 +174,7 @@ export function Market() {
     const deep = {
       price: unlock ? formatPrice(priceForLocale(unlock, locale), locale) : '',
       page: (stickId: number, category: string) =>
-        `/account/reading?stickId=${stickId}&category=${category}&locale=${locale}`,
+        localizeHref(`/account/reading?stickId=${stickId}&category=${category}&locale=${locale}`),
       /** ready：已解鎖且內文已生成；unlocked：已解鎖、內文待領取；none：尚未購買或未登入。 */
       async check(stickId: number, category: string) {
         try {
@@ -402,6 +411,7 @@ export function Market() {
     return () => {
       gone = true;
       stop?.();
+      untranslate?.();
     };
   }, []);
 
@@ -416,23 +426,24 @@ export function Market() {
       <header id="hud">
         <div className="left">
           <button type="button" id="back" hidden>
-            回到廣場
+            {tr('回到廣場')}
           </button>
-          <span id="hud-title">月下集市</span>
-          <button type="button" id="sky" aria-label="天色" />
+          <span id="hud-title">{tr('月下集市')}</span>
+          <button type="button" id="sky" aria-label={tr('天色')} />
           <span id="almanac" />
         </div>
         <div className="right">
           <button type="button" id="view">
-            第一人稱
+            {tr('第一人稱')}
           </button>
           <button type="button" id="look">
-            外觀
+            {tr('外觀')}
           </button>
           <button type="button" id="sound">
-            聲音　開
+            {tr('聲音　開')}
           </button>
-          <a href="/account">我的</a>
+          <a href={localizeHref('/account')}>{tr('我的')}</a>
+          <LangMenu className="mk-lang" />
         </div>
       </header>
       <div id="stack">
@@ -443,30 +454,30 @@ export function Market() {
         <p id="hint" role="status" />
       </div>
       <section id="menu">
-        <h1>月下集市</h1>
-        <p className="lead">一座夜裡的集市，每間鋪子問一種事。四處逛逛，想問什麼，就走進哪一間。</p>
+        <h1>{tr('月下集市')}</h1>
+        <p className="lead">{tr('一座夜裡的集市，每間鋪子問一種事。四處逛逛，想問什麼，就走進哪一間。')}</p>
         <p className="almanac-line" id="almanac-line" hidden />
         <div className="row">
           <button type="button" className="seal" id="enter">
-            入市
+            {tr('入市')}
           </button>
-          <a className="ghost" href="/ritual">
-            改用一般版求籤
+          <a className="ghost" href={localizeHref('/ritual')}>
+            {tr('改用一般版求籤')}
           </a>
         </div>
-        <small>今晚開張：月老殿、塔羅館、大殿、抄經閣、許願池</small>
+        <small>{tr('今晚開張：月老殿、塔羅館、大殿、抄經閣、許願池')}</small>
       </section>
       <section id="panel" />
       <section id="card" />
       <div id="fade" />
       <div id="boot">
-        <h1>月下集市</h1>
+        <h1>{tr('月下集市')}</h1>
         <div className="bar">
           <div id="boot-bar" />
         </div>
-        <p id="boot-text">正在點燈</p>
-        <a className="ghost" href="/ritual">
-          改用一般版求籤
+        <p id="boot-text">{tr('正在點燈')}</p>
+        <a className="ghost" href={localizeHref('/ritual')}>
+          {tr('改用一般版求籤')}
         </a>
       </div>
     </div>

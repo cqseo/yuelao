@@ -3522,3 +3522,10 @@ a.ask-entry:hover {
     margin-top: 0;
   }
 }
+
+/* 非中文介面（2026-11-14，DESIGN.md「語言選單」）：站上為漢字排的寬字距放到拉丁字、泰文、韓文上會散掉，
+   泰文的聲調符號還會錯位，所以一律回到正常字距。中文（:lang(zh)）不受影響。 */
+html:not(:lang(zh)) body * {
+  /* biome-ignore lint/complexity/noImportantStyles: 要蓋過各元件為漢字寫的字距 */
+  letter-spacing: normal !important;
+}

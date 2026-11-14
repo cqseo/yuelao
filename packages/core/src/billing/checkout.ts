@@ -15,7 +15,11 @@ export interface CheckoutSelection {
   spread: string | null;
   /** Where the purchase started; only picks which fixed page a cancelled checkout returns to. */
   from: 'market' | null;
+  /** 介面語言前綴（非中文）：只決定付完／取消後回到哪個語言的固定頁面，從固定清單裡挑。 */
+  ui: (typeof UI_PREFIXES)[number] | null;
 }
+
+const UI_PREFIXES = ['en', 'ja', 'th', 'ko'] as const;
 
 function parseSelection(raw: unknown): CheckoutSelection | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -29,6 +33,8 @@ function parseSelection(raw: unknown): CheckoutSelection | null {
   }
   if (value.from !== undefined && value.from !== 'market') return null;
   const from = value.from === 'market' ? 'market' : null;
+  if (value.ui !== undefined && !(UI_PREFIXES as readonly unknown[]).includes(value.ui)) return null;
+  const ui = (value.ui as CheckoutSelection['ui'] | undefined) ?? null;
   // Shape only; whether the product exists is decided against the site config below.
   if (typeof productId !== 'string' || !/^[a-z][a-z0-9_]{0,39}$/.test(productId)) return null;
   if (locale !== 'zh-Hant' && locale !== 'zh-Hans') return null;
@@ -39,9 +45,9 @@ function parseSelection(raw: unknown): CheckoutSelection | null {
       return null;
     if (category !== 'him' && category !== 'single' && category !== 'reunion') return null;
     if (spread !== null) return null;
-    return { productId, locale, currency, stickId, category, spread: null, from };
+    return { productId, locale, currency, stickId, category, spread: null, from, ui };
   }
-  return { productId, locale, currency, stickId: null, category: null, spread, from };
+  return { productId, locale, currency, stickId: null, category: null, spread, from, ui };
 }
 
 export interface CheckoutDeps {
@@ -217,11 +223,14 @@ export async function createTestCheckout({
   // 從集市發起的付款直接回集市（月老殿會自己向伺服器確認解鎖），不經過核實頁。
   const marketPath =
     product.kind === 'unlock' ? '/market#yuelao' : product.kind === 'spread' ? '/market#tarot' : '/market';
+  const prefix = selection.ui ? `/${selection.ui}` : '';
   const returnUrl =
-    selection.from === 'market' ? new URL(marketPath, siteUrl) : new URL('/billing/return', siteUrl);
+    selection.from === 'market'
+      ? new URL(prefix + marketPath, siteUrl)
+      : new URL(`${prefix}/billing/return`, siteUrl);
   if (selection.from !== 'market') returnUrl.searchParams.set('order', order.id);
   const cancelPath = selection.from !== 'market' ? '/ritual' : marketPath;
-  const cancelUrl = new URL(cancelPath, siteUrl);
+  const cancelUrl = new URL(prefix + cancelPath, siteUrl);
   let checkout: { url: string; checkoutRef: string };
   try {
     checkout = await provider.createCheckout({

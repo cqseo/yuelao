@@ -250,6 +250,12 @@ export function paperTex(draw, w = 512, h = 512) {
 // ---------- audio (all synthesized) ----------
 // 開關記在瀏覽器，集市與求籤頁共用（見 DESIGN.md「聲音：記住開關、淡入淡出」）。
 // 每個空間有自己的背景聲（DESIGN.md「聲音：各空間的背景聲」），換場景時交叉淡化。
+// 站內路徑加上目前介面語言的前綴（/en、/ja…；中文不加）。看 <html lang>，跟 src/i18n/locale.ts 同一套規則。
+export function localPath(p) {
+  const lang = typeof document === 'undefined' ? '' : document.documentElement.lang;
+  return ['en', 'ja', 'th', 'ko'].includes(lang) ? `/${lang}${p}` : p;
+}
+
 export const SOUND_KEY = 'yuelao:sound';
 export function soundPref() {
   try {

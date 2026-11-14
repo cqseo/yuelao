@@ -1,17 +1,18 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { tr } from '~/i18n/ui';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 
 export const Route = createFileRoute('/account/reading')({
   head: () => ({
-    meta: [{ title: '月老 · 我的深度解讀' }, { name: 'robots', content: 'noindex, nofollow' }],
+    meta: [{ title: tr('月老 · 我的深度解讀') }, { name: 'robots', content: 'noindex, nofollow' }],
   }),
   component: Reading,
 });
 
 function Reading() {
   const zh = getLocale() === 'zh-Hans';
-  const t = (hant: string, hans: string) => (zh ? hans : hant);
+  const t = (hant: string, hans: string) => (zh ? hans : tr(hant));
   const [status, setStatus] = useState<'loading' | 'ready' | 'login' | 'missing' | 'processing' | 'error'>(
     'loading',
   );

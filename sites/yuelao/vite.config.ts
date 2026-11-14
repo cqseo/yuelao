@@ -23,21 +23,25 @@ export default defineConfig(({ command }) => ({
     // i18n via Paraglide: zh-Hant is the base locale, zh-Hans ships too.
     // Unlike the shipwords template, production uses the full project (not an en-only
     // one) and the server runs the locale middleware in production as well.
-    // P7: same-path 繁/簡 toggle (kaucim model) — strategy, urlPatterns
-    // and routeStrategies mirror project.inlang/paraglide.config.mjs — keep
-    // the two in sync. Strategy is ['cookie', 'baseLocale'] on purpose: the
-    // PARAGLIDE_LOCALE cookie is the single source of truth (see the config
-    // file's comment); urlPatterns is an identity mapping so localizeUrl()
-    // never prefixes a locale into the URL.
+    // 多語言（2026-11-14）：strategy、urlPatterns、routeStrategies 和
+    // project.inlang/paraglide.config.mjs 一致，兩邊要一起改。說明見 src/i18n/locale.ts。
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: command === 'serve' ? './src/paraglide' : PARAGLIDE_BUILD,
-      strategy: ['cookie', 'baseLocale'],
+      strategy: ['custom-path', 'baseLocale'],
       urlPatterns: [
         {
-          // Identity: base and localized shapes are the same path.
+          // 中文（繁／簡）不帶前綴、同一路徑；en/ja/th/ko 各自 /xx/ 前綴。
+          // 判斷語言靠 custom-path（src/i18n/strategy.ts），這組只給 localizeHref／deLocalizeUrl 用。
           pattern: '/:path(.*)?',
-          localized: [['zh-Hans', '/:path(.*)?']],
+          localized: [
+            ['en', '/en/:path(.*)?'],
+            ['ja', '/ja/:path(.*)?'],
+            ['th', '/th/:path(.*)?'],
+            ['ko', '/ko/:path(.*)?'],
+            ['zh-Hans', '/:path(.*)?'],
+            ['zh-Hant', '/:path(.*)?'],
+          ],
         },
       ],
       routeStrategies: [

@@ -2,22 +2,11 @@ import { defineConfig } from '@inlang/paraglide-js';
 
 /**
  * Paraglide compiler config. Read by `paraglide-js compile` (see the
- * `typecheck` script) and mirrored in vite.config.ts for the dev server and
- * the build — keep the two in sync.
+ * `typecheck` script) and mirrored in vite.config.ts — keep the two in sync.
  *
- * Routing (P7, kaucim model): Traditional/Simplified is a same-path script
- * toggle, NOT a path prefix. Strategy is ['cookie', 'baseLocale']: the
- * PARAGLIDE_LOCALE cookie is the single source of truth — the server
- * middleware reads it for SSR and the client reads the same cookie, so the
- * first render already matches and hydration cannot mismatch (the P1 bug
- * class: two competing locale signals). setLocale() writes the cookie and
- * reloads the same URL; the path never changes.
- *
- * urlPatterns is an identity mapping on purpose: with no urlPatterns the
- * compiler falls back to the default /:locale/ prefix pattern, which would
- * make localizeUrl() prefix zh-Hans URLs. The pattern below maps both
- * locales to the same path, so localizeUrl()/deLocalizeUrl() are no-ops and
- * every localizeHref() call in the code keeps working unchanged.
+ * 多語言（2026-11-14）：中文繁簡同一路徑（PARAGLIDE_LOCALE cookie 分，沿用 P7），
+ * en/ja/th/ko 走 /xx/ 前綴。語言由自訂策略 custom-path 判斷（src/i18n/strategy.ts）；
+ * urlPatterns 只給 localizeHref()/deLocalizeUrl() 換網址用。
  *
  * /hk/* (the old P1 prefix) is 301-redirected to the unprefixed path in
  * src/server.ts — it is not a locale route anymore.
@@ -26,13 +15,18 @@ import { defineConfig } from '@inlang/paraglide-js';
  * middleware skips them entirely and they always resolve to the base locale.
  */
 export default defineConfig({
-  strategy: ['cookie', 'baseLocale'],
+  strategy: ['custom-path', 'baseLocale'],
   urlPatterns: [
     {
-      // Identity: base and localized shapes are the same path, so the
-      // locale never appears in the URL.
       pattern: '/:path(.*)?',
-      localized: [['zh-Hans', '/:path(.*)?']],
+      localized: [
+        ['en', '/en/:path(.*)?'],
+        ['ja', '/ja/:path(.*)?'],
+        ['th', '/th/:path(.*)?'],
+        ['ko', '/ko/:path(.*)?'],
+        ['zh-Hans', '/:path(.*)?'],
+        ['zh-Hant', '/:path(.*)?'],
+      ],
     },
   ],
   routeStrategies: [

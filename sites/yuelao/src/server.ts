@@ -1,17 +1,27 @@
 import handler from '@tanstack/react-start/server-entry';
 import { proxyRybbit } from '@yuelao/core/analytics';
 import { paraglideMiddleware } from '~/paraglide/server.js';
+import './i18n/strategy';
+import { registerUiDict } from './i18n/ui';
+import uiEn from './i18n/ui/en.json';
+import uiJa from './i18n/ui/ja.json';
+import uiKo from './i18n/ui/ko.json';
+import uiTh from './i18n/ui/th.json';
 
 export { HallRoom } from './hall-room';
+
+// 介面字典只在伺服器全部登記；瀏覽器只載目前語言那份（src/client.tsx）。
+registerUiDict('en', uiEn);
+registerUiDict('ja', uiJa);
+registerUiDict('th', uiTh);
+registerUiDict('ko', uiKo);
+
 export { PlazaRoom } from './plaza-room';
 
 // Worker entry: pages and API go to TanStack Start.
 //
-// Locale (P7, kaucim model): Traditional/Simplified is a same-path script
-// toggle. The PARAGLIDE_LOCALE cookie is the single source of truth — the
-// paraglide middleware reads it for SSR and the client reads the same
-// cookie, so the first render already matches (no hydration mismatch).
-// The URL never carries the locale.
+// Locale：中文繁簡同一路徑、看 PARAGLIDE_LOCALE cookie；en/ja/th/ko 走 /xx/ 前綴。
+// 判斷規則在 src/i18n/locale.ts（custom-path 策略），伺服器與瀏覽器同一套，首屏不會對不上。
 //
 // Security headers are set here on every Worker response (HTML, sitemap,
 // llms.txt, API). Static files under /assets/* are served by the platform
@@ -99,9 +109,7 @@ export default {
     // Rybbit analytics goes through this site's /stats/ and is proxied upstream here.
     const stats = await proxyRybbit(request, env.RYBBIT_UPSTREAM);
     if (stats) return withSecurityHeaders(stats, staging);
-    // Locale: the cookie strategy reads PARAGLIDE_LOCALE first, then the
-    // zh-Hant base locale. Production runs the middleware too — the site
-    // ships Traditional Chinese, not English.
+    // Locale：custom-path 策略（網址前綴，否則繁簡 cookie，否則繁體）。
     // Pass the ORIGINAL request to the handler: TanStack Router handles URL
     // localization itself via the rewrite pair in src/router.tsx
     // (deLocalizeUrl on input, localizeUrl on output). Handing it the

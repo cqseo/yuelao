@@ -3,8 +3,10 @@ import { analyticsScripts } from '@yuelao/core/analytics';
 import { captureAttribution } from '@yuelao/core/react/attribution';
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
+import { LangMenu } from '~/i18n/LangMenu';
+import { tr } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
-import { getLocale, localizeHref, setLocale } from '~/paraglide/runtime.js';
+import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { SUPPORT_EMAIL } from '~/site/legal';
 import sereneCss from '~/site/serene.css?url';
 import appCss from '~/site/styles.css?url';
@@ -31,7 +33,7 @@ export const Route = createRootRoute({
 function NotFound() {
   return (
     <section className="legal">
-      <title>{m.common_not_found_title({ name: site.name })}</title>
+      <title>{m.common_not_found_title({ name: tr(site.name) })}</title>
       <meta name="robots" content="noindex" />
       <h1>{m.common_not_found_heading()}</h1>
       <p>{m.common_not_found_intro()}</p>
@@ -85,20 +87,18 @@ function Layout() {
     return <Outlet />;
   }
 
-  const locale = getLocale();
-
   return (
     <div className="page">
       <header className="site-header">
         <Link to="/" className="brand">
-          {site.name}
+          {tr(site.name)}
         </Link>
         {/* 主導航：和首頁同一組、同一順序（DESIGN.md「頂欄一致」）。左上「月老」回首頁；
             隱私權、服務條款只在頁腳。求籤、每日心箋都在 3D 集市裡，一般版頁面仍在。 */}
         <nav className="site-nav" aria-label={m.common_nav_label()}>
-          <a href="/market#enter">{m.home_market_nav_market()}</a>
-          <a href="/market#yuelao">{m.home_market_nav_ritual()}</a>
-          <a href="/market#sutra">{m.home_market_nav_daily()}</a>
+          <a href={localizeHref('/market#enter')}>{m.home_market_nav_market()}</a>
+          <a href={localizeHref('/market#yuelao')}>{m.home_market_nav_ritual()}</a>
+          <a href={localizeHref('/market#sutra')}>{m.home_market_nav_daily()}</a>
           <Link
             to={localizeHref('/tests')}
             aria-current={location.pathname.startsWith('/tests') ? 'true' : undefined}
@@ -115,32 +115,15 @@ function Layout() {
           )}
         </nav>
         <nav className="site-meta">
-          {/* 繁/簡切換（P7，kaucim 式）：同一路徑、不跳頁——setLocale 寫
-              PARAGLIDE_LOCALE cookie 再整頁重載，伺服器讀 cookie 做 SSR，
-              網址不變。 */}
-          <span className="locale-switch">
-            <button
-              type="button"
-              onClick={() => setLocale('zh-Hant')}
-              aria-current={locale === 'zh-Hant' ? 'true' : undefined}
-            >
-              繁體
-            </button>
-            <button
-              type="button"
-              onClick={() => setLocale('zh-Hans')}
-              aria-current={locale === 'zh-Hans' ? 'true' : undefined}
-            >
-              簡體
-            </button>
-          </span>
+          {/* 語言選單：中文繁簡同一路徑（cookie），其他語言換網址前綴。見 src/i18n/locale.ts。 */}
+          <LangMenu />
         </nav>
       </header>
       <main>
         <Outlet />
       </main>
       <footer className="site-footer">
-        <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: site.name })}</span>
+        <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: tr(site.name) })}</span>
         <nav>
           <Link to="/privacy">{m.common_footer_privacy()}</Link>
           <Link to="/terms">{m.common_footer_terms()}</Link>

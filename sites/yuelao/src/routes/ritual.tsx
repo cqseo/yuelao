@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { pageHead } from '@yuelao/core/seo';
+import { pageHead } from '~/i18n/seo';
+import { tr } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import type { RitualCat } from '~/ritual/physics';
@@ -17,7 +18,7 @@ export const Route = createFileRoute('/ritual')({
   },
   head: () => {
     const head = pageHead(site, {
-      title: m.ritual_meta_title({ name: site.name }),
+      title: m.ritual_meta_title({ name: tr(site.name) }),
       description: m.ritual_meta_description(),
       // Canonical 是單棵樹（P7：繁/簡同路徑切換，網址不帶語言）。
       path: localizeHref('/ritual', { locale: getLocale() }),
