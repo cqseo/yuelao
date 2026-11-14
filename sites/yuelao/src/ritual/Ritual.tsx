@@ -144,9 +144,9 @@ export function Ritual({ initialCat, initialQ }: { initialCat?: RitualCat; initi
     const qLine = verdict.question ? `${m.ritual_verdict_question({ q: verdict.question })}\n` : '';
     const text =
       `${tr('我把手機當籤筒，雙手搖出了月老的籤——')}\n` +
-      `${trf('問「{0}」· {1} {2}', catName(verdict.cat), s.no, s.grade)}\n` +
+      `${trf('問「{0}」· {1} {2}', catName(verdict.cat), tr(s.no), tr(s.grade))}\n` +
       qLine +
-      trf('「{0}」\n判詞：{1}\n（{2} · 月老已批）', s.poem, s.verdict[verdict.cat], s.knotName);
+      trf('「{0}」\n判詞：{1}\n（{2} · 月老已批）', s.poem, tr(s.verdict[verdict.cat]), tr(s.knotName));
     const toast = (msg: string): void => {
       engineRef.current?.toast(msg);
     };

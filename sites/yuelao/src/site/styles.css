@@ -3529,3 +3529,16 @@ html:not(:lang(zh)) body * {
   /* biome-ignore lint/complexity/noImportantStyles: 要蓋過各元件為漢字寫的字距 */
   letter-spacing: normal !important;
 }
+
+/* 非中文介面：籤詩保留中文原文，下面附一行當地語言的白話（2026-11-14）。 */
+.poem-tr,
+.vc-poem-tr {
+  margin: 0.5rem auto 0;
+  max-width: 34em;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  font-style: italic;
+  color: inherit;
+  opacity: 0.75;
+  text-align: center;
+}

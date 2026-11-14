@@ -9,15 +9,25 @@
 import { getLocale } from '~/paraglide/runtime.js';
 
 const DICT: Record<string, Record<string, string>> = {};
+const CONTENT: Record<string, Record<string, string>> = {};
 
+/** 登記介面字典。 */
 export function registerUiDict(locale: string, dict: Record<string, string>) {
   DICT[locale] = dict;
 }
 
+/** 登記內容字典（判詞、牌義…）。查字時介面字典優先。 */
+export function registerContentDict(locale: string, dict: Record<string, string>) {
+  CONTENT[locale] = dict;
+}
+
+export function hasContentDict(locale: string) {
+  return locale in CONTENT;
+}
+
 /** 繁體原文 → 目前語言。中文（繁／簡）原樣回傳；簡體另由呼叫端的繁簡二選一處理。 */
 export function tr(hant: string, locale: string = getLocale()): string {
-  const d = DICT[locale];
-  return d?.[hant] ?? hant;
+  return DICT[locale]?.[hant] ?? CONTENT[locale]?.[hant] ?? hant;
 }
 
 /** 帶變數的句子：原文用 {0}、{1} 佔位，例如 trf('剩 {0} 次', n)。 */
@@ -25,6 +35,8 @@ export function trf(hant: string, ...args: (string | number)[]): string {
   return tr(hant).replace(/\{(\d+)\}/g, (_, i) => String(args[Number(i)] ?? ''));
 }
 
+/** 介面＋內容合在一起（給集市的 DOM 翻譯用）。 */
 export function uiDict(locale: string = getLocale()): Record<string, string> | undefined {
-  return DICT[locale];
+  if (!DICT[locale] && !CONTENT[locale]) return undefined;
+  return { ...CONTENT[locale], ...DICT[locale] };
 }

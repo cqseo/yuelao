@@ -3,9 +3,13 @@ import { sitemapXml } from '@yuelao/core/seo';
 import { STICKS } from '~/ritual/sticks';
 import site from '../../site.config';
 
-// One URL per stick (P7: no locale prefixes — the 繁/簡 toggle is a
-// same-path cookie switch, so there is a single /sign/:id tree).
-const SIGN_PAGES = STICKS.map((stick) => `/sign/${stick.id}`);
+// One URL per stick for Chinese (繁/簡 share the path). Languages whose stick
+// content is translated get their own tree too（2026-11-14：English）。
+const CONTENT_LOCALES = ['en'] as const;
+const SIGN_PAGES = [
+  ...STICKS.map((stick) => `/sign/${stick.id}`),
+  ...CONTENT_LOCALES.flatMap((l) => STICKS.map((stick) => `/${l}/sign/${stick.id}`)),
+];
 
 export const Route = createFileRoute('/sitemap-signs.xml')({
   server: {

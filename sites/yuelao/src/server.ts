@@ -2,7 +2,8 @@ import handler from '@tanstack/react-start/server-entry';
 import { proxyRybbit } from '@yuelao/core/analytics';
 import { paraglideMiddleware } from '~/paraglide/server.js';
 import './i18n/strategy';
-import { registerUiDict } from './i18n/ui';
+import contentEn from './i18n/content/en.json';
+import { registerContentDict, registerUiDict } from './i18n/ui';
 import uiEn from './i18n/ui/en.json';
 import uiJa from './i18n/ui/ja.json';
 import uiKo from './i18n/ui/ko.json';
@@ -11,6 +12,7 @@ import uiTh from './i18n/ui/th.json';
 export { HallRoom } from './hall-room';
 
 // 介面字典只在伺服器全部登記；瀏覽器只載目前語言那份（src/client.tsx）。
+registerContentDict('en', contentEn);
 registerUiDict('en', uiEn);
 registerUiDict('ja', uiJa);
 registerUiDict('th', uiTh);

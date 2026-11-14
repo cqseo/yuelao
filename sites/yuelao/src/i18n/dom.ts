@@ -12,6 +12,8 @@ const PREFIXES = ['en', 'ja', 'th', 'ko'];
 interface Pattern {
   re: RegExp;
   out: string;
+  /** 固定字（不算標點、空白）越多越具體，越先比 */
+  weight: number;
 }
 
 function compile(dict: Record<string, string>) {
@@ -37,13 +39,14 @@ function compile(dict: Record<string, string>) {
       order.forEach((n, i) => {
         out = out.split(`{${n}}`).join(`\uE000${i}\uE000`);
       });
-      patterns.push({ re: new RegExp(`^${src}$`, 's'), out });
+      const weight = k.replace(/\{\d+\}/g, '').replace(/[\s\p{P}]/gu, '').length;
+      patterns.push({ re: new RegExp(`^${src}$`, 's'), out, weight });
     } else {
       exact.set(k.replace(/\s+/g, ' ').trim(), v);
     }
   }
-  // 字面越長的越先比（較具體）
-  patterns.sort((a, b) => b.re.source.length - a.re.source.length);
+  // 固定字越多的越先比（較具體）：「今日一籤．{0}」要先於日期「{0} 年 {1} 月 {2} 日」
+  patterns.sort((a, b) => b.weight - a.weight);
   return { exact, patterns };
 }
 
