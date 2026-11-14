@@ -119,8 +119,10 @@ const provider = (fail: boolean) =>
         if (table === 'orders' && kinds.includes('select') && !kinds.includes('update'))
           return { data: null, error: null, count: 0 };
         if (table === 'profiles' && kinds.includes('update')) {
-          const next = (entry.ops.find((o) => o[0] === 'update')?.[1][0] as { stripe_customer_id: string })
-            .stripe_customer_id;
+          const patch = entry.ops.find((o) => o[0] === 'update')?.[1][0] as
+            | { stripe_customer_id: string }
+            | undefined;
+          const next = patch?.stripe_customer_id ?? '';
           const guard = entry.ops.find((o) => o[0] === 'eq' && o[1][0] === 'stripe_customer_id')?.[1][1];
           if (guard !== stored) return { data: null, error: null };
           stored = next;
