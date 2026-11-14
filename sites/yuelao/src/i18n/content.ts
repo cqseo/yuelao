@@ -7,6 +7,7 @@ import { hasContentDict, registerContentDict } from './ui';
 
 const LOADERS: Partial<Record<string, () => Promise<{ default: Record<string, string> }>>> = {
   en: () => import('./content/en.json'),
+  ja: () => import('./content/ja.json'),
 };
 
 export async function ensureContent(locale: string | undefined = uiPrefix()) {
