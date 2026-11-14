@@ -240,3 +240,148 @@ export async function shareSpread({ deckName, cards }) {
   footer(g, host());
   return deliver(c, 'yuelao-tarot.png', `塔羅館 · ${deckName}`);
 }
+
+/**
+ * 今日運勢卡：9:16 直圖（1080×1920），適合 IG 限時動態、LINE 背景。
+ * kind 'tarot'：一張牌面；kind 'stick'：一張米紙籤。今日能量色當作光暈。
+ */
+export async function shareDaily({ kind, dateLabel, title, name, sub, kw = [], line, color, img, poem }) {
+  await ready();
+  const SW = 1080;
+  const SH = 1920;
+  const c = document.createElement('canvas');
+  c.width = SW;
+  c.height = SH;
+  const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, SH);
+  bg.addColorStop(0, '#0d0e22');
+  bg.addColorStop(1, NIGHT);
+  g.fillStyle = bg;
+  g.fillRect(0, 0, SW, SH);
+  // 能量色光暈
+  const halo = g.createRadialGradient(SW / 2, 760, 40, SW / 2, 760, 720);
+  halo.addColorStop(0, `${color}88`);
+  halo.addColorStop(0.45, `${color}22`);
+  halo.addColorStop(1, `${color}00`);
+  g.fillStyle = halo;
+  g.fillRect(0, 0, SW, SH);
+  g.fillStyle = 'rgba(239,229,207,0.45)';
+  for (let i = 0; i < 70; i++) {
+    const x = Math.abs((Math.sin(i * 12.9898) * 43758.5453) % 1);
+    const y = Math.abs((Math.sin(i * 78.233) * 12345.678) % 1);
+    g.globalAlpha = 0.2 + ((i * 7) % 10) / 22;
+    g.fillRect(x * SW, y * 420, 2, 2);
+  }
+  g.globalAlpha = 1;
+
+  g.textAlign = 'center';
+  g.fillStyle = GOLD;
+  g.font = `600 40px ${SERIF}`;
+  g.fillText(title, SW / 2, 190);
+  g.fillStyle = 'rgba(239,229,207,0.6)';
+  g.font = `400 32px ${SERIF}`;
+  g.fillText(dateLabel, SW / 2, 244);
+
+  let y = 330;
+  if (kind === 'tarot') {
+    const im = img ? await loadImg(img) : null;
+    const cw = 470;
+    const ch = im ? Math.round((cw * im.height) / im.width) : 800;
+    const x = (SW - cw) / 2;
+    g.save();
+    g.shadowColor = color;
+    g.shadowBlur = 60;
+    g.fillStyle = '#1b1530';
+    g.fillRect(x, y, cw, ch);
+    g.restore();
+    if (im) {
+      g.save();
+      if (sub === '逆位') {
+        g.translate(SW / 2, y + ch / 2);
+        g.rotate(Math.PI);
+        g.drawImage(im, -cw / 2, -ch / 2, cw, ch);
+      } else g.drawImage(im, x, y, cw, ch);
+      g.restore();
+    }
+    g.strokeStyle = 'rgba(220,187,124,0.6)';
+    g.lineWidth = 3;
+    g.strokeRect(x, y, cw, ch);
+    y += ch + 110;
+  } else {
+    // 一條直式籤紙
+    const pw = 440;
+    const ph = 760;
+    const x = (SW - pw) / 2;
+    const paper = await loadImg('/ritual/paper.jpg');
+    g.save();
+    g.shadowColor = color;
+    g.shadowBlur = 60;
+    g.fillStyle = PAPER;
+    g.fillRect(x, y, pw, ph);
+    g.restore();
+    if (paper) g.drawImage(paper, x, y, pw, ph);
+    g.strokeStyle = 'rgba(168,41,31,0.55)';
+    g.lineWidth = 3;
+    g.strokeRect(x + 18, y + 18, pw - 36, ph - 36);
+    g.fillStyle = RED;
+    g.font = `600 34px ${SERIF}`;
+    g.fillText(name, SW / 2, y + 96);
+    g.fillStyle = '#5e140e';
+    g.font = `700 84px ${SERIF}`;
+    g.fillText(sub, SW / 2, y + 200);
+    // 籤詩直排兩行
+    const lines = String(poem || '')
+      .split('\n')
+      .slice(0, 2);
+    g.fillStyle = INK;
+    g.font = `700 40px ${SERIF}`;
+    lines.forEach((l, i) => {
+      const chars = [...l];
+      const cx = SW / 2 + (lines.length === 2 ? (i === 0 ? 50 : -50) : 0);
+      chars.forEach((ch, k) => {
+        g.fillText(ch, cx, y + 290 + k * 44);
+      });
+    });
+    y += ph + 110;
+  }
+
+  g.fillStyle = PAPER;
+  g.font = `700 64px ${SERIF}`;
+  g.fillText(kind === 'tarot' ? name : '今日一籤', SW / 2, y);
+  if (kind === 'tarot' && sub) {
+    g.fillStyle = 'rgba(239,229,207,0.65)';
+    g.font = `400 34px ${SERIF}`;
+    g.fillText(sub, SW / 2, y + 56);
+    y += 56;
+  }
+  // 關鍵詞：能量色的小框
+  if (kw.length) {
+    y += 70;
+    g.font = `400 34px ${SERIF}`;
+    const ws = kw.map((k) => g.measureText(k).width + 56);
+    let x = (SW - ws.reduce((a, b) => a + b + 18, -18)) / 2;
+    kw.forEach((k, i) => {
+      g.strokeStyle = color;
+      g.lineWidth = 2;
+      g.strokeRect(x, y - 40, ws[i], 58);
+      g.fillStyle = PAPER;
+      g.fillText(k, x + ws[i] / 2, y);
+      x += ws[i] + 18;
+    });
+  }
+  // 今日一句
+  y += 110;
+  g.fillStyle = 'rgba(239,229,207,0.9)';
+  g.font = `400 40px ${SERIF}`;
+  g.textAlign = 'left';
+  const n = wrap(g, line, 150, y, SW - 300, 64, 4);
+  y += n * 64;
+  g.textAlign = 'center';
+  g.fillStyle = GOLD;
+  g.font = `600 36px ${SERIF}`;
+  g.fillText('月下集市 · 月老', SW / 2, SH - 130);
+  g.fillStyle = 'rgba(239,229,207,0.55)';
+  g.font = `400 28px ${SERIF}`;
+  g.fillText(`${host()} ・ 每天來抽一次`, SW / 2, SH - 82);
+  return deliver(c, kind === 'tarot' ? 'yuelao-today-card.png' : 'yuelao-today-sign.png', title);
+}

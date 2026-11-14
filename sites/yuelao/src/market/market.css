@@ -1748,3 +1748,174 @@
 .mk .deep-sample .note {
   margin: 0.4rem 0 0.8rem;
 }
+
+/* 今日一籤／今日一牌（DESIGN.md「今日一籤／今日一牌」） */
+.mk #panel .daily-link {
+  appearance: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  width: 100%;
+  margin: -0.35rem 0 1rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(220, 187, 124, 0.35);
+  border-radius: 4px;
+  background: rgba(220, 187, 124, 0.07);
+  color: var(--gold);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-align: left;
+  cursor: pointer;
+}
+.mk #panel .daily-link span {
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--paper-70);
+}
+.mk #panel .daily-link:hover {
+  background: rgba(220, 187, 124, 0.14);
+}
+.mk .daily-card {
+  width: 9.5rem;
+  margin: 0.5rem auto 1.2rem;
+  perspective: 900px;
+}
+.mk .daily-flip {
+  position: relative;
+  aspect-ratio: 300 / 527;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mk .daily-card.open .daily-flip {
+  transform: rotateY(180deg);
+}
+.mk .daily-flip .face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border: 1px solid rgba(220, 187, 124, 0.6);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 2.2rem -0.4rem var(--energy, #dcbb7c);
+}
+.mk .daily-flip .back {
+  display: grid;
+  place-items: center;
+  font-size: 2.6rem;
+  color: var(--gold);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(220, 187, 124, 0.18), transparent 60%),
+    repeating-linear-gradient(45deg, #2a1d4a 0 10px, #241840 10px 20px);
+}
+.mk .daily-flip .front {
+  transform: rotateY(180deg);
+  background: #1b1530;
+}
+.mk .daily-flip .front img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mk .daily-flip .front img.rev {
+  transform: rotate(180deg);
+}
+.mk #panel h2.daily-name {
+  margin: 0 0 0.5rem;
+  text-align: center;
+}
+.mk #panel h2.daily-name small {
+  margin-left: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--paper-70);
+}
+.mk #panel .daily-kws {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+}
+.mk #panel .daily-kws span {
+  padding: 0.1rem 0.7rem;
+  border: 1px solid var(--energy, var(--gold));
+  border-radius: 999px;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--paper);
+}
+.mk #panel .daily-line {
+  margin: 0.6rem 0 0.9rem;
+  font-size: 1rem;
+  line-height: 1.85;
+  color: var(--paper);
+}
+.mk #panel .daily-line b {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+}
+.mk .daily-slip {
+  width: 8.5rem;
+  min-height: 13rem;
+  margin: 0.5rem auto 1.2rem;
+  padding: 1rem 0.6rem;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 0.3rem;
+  border-radius: 3px;
+  background: #efe5cf url("/ritual/paper.jpg") center / cover;
+  color: #2a1d14;
+  box-shadow:
+    0 0 2.2rem -0.4rem var(--energy, #dcbb7c),
+    inset 0 0 0 6px rgba(239, 229, 207, 0.5),
+    inset 0 0 0 7px rgba(168, 41, 31, 0.5);
+  text-align: center;
+}
+.mk .daily-slip .s-fold {
+  margin: auto 0;
+  writing-mode: vertical-rl;
+  font-size: 1.15rem;
+  letter-spacing: 0.3em;
+  color: #8e2418;
+}
+.mk .daily-slip.open {
+  animation: slip-open 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes slip-open {
+  from {
+    transform: scaleY(0.3);
+    opacity: 0.4;
+  }
+}
+.mk .daily-slip .s-no {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #a8291f;
+}
+.mk .daily-slip .s-grade {
+  margin: 0 0 0.3rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #5e140e;
+}
+.mk .daily-slip .s-poem {
+  margin: 0;
+  writing-mode: vertical-rl;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.9;
+  letter-spacing: 0.08em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mk .daily-flip {
+    transition: none;
+  }
+  .mk .daily-slip.open {
+    animation: none;
+  }
+}

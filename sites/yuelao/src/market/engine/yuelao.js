@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { STICKS } from '../../ritual/sticks';
 import { STICK_PLAIN } from '../../ritual/sticks-plain';
+import { dailyStick, todayLabel } from './daily-draw.js';
 import { createNpc } from './npc.js';
 import { yuelaoSampleHtml } from './samples.js';
-import { shareVerdict } from './share.js';
+import { shareDaily, shareVerdict } from './share.js';
 import { audio, canvasTex, ease, glow, lerp, rand, textPlane, tween, wait, woodTex } from './util.js';
 
 const CATS = [
@@ -313,7 +314,8 @@ export function createYuelao(ui) {
     say('來了。心裡那件事，寫下來給我看看。');
     const render = (note = '') => {
       ui.panel(
-        `<h2>你想問月老什麼</h2>
+        `<button type="button" class="daily-link" data-a="daily">☾ 今日一籤<span>每天一支，不用寫問題</span></button>
+         <h2>你想問月老什麼</h2>
          <label class="ask-q"><textarea id="ask-q" maxlength="${Q_MAX}" rows="3" placeholder="例：我和他還有機會嗎">${esc(draftQ)}</textarea>
            <span class="ask-meta"><span>一件具體的事，說清楚一點</span><span id="ask-n">${[...draftQ].length}/${Q_MAX}</span></span></label>
          <p class="kicker">你現在的情況</p>
@@ -325,6 +327,7 @@ export function createYuelao(ui) {
          ${note ? `<p class="note" role="status">${note}</p>` : ''}
          <button class="seal" data-a="go">求籤</button>`,
         (a) => {
+          if (a === 'daily') return dailySign();
           if (a.startsWith('sit:')) {
             sit = a.slice(4);
             try {
@@ -478,6 +481,61 @@ export function createYuelao(ui) {
         () => showShake(),
       );
     }
+  }
+
+  // 今日一籤：每天一支、不用寫問題（DESIGN.md「今日一籤／今日一牌」）。
+  // 不經過籤筒：搖籤儀式（籤號在掉籤落定才揭示）只屬於正式求籤，這裡是一張摺起來的籤條，點開來看。
+  function dailySign() {
+    state = 'daily';
+    const d = dailyStick();
+    say('今天替你留了一支。不用問，打開看看。');
+    const show = (open) =>
+      ui.panel(
+        `<p class="kicker">今日一籤．${todayLabel()}</p>
+         <div class="daily-slip${open ? ' open' : ''}" style="--energy:${d.color}">
+           ${
+             open
+               ? `<p class="s-no">${d.stick.no}</p><p class="s-grade">${d.stick.grade}</p>
+                  <p class="s-poem">${d.stick.poem.replace(/\n/g, '<br>')}</p>`
+               : '<p class="s-fold">月老今日籤</p>'
+           }
+         </div>
+         ${
+           open
+             ? `${d.plain ? `<p class="daily-line"><b>白話</b>${d.plain}</p>` : ''}
+                ${d.love ? `<p class="daily-line"><b>放在姻緣裡</b>${d.love}</p>` : ''}
+                <p class="note small">每天一支，今天再來還是這一支。想問具體的事，就正式求一支。</p>
+                <button type="button" class="share-btn" data-a="share">存成今日運勢卡</button>
+                <button class="seal" data-a="ask">想問一件具體的事</button>
+                <button class="ghost" data-a="leave">回到廣場</button>`
+             : `<button class="seal" data-a="open">打開今日一籤</button>`
+         }`,
+        (a) => {
+          if (a === 'open') {
+            audio.tick(1400, 0.12, 0.08);
+            show(true);
+            say(`${d.stick.no}，${d.stick.grade}。`);
+            return;
+          }
+          if (a === 'share') {
+            void shareDaily({
+              kind: 'stick',
+              title: '今日一籤',
+              dateLabel: todayLabel(),
+              name: d.stick.no,
+              sub: d.stick.grade,
+              poem: d.stick.poem,
+              line: d.love || d.plain,
+              color: d.color,
+            }).then((r) => r === 'saved' && say('存好了，可以放進限時動態。'));
+            return;
+          }
+          if (a === 'leave') return ui.leave();
+          showPick();
+        },
+        true,
+      );
+    show(false);
   }
 
   function homeCups() {
