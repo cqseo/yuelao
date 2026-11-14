@@ -36,8 +36,8 @@
   --color-vermilion: #c0392b;
   --color-vermilion-deep: #8e2418;
   --color-gold: #c9a227;
-  --color-gold-soft: #e6cc7a;
-  --color-paper: #f3e9d2;
+  --color-gold-soft: #dcbb7c;
+  --color-paper: #efe5cf;
   --color-paper-dim: #e8dfc9;
   --color-paper-78: rgba(243, 233, 210, 0.78);
   --color-paper-62: rgba(243, 233, 210, 0.62);
@@ -54,9 +54,11 @@ body {
   color: var(--color-paper);
   font-size: 1.0625rem;
   line-height: 1.9;
-  /* 全站同一座廟會夜：暖色徑向底固定不動，內容在上面流動。 */
-  background-color: #1b110a;
-  background-image: radial-gradient(120% 90% at 50% 28%, #503018 0%, #2c1b0e 58%, #1b110a 100%);
+  /* 和首頁、集市同一個夜（DESIGN.md「內頁與首頁同一個夜」）：夜藍底，頂上一圈燈火暖光。 */
+  background-color: #070812;
+  background-image:
+    radial-gradient(90% 55% at 50% -12%, rgba(150, 86, 36, 0.38) 0%, rgba(150, 86, 36, 0) 70%),
+    radial-gradient(120% 90% at 50% 30%, #11132a 0%, #0a0b18 60%, #070812 100%);
   background-attachment: fixed;
 }
 
@@ -93,11 +95,31 @@ a {
 }
 
 .site-nav a {
-  color: var(--color-paper-dim);
+  color: rgba(239, 229, 207, 0.72);
   text-decoration: none;
   font-size: 0.9375rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   padding: 0.25rem 0;
+}
+
+.site-nav a:hover {
+  color: var(--color-paper);
+}
+
+/* 和首頁頂欄同一個樣子：品牌字加粗、字距開，導航靠右 */
+.site-header .brand {
+  font-family: var(--font-serif-tc);
+  color: var(--color-paper);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+}
+
+@media (min-width: 641px) {
+  .site-header .site-nav {
+    margin-left: auto;
+  }
 }
 
 .site-nav a[aria-current="true"] {
