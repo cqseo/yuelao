@@ -7,12 +7,14 @@ import {
   emptyDailyRecord,
   localDayKey,
   sanitizeDailyRecord,
+  syncDailyRecord,
 } from '../../site/daily';
 import { createNpc } from './npc.js';
 import { audio, canvasTex, ease, FONT, textPlane, tween } from './util.js';
 
 // 抄經閣：每日心箋搬進 3D。挑今天想照顧的一處 → 經師在宣紙上一筆一筆寫出今天的心箋 →
-// 「收下・簽到」蓋上一方朱印。簽到紀錄與一般版 /daily 共用同一份本機紀錄（yuelao:daily:v1）。
+// 「收下・簽到」蓋上一方朱印。簽到紀錄與一般版 /daily 共用同一份本機紀錄（yuelao:daily:v1）；
+// 登入的人另外同步到帳號（/api/account/daily）。
 
 const STORAGE_KEY = 'yuelao:daily:v1';
 const FOCI = ['connection', 'communication', 'self', 'courage'];
@@ -299,7 +301,7 @@ export function createSutra(ui) {
          (k) => `<button type="button" data-a="focus:${k}">${esc(DAILY_FOCI[k].label[locale])}</button>`,
        ).join('')}</div>
        ${stampsHtml()}
-       <p class="note small">一頁心情提示，不是命運預測。簽到只記在這台裝置的瀏覽器裡。</p>
+       <p class="note small">一頁心情提示，不是命運預測。登入後簽到會存到帳號，換裝置也在；沒登入只記在這台裝置。</p>
        <button class="ghost" data-a="leave">回到廣場</button>`,
       (a) => {
         if (a === 'leave') return ui.leave();
@@ -368,12 +370,20 @@ export function createSutra(ui) {
     );
   }
 
+  // 登入的人：帳號裡的紀錄為準（換裝置也在）；沒登入或連不上就只用這台的紀錄
+  function keep(r) {
+    record = r;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(r));
+    } catch {}
+  }
   async function sign(r) {
     const next = checkIn(record, today());
     record = next;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {}
+    void syncDailyRecord(next, today(), true).then((x) => x && keep(x));
     ui.emit?.('daily_checkin', { streak: next.streak, focus });
     seal.visible = true;
     seal.scale.setScalar(1.8);
@@ -390,6 +400,7 @@ export function createSutra(ui) {
     camera,
     enter() {
       record = loadRecord();
+      void syncDailyRecord(record, today(), false).then((x) => x && keep(x));
       blankPaper();
       paperTex.needsUpdate = true;
       seal.visible = false;

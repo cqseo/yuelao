@@ -9,6 +9,7 @@ import { createTestCheckout } from './billing/checkout';
 import { settleStripeWebhook } from './billing/settle';
 import { isStripeTestApiKey, StripeProvider } from './billing/stripe';
 import { companionChatRequest, companionStatus } from './companion-chat';
+import { dailyCheckinRequest } from './daily-checkin';
 import type { CoreEnv } from './env';
 import { errorResponse } from './http';
 import { redeemPackRequest } from './pack-redemption';
@@ -100,6 +101,11 @@ export function createCore(site: SiteConfig) {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         return paidReadingResponse(request, ctx.supabaseService, user);
+      },
+      daily: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return dailyCheckinRequest(request, ctx.supabaseService, user);
       },
       spread: async (request: Request) => {
         const ctx = context();
