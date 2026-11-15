@@ -30,7 +30,17 @@ const RANGES = [
   { days: 90, label: '近 90 天' },
 ];
 
-type SectionId = 'overview' | 'funnel' | 'paths' | 'journeys' | 'sales' | 'ops' | 'pages' | 'traffic';
+type SectionId =
+  | 'overview'
+  | 'funnel'
+  | 'paths'
+  | 'journeys'
+  | 'sales'
+  | 'users'
+  | 'wishes'
+  | 'ops'
+  | 'pages'
+  | 'traffic';
 const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] = [
   { id: 'overview', label: '概览', icon: '◎', desc: '核心数字与每日趋势，括号里是跟上一个同长区间比。' },
   {
@@ -42,6 +52,18 @@ const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] =
   { id: 'paths', label: '用户路径', icon: '⇢', desc: '大家进站后怎么走：从哪进、去哪、在哪离开。' },
   { id: 'journeys', label: '访客旅程', icon: '☰', desc: '最近每一次来访的完整经过，绿底是那次有付款。' },
   { id: 'sales', label: '订单与销售', icon: '¥', desc: '真实付款的订单（不含测试单），收入已扣退款。' },
+  {
+    id: 'users',
+    label: '用户管理',
+    icon: '☺',
+    desc: '注册用户、各自付了多少。可按邮箱搜索（不受上方时间范围影响）。',
+  },
+  {
+    id: 'wishes',
+    label: '许愿池审核',
+    icon: '❋',
+    desc: '用户写的愿望要你放行才会挂上树；被举报的也在这里处理。',
+  },
   { id: 'ops', label: '内容与运营', icon: '✎', desc: '各功能被用了多少次，以及现在等着你处理的事。' },
   { id: 'pages', label: '页面与动作', icon: '▤', desc: '哪些页面看的人多、哪些按钮按的人多。' },
   { id: 'traffic', label: '流量来源', icon: '◉', desc: '访客从哪来、用什么设备、在哪个地区、用哪种语言。' },
@@ -316,7 +338,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
   const conv = pct(kpis.payers.value, kpis.visitors.value);
   const [allJourneys, setAllJourneys] = useState(false);
   const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 15);
-  const needsTracking = section !== 'sales' && section !== 'ops';
+  const needsTracking = !['sales', 'ops', 'users', 'wishes'].includes(section);
   const ops = stats.ops;
   const n = (v: number | null | undefined) => (v === null || v === undefined ? '—' : num(v));
   return (
@@ -556,6 +578,9 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
         </>
       )}
 
+      {section === 'users' && <Users />}
+      {section === 'wishes' && <Wishes />}
+
       {section === 'ops' && (
         <>
           {ops ? (
@@ -639,6 +664,236 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
           </section>
         </div>
       )}
+    </>
+  );
+}
+
+const dateFmt = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+type AdminUser = {
+  id: string;
+  email: string;
+  locale: string;
+  createdAt: string;
+  admin: boolean;
+  paidOrders: number;
+  paidAmount: number;
+  currency: string;
+  lastPaidAt: string | null;
+};
+
+function Users() {
+  const [q, setQ] = useState('');
+  const [asked, setAsked] = useState('');
+  const [data, setData] = useState<{ total: number; users: AdminUser[] } | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setFailed(false);
+    fetch(`/api/admin/users?q=${encodeURIComponent(asked)}`, { credentials: 'same-origin' })
+      .then(async (res) => {
+        if (!alive) return;
+        if (!res.ok) return setFailed(true);
+        setData((await res.json()) as { total: number; users: AdminUser[] });
+      })
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [asked]);
+  const payers = data?.users.filter((u) => u.paidOrders > 0).length ?? 0;
+  return (
+    <section className="admin-card">
+      <form
+        className="admin-search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setAsked(q.trim());
+        }}
+      >
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="按邮箱搜索"
+          aria-label="按邮箱搜索用户"
+        />
+        <button type="submit" className="admin-btn">
+          搜索
+        </button>
+        {asked && (
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={() => {
+              setQ('');
+              setAsked('');
+            }}
+          >
+            清除
+          </button>
+        )}
+      </form>
+      {failed && <p className="admin-empty">用户数据暂时取不到，稍后再试。</p>}
+      {!failed && !data && <p className="admin-empty">正在读取……</p>}
+      {!failed && data && (
+        <>
+          <p className="admin-muted">
+            {asked ? `找到 ${num(data.total)} 位` : `共 ${num(data.total)} 位用户`}
+            {data.total > data.users.length ? `，显示最近注册的 ${data.users.length} 位` : ''}；其中{' '}
+            {num(payers)} 位付过款（不含测试单）。
+          </p>
+          {data.users.length ? (
+            <div className="admin-scroll">
+              <Table
+                head={['邮箱', '注册时间', '语言', '付款笔数', '付款金额', '最近付款']}
+                rows={data.users.map((u) => [
+                  `${u.email}${u.admin ? '（站长）' : ''}`,
+                  dateFmt.format(new Date(u.createdAt)),
+                  LOCALE[u.locale] ?? u.locale,
+                  num(u.paidOrders),
+                  u.paidOrders ? money(u.paidAmount, u.currency) : '—',
+                  u.lastPaidAt ? dateFmt.format(new Date(u.lastPaidAt)) : '—',
+                ])}
+              />
+            </div>
+          ) : (
+            <p className="admin-empty">没有符合的用户。</p>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+type AdminWish = {
+  id: string;
+  body: string;
+  tag: string;
+  status: string;
+  decidedBy: string | null;
+  blessings: number;
+  reports: number;
+  createdAt: string;
+  email: string | null;
+};
+const WISH_TAG: Record<string, string> = {
+  seek: '求缘',
+  keep: '守缘',
+  reunion: '复合',
+  self: '为自己',
+  others: '为别人',
+};
+const WISH_STATUS: Record<string, string> = {
+  pending: '待审核',
+  hidden: '被举报收起',
+  shown: '已公开',
+  removed: '已删除',
+};
+
+function Wishes() {
+  const [data, setData] = useState<{ waiting: AdminWish[]; recent: AdminWish[] } | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState('');
+  const [tick, setTick] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tick 只用來在處理完一則後重新讀取
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/admin/wishes', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (res) => {
+        if (!alive) return;
+        if (!res.ok) return setFailed(true);
+        setFailed(false);
+        setData((await res.json()) as { waiting: AdminWish[]; recent: AdminWish[] });
+      })
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [tick]);
+  const review = async (id: string, status: 'shown' | 'hidden' | 'removed') => {
+    setBusy(id);
+    try {
+      const res = await fetch('/api/admin/wishes', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+      if (!res.ok) setFailed(true);
+    } catch {
+      setFailed(true);
+    }
+    setBusy('');
+    setTick((t) => t + 1);
+  };
+  const row = (w: AdminWish, actions: [string, 'shown' | 'hidden' | 'removed'][]) => (
+    <li key={w.id} className="admin-wish">
+      <div>
+        <p className="admin-wish-body">{w.body}</p>
+        <p className="admin-muted">
+          {WISH_TAG[w.tag] ?? w.tag} · {WISH_STATUS[w.status] ?? w.status} ·{' '}
+          {dateFmt.format(new Date(w.createdAt))}
+          {w.email ? ` · ${w.email}` : ''}
+          {w.reports ? ` · 被举报 ${w.reports} 次` : ''}
+          {w.blessings ? ` · 同愿 ${w.blessings}` : ''}
+        </p>
+      </div>
+      <div className="admin-wish-actions">
+        {actions.map(([label, status]) => (
+          <button
+            key={status}
+            type="button"
+            className={`admin-btn${status === 'shown' ? ' primary' : ''}`}
+            disabled={busy === w.id}
+            onClick={() => void review(w.id, status)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </li>
+  );
+  if (failed && !data) return <p className="admin-empty">愿望数据暂时取不到，稍后再试。</p>;
+  if (!data) return <p className="admin-empty">正在读取……</p>;
+  return (
+    <>
+      {failed && <div className="admin-note">刚才那一步没成功，列表已重新读取，请再试一次。</div>}
+      <section className="admin-card">
+        <h2>等你处理（{num(data.waiting.length)}）</h2>
+        <p className="admin-muted">放行后所有人都看得到；删除后只有作者自己知道没通过。</p>
+        {data.waiting.length ? (
+          <ul className="admin-wishes">
+            {data.waiting.map((w) =>
+              row(w, [
+                ['放行', 'shown'],
+                ['删除', 'removed'],
+              ]),
+            )}
+          </ul>
+        ) : (
+          <p className="admin-empty">没有等审核的愿望。</p>
+        )}
+      </section>
+      <section className="admin-card">
+        <h2>最近处理过的</h2>
+        {data.recent.length ? (
+          <ul className="admin-wishes">
+            {data.recent.map((w) =>
+              row(w, w.status === 'shown' ? [['撤下', 'removed']] : [['恢复公开', 'shown']]),
+            )}
+          </ul>
+        ) : (
+          <p className="admin-empty">还没有处理过的愿望。</p>
+        )}
+      </section>
     </>
   );
 }

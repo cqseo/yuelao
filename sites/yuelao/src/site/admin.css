@@ -588,3 +588,51 @@
     padding-top: 16px;
   }
 }
+
+/* 用户管理、许愿池审核 */
+.admin-search {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.admin-search input {
+  flex: 1;
+  max-width: 320px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+.admin-wishes {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.admin-wish {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+.admin-wish-body {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+.admin-wish-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+.admin .admin-btn.primary {
+  background: #b8452f;
+  border-color: #b8452f;
+  color: #fff;
+}
+.admin .admin-btn:disabled {
+  opacity: 0.5;
+}

@@ -1,5 +1,6 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { accountSnapshot } from './account';
+import { adminUsersRequest, adminWishesRequest, adminWishReviewRequest } from './admin-manage';
 import { adminStatsRequest } from './admin-stats';
 import { aiGenerationEnabled, generatePaidReadingRequest } from './ai-reading';
 import { getUserFromRequest, type SessionUser } from './auth';
@@ -99,6 +100,18 @@ export function createCore(site: SiteConfig) {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         return adminStatsRequest(request, ctx.supabaseService, user, admins());
+      },
+      adminWishes: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return request.method === 'POST'
+          ? adminWishReviewRequest(request, ctx.supabaseService, user, admins())
+          : adminWishesRequest(ctx.supabaseService, user, admins());
+      },
+      adminUsers: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return adminUsersRequest(request, ctx.supabaseService, user, admins());
       },
       isAdmin: async (request: Request) => {
         const ctx = context();

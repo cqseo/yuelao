@@ -853,7 +853,8 @@ export function createWorld(renderer, lowQuality) {
       outer: ['千里姻緣一線牽', '百年好合月為媒'],
       inner: ['月下老人', '天作之合'],
       apron: '心誠則靈',
-      gold: true,
+      // 站長 2026-11-15：大殿供的就是月老本人的像（紅袍白鬚、手牽紅線），不要鎏金的那尊
+      gold: false,
       statueScale: 1.3,
       rack: false,
       tube: false,
