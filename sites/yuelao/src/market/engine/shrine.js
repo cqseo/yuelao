@@ -749,22 +749,28 @@ export function createShrine(o) {
       c.position.set(cx, B + 2.3, zBack + 0.06);
       g.add(c);
     }
-    // 神台與坐像
-    g.add(
-      box(3.4, 0.9, 1.7, mat.red)
-        .translateY(B + 0.45)
-        .translateZ(zBack + 1.05),
-    );
-    g.add(
-      box(3.6, 0.1, 1.9, mat.gold)
-        .translateY(B + 0.92)
-        .translateZ(zBack + 1.05),
-    );
-    const god = statue(mat, !!o.gold);
-    god.position.set(0, B + 0.97, zBack + 1.1);
-    god.scale.setScalar(o.statueScale ?? 1.05);
+    // 神台與坐像。o.counter（月老殿，站長 2026-11-15）：月老供在大殿，這裡不再放神像，
+    // 只有一張求籤的櫃台，和塔羅館一樣走到櫃台前就能開始。
+    const counter = !!o.counter;
+    if (!counter) {
+      g.add(
+        box(3.4, 0.9, 1.7, mat.red)
+          .translateY(B + 0.45)
+          .translateZ(zBack + 1.05),
+      );
+      g.add(
+        box(3.6, 0.1, 1.9, mat.gold)
+          .translateY(B + 0.92)
+          .translateZ(zBack + 1.05),
+      );
+    }
+    const god = counter ? new THREE.Group() : statue(mat, !!o.gold);
+    if (!counter) {
+      god.position.set(0, B + 0.97, zBack + 1.1);
+      god.scale.setScalar(o.statueScale ?? 1.05);
+    }
     // 有 AI 生成的神像模型（GLB）就換上：量好高度、底部貼齊神台、置中；載不到就留著拼出來的像
-    if (o.model)
+    if (o.model && !counter)
       new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(o.model, (gltf) => {
         const m = gltf.scene;
         m.rotation.y = o.modelRotY ?? 0; // 模型原本面向哪邊不一定，轉到朝殿門
@@ -804,7 +810,7 @@ export function createShrine(o) {
         .translateZ(tz),
     );
     // 桌圍：紅底金字
-    const apron = textPlane(o.apron ?? '有求必應', 0.55, {
+    const apron = textPlane(o.apron ?? (counter ? '求籤問緣' : '有求必應'), 0.55, {
       bg: '#8a1a1a',
       fg: '#f3d691',
       size: 110,
@@ -835,7 +841,7 @@ export function createShrine(o) {
     }
     // 供果
     const fruitM = new THREE.MeshStandardMaterial({ color: 0xe0802a, roughness: 0.5 });
-    for (const s of [-1, 1]) {
+    for (const s of counter ? [] : [-1, 1]) {
       const plate = new THREE.Mesh(
         new THREE.CylinderGeometry(0.28, 0.22, 0.05, 18),
         new THREE.MeshStandardMaterial({ color: 0xf2efe6 }),
@@ -856,8 +862,8 @@ export function createShrine(o) {
     // 小香爐（三炷香：靜心上香時會慢慢燒短，見 burn()）
     const bowl = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.2, 18), mat.bronze));
     bowl.position.set(0, B + 1.16, tz);
-    g.add(bowl);
-    for (const ox of [-0.06, 0, 0.06]) {
+    if (!counter) g.add(bowl);
+    for (const ox of counter ? [] : [-0.06, 0, 0.06]) {
       const stick = new THREE.Mesh(
         new THREE.CylinderGeometry(0.008, 0.008, 0.45, 5),
         new THREE.MeshBasicMaterial({ color: 0x8a6a48 }),
@@ -878,6 +884,45 @@ export function createShrine(o) {
     );
     tube.position.set(1.15, B + 1.25, tz + 0.25);
     if (o.tube !== false) g.add(tube);
+    if (counter) {
+      // 櫃台正中一個大籤筒、後面一塊「求籤」木牌；整張櫃台都點得到（透明的點選框）
+      const big = shadow(
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(0.24, 0.2, 0.62, 18),
+          new THREE.MeshStandardMaterial({ color: 0x8a1f24, roughness: 0.55 }),
+        ),
+      );
+      big.position.set(0, B + 1.37, tz);
+      god.add(big);
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.235, 0.02, 6, 24), mat.gold);
+      band.rotation.x = Math.PI / 2;
+      band.position.set(0, B + 1.6, tz);
+      god.add(band);
+      for (let i = 0; i < 14; i++) {
+        const st = new THREE.Mesh(
+          new THREE.BoxGeometry(0.03, 0.62, 0.008),
+          new THREE.MeshStandardMaterial({ color: 0xd9b26a }),
+        );
+        st.position.set(rand(-0.13, 0.13), B + 1.75, tz + rand(-0.13, 0.13));
+        st.rotation.set(rand(-0.16, 0.16), rand(3), rand(-0.16, 0.16));
+        god.add(st);
+      }
+      const sign = textPlane('求籤', 0.9, {
+        bg: '#3b2414',
+        fg: '#f3d691',
+        border: '#b88a3c',
+        size: 120,
+        weight: 700,
+      });
+      sign.position.set(0, B + 2.55, zBack + 0.12);
+      god.add(sign);
+      const hit = new THREE.Mesh(
+        new THREE.BoxGeometry(3.9, 1.9, 1.3),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+      );
+      hit.position.set(0, B + 0.95, tz);
+      god.add(hit);
+    }
     for (let i = 0; i < (o.tube === false ? 0 : 9); i++) {
       const s = new THREE.Mesh(
         new THREE.BoxGeometry(0.025, 0.42, 0.006),
@@ -890,7 +935,7 @@ export function createShrine(o) {
     // 蒲團：小殿一排三個；大殿給 o.cushions = [每排幾個, 幾排]，幾十個人能一起跪拜
     const cushionM = new THREE.MeshStandardMaterial({ color: 0x8a1f24, roughness: 0.85 });
     const cz = tz + 1.75;
-    const [perRow, rows] = o.cushions ?? [3, 1];
+    const [perRow, rows] = o.cushions ?? (counter ? [0, 0] : [3, 1]);
     const gapX = perRow > 3 ? 1.7 : 1.4;
     const cushionGeo = new THREE.CylinderGeometry(0.42, 0.46, 0.14, 24);
     const cushionsLocal = [];

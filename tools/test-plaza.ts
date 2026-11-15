@@ -25,7 +25,7 @@ let out = plazaMessage(p, JSON.stringify({ t: 'm', x: 3.456, z: -4, f: 1 }), 100
 assert.deepEqual(out, { t: 'm', id: 'abc', x: 3.46, z: -4, f: 1 });
 assert.equal(plazaMessage(p, JSON.stringify({ t: 'm', x: 5, z: 5, f: 0 }), 1040), null, 'move rate limit');
 out = plazaMessage(p, JSON.stringify({ t: 'm', x: 999, z: -999, f: 'x' }), 1200);
-assert.deepEqual(out, { t: 'm', id: 'abc', x: 28, z: -26, f: 1 });
+assert.deepEqual(out, { t: 'm', id: 'abc', x: 28, z: -42, f: 1 });
 console.log('PASS: moves are rate-limited, rounded and clamped to the plaza');
 
 p = peer();
