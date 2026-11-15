@@ -359,5 +359,7 @@ console.log('PASS: live mode accepts live events and rejects test events');
   assert.deepEqual(seen[0]?.payment_method_options, { wechat_pay: { client: 'web' } });
   assert.equal(seen[0]?.payment_method_types, undefined);
   assert.equal(seen[1]?.payment_method_options, undefined);
-  console.log('PASS: one-time checkout declares WeChat Pay web client; subscriptions do not');
+  assert.deepEqual(seen[0]?.managed_payments, { enabled: false });
+  assert.deepEqual(seen[1]?.managed_payments, { enabled: false });
+  console.log('PASS: one-time checkout declares WeChat Pay web client; subscriptions do not; Managed Payments off');
 }

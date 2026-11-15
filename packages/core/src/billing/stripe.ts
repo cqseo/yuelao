@@ -226,6 +226,10 @@ export class StripeProvider implements PaymentProvider {
         ],
         metadata,
         ...(subscription ? { subscription_data: { metadata } } : { payment_intent_data: { metadata } }),
+        // Managed Payments (Stripe as merchant of record) is on by default for this
+        // account and limits Checkout to cards/wallets — no WeChat Pay or Alipay.
+        // The owner chose to be merchant of record (2026-11-15), so opt out explicitly.
+        managed_payments: { enabled: false },
         // WeChat Pay in Checkout only appears when the client is declared; it is
         // not offered for subscriptions, so this only applies to one-time payments.
         ...(subscription ? {} : { payment_method_options: { wechat_pay: { client: 'web' as const } } }),
