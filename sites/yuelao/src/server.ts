@@ -84,11 +84,11 @@ export default {
         true,
       );
     }
-    // Brand domain (2026-11-15): the old workers.dev host 301s to yuexia.app.
+    // Brand domain: both the old workers.dev host and www hostname 301 to yuexia.app.
     // Pages only — /api/* stays put (Stripe webhook POSTs and the hall/plaza
     // WebSocket upgrades must keep reaching the Worker), as does /stats/.
     if (
-      url.hostname === 'yuelao.cqseo.workers.dev' &&
+      (url.hostname === 'yuelao.cqseo.workers.dev' || url.hostname === 'www.yuexia.app') &&
       (request.method === 'GET' || request.method === 'HEAD') &&
       !url.pathname.startsWith('/api/') &&
       !url.pathname.startsWith('/stats/')
