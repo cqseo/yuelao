@@ -147,8 +147,16 @@ const provider = (fail: boolean) =>
   const calls: { customerRef: string; retry?: boolean }[] = [];
   const stale = {
     createCustomer: async () => 'cus_live_new',
-    createCheckout: async (r: { customerRef: string; retry?: boolean }) => {
+    createCheckout: async (r: {
+      customerRef: string;
+      retry?: boolean;
+      successUrl: string;
+      cancelUrl: string;
+    }) => {
       calls.push({ customerRef: r.customerRef, retry: r.retry });
+      // 集市裡付款成功與按返回都回同一間鋪子：取消的網址要帶記號，成功的不帶
+      assert.equal(new URL(r.cancelUrl).searchParams.get('pay'), 'cancelled');
+      assert.equal(new URL(r.successUrl).searchParams.get('pay'), null);
       if (r.customerRef === 'cus_test_old')
         throw Object.assign(new Error('No such customer'), { code: 'resource_missing', param: 'customer' });
       return { url: 'https://checkout.stripe.com/c/pay/y', checkoutRef: 'cs_live_1' };

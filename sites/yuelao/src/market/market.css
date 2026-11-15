@@ -249,6 +249,21 @@
     letter-spacing: 0.02em;
   }
 }
+/* 更窄的手機（≤ 400px）：廣場頂欄再加語言鈕會超出右邊。語言鈕只留地球圖示、按鈕字再小一點 */
+@media (max-width: 400px) {
+  .mk #hud .mk-lang > summary span {
+    display: none;
+  }
+  .mk #hud {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .mk #hud button,
+  .mk #hud .right a {
+    padding: 0 0.4rem;
+    letter-spacing: 0;
+  }
+}
 .mk .swatches {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

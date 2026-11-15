@@ -772,7 +772,9 @@ export function createTarot(ui) {
     state = 'deep';
     say('你回來了。我確認一下。');
     ui.panel(
-      `<p class="kicker">${deepTitle()}</p><p class="note" role="status">正在確認付款，通常幾秒鐘。</p>`,
+      `<p class="kicker">${deepTitle()}</p><p class="note" role="status">正在確認付款，通常幾秒鐘。</p>
+       <p class="note small">沒有付款就回來了？直接回到牌面，不會扣款。</p>${backToReading}`,
+      onBack,
     );
     const key = await spreadKey();
     for (let i = 0; i < 45; i++) {
@@ -913,6 +915,12 @@ export function createTarot(ui) {
         day = back.day;
         computeDrawn();
         void layOut();
+        if (back.why === 'pay' && ui.spread.cancelled) {
+          // 在付款頁按了返回：沒有付款，回到牌面
+          reading();
+          say('沒付也不要緊，牌還在桌上。');
+          return;
+        }
         if (back.why === 'pay') return void waitPaid();
         reading();
         say('你回來了。牌還在桌上。');
