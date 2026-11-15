@@ -188,13 +188,29 @@ export function Market() {
         return { ok: false };
       }
     };
+    let triedRefresh = false;
     const wishes = {
       async list() {
         try {
-          const res = await authed(() =>
-            fetch('/api/wishes', { credentials: 'same-origin', cache: 'no-store' }),
-          );
-          return res.ok ? await res.json() : null;
+          const get = () => fetch('/api/wishes', { credentials: 'same-origin', cache: 'no-store' });
+          let res = await authed(get);
+          if (!res.ok) return null;
+          let data = (await res.json()) as { loginRequired?: boolean };
+          // 列表對訪客回 200（不是 401），所以登入憑證過期（約一小時）時不會自動續期，
+          // 明明登入過卻被叫去登入。看到「要登入」就先試著續期一次；真的沒登入的人只會多問這一次。
+          if (data.loginRequired && !triedRefresh) {
+            triedRefresh = true;
+            const refreshed = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              credentials: 'same-origin',
+            });
+            if (refreshed.ok) {
+              triedRefresh = false;
+              res = await get();
+              if (res.ok) data = (await res.json()) as { loginRequired?: boolean };
+            }
+          }
+          return data;
         } catch {
           return null;
         }
