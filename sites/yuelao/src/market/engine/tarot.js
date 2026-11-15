@@ -578,6 +578,7 @@ export function createTarot(ui) {
   }
 
   function reading() {
+    if (state !== 'reading' && state !== 'deep') ui.emit?.('reading_done', { kind: deck });
     state = 'reading';
     say('三張連起來看。牌給的是方向，路還是你自己走。');
     ui.hint('');
@@ -653,6 +654,7 @@ export function createTarot(ui) {
           // 已經解鎖就直接看／動筆；沒有就直接去付款（說明都在牌義下方，不另開一頁）
           if (deepState && deepState.state !== 'none') return openDeep();
           state = 'deep';
+          ui.emit?.('unlock_click', { product: 'spread_1' });
           return void pay();
         }
         if (x === 'leave') return ui.leave();
@@ -832,6 +834,7 @@ export function createTarot(ui) {
   }
   function showDeep(body) {
     state = 'deep';
+    ui.emit?.('deep_read', { product: 'spread_1' });
     say('寫好了，慢慢看。');
     ui.panel(
       `<p class="kicker">${deepTitle()}</p>

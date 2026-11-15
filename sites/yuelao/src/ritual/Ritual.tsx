@@ -6,6 +6,7 @@
 import { Link } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { tr, trf } from '~/i18n/ui';
+import { track } from '~/lib/track';
 import { m } from '~/paraglide/messages.js';
 import { localizeHref } from '~/paraglide/runtime.js';
 import { isSoundOn, setSound } from './audio';
@@ -82,6 +83,7 @@ export function Ritual({ initialCat, initialQ }: { initialCat?: RitualCat; initi
 
   const handleVerdict = useCallback((stick: Stick, c: RitualCat) => {
     setVerdict({ stick, cat: c, question: questionRef.current });
+    track('reading_done', { kind: 'ritual', grade: stick.grade });
     setVerdictCount((n) => n + 1);
     recordDraw(stick, c);
   }, []);
