@@ -59,6 +59,25 @@ async function accountRequest(): Promise<Response> {
 function Account() {
   const zh = contentLocale() === 'zh-Hans';
   const t = (hant: string, hans: string) => (zh ? hans : tr(hant));
+  // 訂單與解鎖紀錄顯示給人看的名稱，不露出內部代號
+  const productName = (id: string) =>
+    id === 'unlock_1'
+      ? t('完整解籤（單次）', '完整解签（单次）')
+      : id === 'spread_1'
+        ? t('塔羅完整解讀', '塔罗完整解读')
+        : id === 'pack_3'
+          ? t('問事三次包', '问事三次包')
+          : id === 'pack_8'
+            ? t('問事八次包', '问事八次包')
+            : id;
+  const categoryName = (c: string) =>
+    c === 'him'
+      ? t('問他', '问他')
+      : c === 'single'
+        ? t('脫單', '脱单')
+        : c === 'reunion'
+          ? t('複合', '复合')
+          : c;
   const [data, setData] = useState<AccountData | null>(null);
   const [view, setView] = useState<'loading' | 'ready' | 'login' | 'error'>('loading');
   // 全站統一以美元結帳（2026-11-12）；舊訂單可能是港幣或新台幣，顯示時照原幣種。
@@ -242,11 +261,11 @@ function Account() {
           </div>
 
           <section className="account-panel" aria-labelledby="account-packs">
-            <h2 id="account-packs">{t('問事包與測試付款', '问事包与测试支付')}</h2>
+            <h2 id="account-packs">{t('問事包', '问事包')}</h2>
             <p>
               {t(
-                '測試付款只供開發驗收；未啟用時不會產生訂單，也不會收取費用。',
-                '测试支付仅供开发验收；未启用时不会创建订单或收费。',
+                '一次買幾次完整解籤，比單次解鎖划算。付款在 Stripe 的頁面完成。',
+                '一次买几次完整解签，比单次解锁划算。付款在 Stripe 的页面完成。',
               )}
             </p>
             <div className="account-offers">
@@ -268,8 +287,8 @@ function Account() {
                         onClick={() => void checkout(product.id)}
                       >
                         {data.billingTestEnabled
-                          ? t('前往 Stripe 測試付款', '前往 Stripe 测试支付')
-                          : t('測試支付未啟用', '测试支付未启用')}
+                          ? t('前往付款', '前往付款')
+                          : t('尚未開放購買', '尚未开放购买')}
                       </button>
                     </div>
                   );
@@ -284,12 +303,7 @@ function Account() {
 
           <section className="account-panel" aria-labelledby="account-redeem">
             <h2 id="account-redeem">{t('使用問事包：兌換一支籤', '使用问事包：兑换一支签')}</h2>
-            <p>
-              {t(
-                '每支籤的同一情境只扣一次。完整解籤開放前暫不開放兌換。',
-                '每支签的相同情境只扣一次。完整解签开放前暂不开放兑换。',
-              )}
-            </p>
+            <p>{t('每支籤的同一情境只扣一次。', '每支签的相同情境只扣一次。')}</p>
             <div className="account-redeem-form">
               <label htmlFor="redeem-stick">
                 {t('籤號（1–100）', '签号（1–100）')}
@@ -336,14 +350,19 @@ function Account() {
                 {data.orders.map((order) => (
                   <li key={order.id}>
                     <span>
-                      {order.product_id} · {day(order.created_at)}
+                      {productName(order.product_id)} · {day(order.created_at)}
+                      <small className="account-order-no">
+                        {t('訂單號', '订单号')} {order.id.slice(0, 8).toUpperCase()}
+                      </small>
                     </span>
                     <span>
                       {money(order.amount, order.currency)} ·{' '}
                       {order.status === 'paid'
                         ? t('已支付', '已支付')
                         : order.status === 'pending'
-                          ? t('等待付款確認', '等待支付确认')
+                          ? Date.now() - Date.parse(order.created_at) < 30 * 60 * 1000
+                            ? t('等待付款確認', '等待支付确认')
+                            : t('未完成付款', '未完成付款')
                           : order.status === 'failed'
                             ? t('付款失敗', '支付失败')
                             : t('已失效', '已失效')}
@@ -366,7 +385,7 @@ function Account() {
                       <Link to={localizeHref(`/sign/${item.stick_id}`)}>
                         {t('第', '第')}
                         {item.stick_id}
-                        {t('籤', '签')} · {item.category}
+                        {t('籤', '签')} · {categoryName(item.category)}
                       </Link>
                     ) : (
                       <a
@@ -376,7 +395,7 @@ function Account() {
                       >
                         {t('第', '第')}
                         {item.stick_id}
-                        {t('籤深度解讀', '签深度解读')} · {item.category}
+                        {t('籤深度解讀', '签深度解读')} · {categoryName(item.category)}
                       </a>
                     )}
                     <span>{item.revoked ? t('已撤銷', '已撤销') : t('查看內容', '查看内容')}</span>

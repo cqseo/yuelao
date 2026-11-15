@@ -257,6 +257,9 @@ export async function createTestCheckout({
   if (selection.from !== 'market') returnUrl.searchParams.set('order', order.id);
   const cancelPath = selection.from !== 'market' ? '/ritual' : marketPath;
   const cancelUrl = new URL(prefix + cancelPath, siteUrl);
+  // The market's success and cancel pages are the same room: mark the cancel so it does not sit
+  // waiting for a payment that was never made.
+  if (selection.from === 'market') cancelUrl.searchParams.set('pay', 'cancelled');
   let checkout: { url: string; checkoutRef: string } | null = null;
   const checkoutRequest = {
     orderId: order.id,

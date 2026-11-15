@@ -720,7 +720,9 @@ export function createYuelao(ui) {
     state = 'deep';
     say('你回來了。我核對一下簿子。');
     ui.panel(
-      `<p class="kicker">${stick.no}　完整解籤</p><p class="note" role="status">正在確認付款，通常幾秒鐘。</p>`,
+      `<p class="kicker">${stick.no}　完整解籤</p><p class="note" role="status">正在確認付款，通常幾秒鐘。</p>
+       <p class="note small">沒有付款就回來了？直接回到判詞，不會扣款。</p>${backToCard}`,
+      (a) => a === 'card' && verdict(),
     );
     for (let i = 0; i < 45; i++) {
       const r = await ui.deep.check(stick.id, cat);
@@ -834,6 +836,12 @@ export function createYuelao(ui) {
         cat = back.category;
         draftQ = back.question || '';
         resetHero();
+        if (back.why === 'pay' && ui.deep.cancelled) {
+          // 在付款頁按了返回：沒有付款，回到判詞
+          verdict();
+          say('沒付也不要緊，這支籤還在。');
+          return;
+        }
         if (back.why === 'pay') {
           // 付完款回來：不先秀判詞卡，直接等確認、動筆
           ui.card('');

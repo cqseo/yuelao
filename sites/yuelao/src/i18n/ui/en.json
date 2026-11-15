@@ -679,5 +679,18 @@
   "點地面走動，拖曳轉視角。這裡只看得到彼此的身影和動作，不能交談。": "Tap the ground to walk, drag to look around. Here you can only see each other's figures and gestures — no talking.",
   "點牌，一張一張翻開": "Tap the cards to turn them one by one",
   "，正位": ", upright",
-  "，逆位": ", reversed"
+  "，逆位": ", reversed",
+  "沒付也不要緊，這支籤還在。": "No payment, no problem — your stick is still here.",
+  "沒付也不要緊，牌還在桌上。": "No payment, no problem — your cards are still on the table.",
+  "沒有付款就回來了？直接回到判詞，不會扣款。": "Came back without paying? Go back to your verdict — you won't be charged.",
+  "沒有付款就回來了？直接回到牌面，不會扣款。": "Came back without paying? Go back to your cards — you won't be charged.",
+  "一次買幾次完整解籤，比單次解鎖划算。付款在 Stripe 的頁面完成。": "Buy several full readings at once — cheaper than unlocking one at a time. Payment is completed on Stripe's page.",
+  "前往付款": "Continue to payment",
+  "問事包": "Question packs",
+  "塔羅完整解讀": "Full tarot reading",
+  "完整解籤（單次）": "Full reading (single)",
+  "尚未開放購買": "Not on sale yet",
+  "未完成付款": "Payment not completed",
+  "每支籤的同一情境只扣一次。": "The same stick and situation is only deducted once.",
+  "訂單號": "Order no."
 }

@@ -53,6 +53,16 @@ export function Market() {
     // 「等一下要回來的那支籤」暫存在 sessionStorage，登入或付款回來後月老殿接著演。
     const unlock = findProduct(site, 'unlock_1');
     const PENDING = 'market-pending';
+    // 從 Stripe 按「返回」沒付款：網址帶 pay=cancelled，讀一次就從網址拿掉
+    let payCancelled = false;
+    try {
+      const here = new URL(window.location.href);
+      if (here.searchParams.get('pay') === 'cancelled') {
+        payCancelled = true;
+        here.searchParams.delete('pay');
+        window.history.replaceState(window.history.state, '', here.pathname + here.search + here.hash);
+      }
+    } catch {}
     const readingUrl = (stickId: number, category: string) =>
       `/api/account/reading?stickId=${stickId}&category=${category}&locale=${locale}`;
     const authed = async (go: () => Promise<Response>) => {
@@ -183,6 +193,7 @@ export function Market() {
     };
 
     const deep = {
+      cancelled: payCancelled,
       price: unlock ? formatPrice(priceForLocale(unlock, locale), locale) : '',
       page: (stickId: number, category: string) =>
         localizeHref(`/account/reading?stickId=${stickId}&category=${category}&locale=${locale}`),
@@ -297,6 +308,7 @@ export function Market() {
     const spreadProduct = findProduct(site, 'spread_1');
     const SPREAD_PENDING = 'market-spread-pending';
     const spread = {
+      cancelled: payCancelled,
       price: spreadProduct ? formatPrice(priceForLocale(spreadProduct, locale), locale) : '',
       async check(key: string) {
         try {

@@ -249,6 +249,60 @@
     letter-spacing: 0.02em;
   }
 }
+/* 英、日、泰、韓的按鈕字比中文長：手機上頂欄會把「聲音／我的／語言」擠出畫面。
+   收緊字距與內距；還是放不下就折到第二行，任何按鈕都不會跑到畫面外。 */
+@media (max-width: 640px) {
+  .mk #hud .right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 0.25rem;
+  }
+  :root:not(:lang(zh)) .mk #hud {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+  :root:not(:lang(zh)) .mk #hud .left {
+    gap: 0.4rem;
+  }
+  :root:not(:lang(zh)) .mk #hud button,
+  :root:not(:lang(zh)) .mk #hud .right a {
+    padding: 0 0.45rem;
+    letter-spacing: 0;
+  }
+  :root:not(:lang(zh)) .mk #hud-title {
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+  }
+  :root:not(:lang(zh)) .mk #hud #almanac,
+  :root:not(:lang(zh)) .mk #hud #sky {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  :root:not(:lang(zh)) .mk #hud .mk-lang > summary span {
+    display: none;
+  }
+}
+@media (max-width: 400px) {
+  :root:not(:lang(zh)) .mk #hud:has(#back:not([hidden])) #hud-title {
+    display: none;
+  }
+}
+/* 更窄的手機（≤ 400px）：廣場頂欄再加語言鈕會超出右邊。語言鈕只留地球圖示、按鈕字再小一點 */
+@media (max-width: 400px) {
+  .mk #hud .mk-lang > summary span {
+    display: none;
+  }
+  .mk #hud {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .mk #hud button,
+  .mk #hud .right a {
+    padding: 0 0.4rem;
+    letter-spacing: 0;
+  }
+}
 .mk .swatches {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
