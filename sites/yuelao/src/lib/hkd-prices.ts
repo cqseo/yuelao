@@ -58,7 +58,7 @@ export function estimateLabel(
   locale: string,
 ): string {
   const estimate = quote?.prices[productId];
-  if (!estimate) return fallbackUsd;
+  if (!estimate || !/^HK\$\d{1,8}\.\d{2}$/.test(estimate.approxHkd) || !/^US\$\d{1,8}\.\d{2}$/.test(estimate.actualUsd)) return fallbackUsd;
   const approx = locale === 'en' || locale === 'ja' ? '≈' : '約';
   // Keep the charged USD amount visible even on narrow 3D buttons.
   return approx + estimate.approxHkd + ' · ' + estimate.actualUsd;
@@ -77,4 +77,33 @@ export function currencyDisclosure(locale: string): string {
     return '港币金额按每日参考汇率估算，Stripe 实际以美元扣款；银行汇率及手续费可能不同。汇率来源：' + source + '。';
   }
   return '港幣金額按每日參考匯率估算，Stripe 實際以美元扣款；銀行匯率及手續費可能不同。匯率來源：' + source + '。';
+}
+
+/** A short-lived same-origin reference lookup; absent/bad data means show exact USD only. */
+export async function fetchHkdPriceQuote(): Promise<HkdPriceQuote | null> {
+  try {
+    const response = await fetch('/api/prices', { credentials: 'same-origin' });
+    if (!response.ok) return null;
+    const raw: unknown = await response.json();
+    if (!raw || typeof raw !== 'object') return null;
+    const data = raw as Record<string, unknown>;
+    if (typeof data.updatedAt !== 'string' || !Number.isFinite(Date.parse(data.updatedAt))) return null;
+    if (!data.prices || typeof data.prices !== 'object' || Array.isArray(data.prices)) return null;
+    const prices: Record<string, HkdEstimate> = {};
+    for (const [id, value] of Object.entries(data.prices)) {
+      if (!/^[a-z][a-z0-9_]{0,39}$/.test(id) || !value || typeof value !== 'object') continue;
+      const p = value as Record<string, unknown>;
+      if (
+        typeof p.approxHkd === 'string' &&
+        /^HK\$\d{1,8}\.\d{2}$/.test(p.approxHkd) &&
+        typeof p.actualUsd === 'string' &&
+        /^US\$\d{1,8}\.\d{2}$/.test(p.actualUsd)
+      ) {
+        prices[id] = { approxHkd: p.approxHkd, actualUsd: p.actualUsd };
+      }
+    }
+    return Object.keys(prices).length ? { prices, updatedAt: data.updatedAt } : null;
+  } catch {
+    return null;
+  }
 }
