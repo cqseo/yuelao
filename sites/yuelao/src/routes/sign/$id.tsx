@@ -96,6 +96,9 @@ function SignPage() {
         <img className="sign-knot-img" src={knotImage(s.knot)} alt="" loading="lazy" />
         <div className="knot">{tr(s.knotName)}</div>
       </div>
+      <p className="muted">
+        <Link to={localizeHref('/methodology')}>{getLocale() === 'en' ? 'Verse sources and reading methods' : getLocale() === 'ja' ? '詩の出典と解説方法' : getLocale() === 'zh-Hans' ? '签诗来源与解读方法' : '籤詩來源與解讀方法'}</Link>
+      </p>
       {resolved.fallback && <p className="muted">{m.ritual_locale_note()}</p>}
 
       <section className="sign-verdicts">
