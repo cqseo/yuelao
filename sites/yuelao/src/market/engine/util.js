@@ -265,8 +265,8 @@ export function soundPref() {
   }
 }
 const LEVEL = 0.5;
-// 背景聲整體再推高一點（約 +5 dB）：拿掉聽不到的低鳴後，聽得到的部分不能比以前小
-const BED_LEVEL = 1.8;
+// 背景聲要「安靜的底」：站長 2026-11-15 反映太嘈雜。整體降一半，嘶嘶的中高頻噪聲層拿掉，留低沉的空氣聲與風鈴。
+const BED_LEVEL = 0.9;
 const pick = (xs) => xs[Math.floor(Math.random() * xs.length)];
 // 五聲音階（宮商角徵羽），風鈴、鈴聲都從這裡挑，聽起來不會亂
 const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51];
@@ -451,12 +451,12 @@ export const audio = {
   },
   // 廣場：遠處人聲的起伏（兩段頻帶、慢慢起伏）＋偶爾的風鈴＋很久一次的遠鐘
   bedPlaza(bed) {
-    this.noiseLayer(bed, { freq: 520, q: 0.9, vol: 0.09, wobble: 0.45, rate: 0.11 });
-    this.noiseLayer(bed, { freq: 1250, q: 1.4, vol: 0.035, wobble: 0.6, rate: 0.23 });
-    this.noiseLayer(bed, { type: 'lowpass', freq: 220, q: 0.5, vol: 0.03 });
-    this.every(bed, 7, 15, () => this.chime(bed.gain, 0.035));
+    // 遠處人聲只留很淡的一層（低通，不嘶）；主要聽到的是風鈴與遠鐘
+    this.noiseLayer(bed, { type: 'lowpass', freq: 420, q: 0.5, vol: 0.035, wobble: 0.5, rate: 0.08 });
+    this.noiseLayer(bed, { type: 'lowpass', freq: 180, q: 0.5, vol: 0.03 });
+    this.every(bed, 9, 18, () => this.chime(bed.gain, 0.05));
     this.every(bed, 35, 60, () =>
-      this.tone(bed.gain, 196, 0.05, 6, 0, [
+      this.tone(bed.gain, 196, 0.07, 6, 0, [
         [1, 1],
         [2.01, 0.4],
         [2.76, 0.25],
@@ -465,11 +465,10 @@ export const audio = {
   },
   // 殿內（月老殿、大殿）：安靜的室內底噪＋門外的風鈴，偶爾一聲輕磬
   bedShrine(bed) {
-    this.noiseLayer(bed, { type: 'lowpass', freq: 300, q: 0.4, vol: 0.06, wobble: 0.25, rate: 0.05 });
-    this.noiseLayer(bed, { freq: 900, q: 0.6, vol: 0.012, wobble: 0.5, rate: 0.09 });
-    this.every(bed, 6, 13, () => this.chime(bed.gain, 0.03));
+    this.noiseLayer(bed, { type: 'lowpass', freq: 240, q: 0.4, vol: 0.035, wobble: 0.25, rate: 0.05 });
+    this.every(bed, 9, 18, () => this.chime(bed.gain, 0.045));
     this.every(bed, 25, 45, () =>
-      this.tone(bed.gain, 587.33, 0.04, 5, 0, [
+      this.tone(bed.gain, 587.33, 0.06, 5, 0, [
         [1, 1],
         [2.71, 0.3],
         [5.1, 0.12],
@@ -483,7 +482,7 @@ export const audio = {
     lp.frequency.value = 700;
     lp.Q.value = 0.6;
     const pad = this.ctx.createGain();
-    pad.gain.value = 0.022;
+    pad.gain.value = 0.036;
     lp.connect(pad).connect(bed.gain);
     for (const f of [110, 130.81, 164.81, 220]) {
       for (const det of [-6, 6]) {
@@ -503,17 +502,17 @@ export const audio = {
     lfo.connect(lg).connect(lp.frequency);
     lfo.start();
     bed.nodes.push(lfo);
-    this.noiseLayer(bed, { type: 'lowpass', freq: 260, q: 0.4, vol: 0.03 });
+    this.noiseLayer(bed, { type: 'lowpass', freq: 220, q: 0.4, vol: 0.02 });
     this.every(bed, 9, 18, () => {
       const base = pick([880, 987.77, 1318.51]);
-      for (let i = 0; i < 3; i++) this.tone(bed.gain, base * [1, 1.5, 2][i], 0.018, 2.4, i * 0.12);
+      for (let i = 0; i < 3; i++) this.tone(bed.gain, base * [1, 1.5, 2][i], 0.03, 2.4, i * 0.12);
     });
   },
   // 抄經閣：很靜的室內＋偶爾一聲木魚
   bedSutra(bed) {
-    this.noiseLayer(bed, { type: 'lowpass', freq: 260, q: 0.4, vol: 0.045, wobble: 0.2, rate: 0.04 });
-    this.every(bed, 14, 26, () => this.woodblock(bed.gain, 0.12));
-    this.every(bed, 10, 20, () => this.chime(bed.gain, 0.02));
+    this.noiseLayer(bed, { type: 'lowpass', freq: 220, q: 0.4, vol: 0.03, wobble: 0.2, rate: 0.04 });
+    this.every(bed, 14, 26, () => this.woodblock(bed.gain, 0.2));
+    this.every(bed, 12, 22, () => this.chime(bed.gain, 0.035));
   },
 
   // ---------- 動作音效 ----------

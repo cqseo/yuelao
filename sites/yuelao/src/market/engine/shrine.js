@@ -887,15 +887,26 @@ export function createShrine(o) {
       s.rotation.set(rand(-0.15, 0.15), rand(3), rand(-0.15, 0.15));
       g.add(s);
     }
-    // 蒲團（三個）
+    // 蒲團：小殿一排三個；大殿給 o.cushions = [每排幾個, 幾排]，幾十個人能一起跪拜
     const cushionM = new THREE.MeshStandardMaterial({ color: 0x8a1f24, roughness: 0.85 });
     const cz = tz + 1.75;
-    const cushionsLocal = [-1.4, 0, 1.4].map((cx) => {
-      const p = shadow(new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.14, 24), cushionM));
-      p.position.set(cx, B + 0.07, cz);
-      g.add(p);
-      return [cx, cz];
-    });
+    const [perRow, rows] = o.cushions ?? [3, 1];
+    const gapX = perRow > 3 ? 1.7 : 1.4;
+    const cushionGeo = new THREE.CylinderGeometry(0.42, 0.46, 0.14, 24);
+    const cushionsLocal = [];
+    for (let r = 0; r < rows; r++) {
+      for (let i = 0; i < perRow; i++) {
+        const cx = (i - (perRow - 1) / 2) * gapX;
+        const rz = cz + r * 1.9;
+        // 只有前兩排投影子，後面的省下來
+        const p = new THREE.Mesh(cushionGeo, cushionM);
+        if (r < 2) shadow(p);
+        else p.receiveShadow = true;
+        p.position.set(cx, B + 0.07, rz);
+        g.add(p);
+        cushionsLocal.push([cx, rz]);
+      }
+    }
     // 紅線架：一排掛著的紅線與小木牌
     const rack = new THREE.Group();
     rack.add(box(0.1, 2, 0.1, mat.wood).translateX(-0.9).translateY(1));
@@ -958,8 +969,15 @@ export function createShrine(o) {
   ];
   // 殿內要亮：一盞大的暖光照全殿，一盞打在神像臉上
   // 不交給 warm()：那些燈白天會調暗，殿內白天也要亮
+  // 大殿（深度超過 12）一盞照不到門口：前後各一盞
+  const big = D > 12;
   for (const [lx, ly, lz, i, d, c] of [
-    [0, 3.6, -D / 2 + 1, 34, 14, 0xffd8b0],
+    ...(big
+      ? [
+          [0, H - 1.6, -D * 0.72, 60, 20, 0xffd8b0],
+          [0, H - 1.6, -D * 0.3, 60, 20, 0xffd8b0],
+        ]
+      : [[0, 3.6, -D / 2 + 1, 34, 14, 0xffd8b0]]),
     [0, 3.2, tz + 1.6, 12, 7, 0xffe6c8],
   ]) {
     const l = new THREE.PointLight(c, i, d, 1.6);

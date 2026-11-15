@@ -19,6 +19,20 @@ type AiStatus = { enabled: boolean; loginRequired: boolean; dailyLimit: number; 
 export function Market() {
   const root = useRef<HTMLDivElement>(null);
 
+  // 手機頂欄選單：點選單外面就收起來
+  useEffect(() => {
+    const close = (e: PointerEvent) => {
+      const hud = document.getElementById('hud');
+      if (!hud?.classList.contains('open')) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest('#hud-menu, #hud-more')) return;
+      hud.classList.remove('open');
+      hud.querySelector('#hud-more')?.setAttribute('aria-expanded', 'false');
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, []);
+
   useEffect(() => {
     const el = root.current;
     if (!el) return;
@@ -457,7 +471,33 @@ export function Market() {
           <button type="button" id="sky" aria-label={tr('天色')} />
           <span id="almanac" />
         </div>
-        <div className="right">
+        {/* 手機上右邊的按鈕收進這顆選單鈕（桌面不顯示）。見 market.css「手機頂欄」 */}
+        <button
+          type="button"
+          id="hud-more"
+          aria-label={tr('選單')}
+          aria-expanded="false"
+          aria-controls="hud-menu"
+          onClick={(e) => {
+            const open = e.currentTarget.closest('#hud')?.classList.toggle('open') ?? false;
+            e.currentTarget.setAttribute('aria-expanded', String(open));
+          }}
+        >
+          ☰
+        </button>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: 只是在選了項目後把手機選單收起來，項目本身都是按鈕 */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: 同上，鍵盤操作走各按鈕自己的事件 */}
+        <div
+          className="right"
+          id="hud-menu"
+          onClick={(e) => {
+            // 選了「第一人稱／外觀／我的」就收起選單；聲音開關和語言清單留著，方便連按
+            if (!(e.target as HTMLElement).closest('#view, #look, a')) return;
+            const hud = e.currentTarget.closest('#hud');
+            hud?.classList.remove('open');
+            hud?.querySelector('#hud-more')?.setAttribute('aria-expanded', 'false');
+          }}
+        >
           <button type="button" id="view">
             {tr('第一人稱')}
           </button>

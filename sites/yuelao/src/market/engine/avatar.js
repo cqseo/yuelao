@@ -199,7 +199,13 @@ export function createAvatar(lowQuality) {
   let phase = 0;
   let lean = 0;
   // 動作（一次性）：wave 揮手、bow 作揖、pray 合十、heart 比心
-  const EMOTE_LEN = { wave: 2.2, bow: 1.8, pray: 2.6, heart: 2.4 };
+  const EMOTE_LEN = { wave: 2.2, bow: 2.2, pray: 3, heart: 2.8 };
+  // 雙手在身前合攏時，袖子要往內收的角度（肩寬 0.21、手臂長 0.46）
+  const MEET = 0.47;
+  const smooth = (x) => {
+    const c = Math.min(1, Math.max(0, x));
+    return c * c * (3 - 2 * c);
+  };
   let emote = null;
   let emoteT = 0;
   // 停留的姿勢：sit 坐、kneel 跪拜；換的時候慢慢過去
@@ -271,30 +277,54 @@ export function createAvatar(lowQuality) {
         armR += -0.45 * holdK;
       }
       if (hold) lastHold = hold;
+      let bodyZ = 0;
+      let hop = 0;
+      // 雙手的動作（作揖、合十、比心）做的時候先把燈籠收起來
+      let twoHands = 0;
       if (emote === 'bow') {
-        const b = Math.sin(u * Math.PI);
-        bodyX += b * 0.5;
-        armL -= b * 1.1;
-        armR -= b * 0.35;
+        // 作揖：雙手先在胸前合抱，再彎腰一拜，停一下才起身
+        const up = smooth(u / 0.22) * smooth((1 - u) / 0.16);
+        const b = smooth((u - 0.2) / 0.25) * smooth((0.9 - u) / 0.22);
+        twoHands = up;
+        armL = armL * (1 - up) - (1.25 + b * 0.25) * up;
+        armR = armR * (1 - up) - (1.25 + b * 0.25) * up;
+        armLz = MEET * up;
+        armRz = -MEET * up;
+        bodyX += b * 0.62;
+        headX = Math.max(headX, b * 0.3);
       } else if (emote === 'wave') {
         armL = armL * (1 - env) - 2.7 * env;
         armLz = (-0.35 + Math.sin(u * 28) * 0.35) * env;
       } else if (emote === 'pray') {
-        armL = armL * (1 - env) - 1.35 * env;
-        armLz = 0.35 * env;
-        armR = armR * (1 - env) - 1.1 * env;
-        armRz = -0.25 * env;
-        headX = Math.max(headX, 0.25 * env);
-        bodyX += 0.08 * env;
+        // 合十：雙掌在胸前合攏（左右對稱），低頭，輕輕拜兩下
+        const nod = Math.max(0, Math.sin((u - 0.2) * Math.PI * 3.3)) * (u > 0.2 && u < 0.82 ? 1 : 0);
+        twoHands = env;
+        armL = armL * (1 - env) - 1.42 * env;
+        armR = armR * (1 - env) - 1.42 * env;
+        armLz = MEET * env;
+        armRz = -MEET * env;
+        headX = Math.max(headX, (0.2 + nod * 0.16) * env);
+        bodyX += (0.06 + nod * 0.14) * env;
       } else if (emote === 'heart') {
-        // 雙手舉過頭頂、往內收，在頭上合成一顆心
-        armL = armL * (1 - env) - 2.95 * env;
-        armLz = 0.42 * env;
-        armR = armR * (1 - env) - 2.95 * env;
-        armRz = -0.42 * env;
+        // 比心：雙手高舉過頭、往兩邊張開成心形的兩瓣，身體左右輕晃、踮一下腳（飄起來的心由 main.js 的 spawnHearts 畫）
+        twoHands = env;
+        // 頭比手臂大：手往內收會被頭擋住，所以往外上方張開，從背後、正面都看得到
+        const beat = Math.sin(u * Math.PI * 4) * 0.12;
+        armL = armL * (1 - env) - 2.85 * env;
+        armR = armR * (1 - env) - 2.85 * env;
+        armLz = (-0.8 + beat) * env;
+        armRz = (0.8 - beat) * env;
+        bodyZ = Math.sin(u * Math.PI * 4) * 0.07 * env;
+        hop = Math.abs(Math.sin(u * Math.PI * 4)) * 0.05 * env;
+        headX = Math.min(headX, -0.08 * env);
+      }
+      if (twoHands > 0.01) {
+        lamp.scale.setScalar(Math.max(0.001, lampK * (1 - twoHands)));
+        light.intensity = 7 * lampK * (1 - twoHands * 0.6);
       }
       body.rotation.x = bodyX;
-      body.position.y = Math.abs(Math.sin(phase)) * 0.035 * k + Math.sin(t * 1.6) * 0.004 - drop;
+      body.rotation.z = bodyZ;
+      body.position.y = Math.abs(Math.sin(phase)) * 0.035 * k + Math.sin(t * 1.6) * 0.004 - drop + hop;
       // 坐下、跪下時不是整個人沉進地裡：裙襬往下壓扁、下緣留在地面（或蒲團）上，上身才往下沉
       const squash = drop / 0.62;
       skirt.scale.y = 1 - squash;
