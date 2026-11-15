@@ -636,6 +636,7 @@ export function startMarket(root, opts = {}) {
                 .join('')}</ul>`
            : ''
        }
+       ${forSale.length && shop?.currencyNote ? `<p class="note small">${shop.currencyNote}</p>` : ''}
        ${incenseNote ? `<p class="note" role="status">${incenseNote}</p>` : ''}
        <button class="ghost" data-a="close">好</button>`,
       (a) => {
@@ -1632,6 +1633,7 @@ export function startMarket(root, opts = {}) {
       `<h2>外觀</h2><p class="kicker">衣服</p><div class="swatches">${sw('outfit')}</div>
      <p class="kicker">髮型</p><div class="swatches">${sw('hair')}</div>
      ${offer}
+     ${price && shop?.currencyNote ? `<p class="note small">${shop.currencyNote}</p>` : ''}
      <p class="note" id="look-note" role="status">${shopNote || (trying ? '現在是試穿。沒買的話，離開這個面板會換回原本的。' : '標了價錢的款式可以先試穿。')}</p>
      <button class="seal" data-a="done">好了</button>`,
       (a) => {
