@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { LangMenu } from '~/i18n/LangMenu';
 import { tr } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
-import { localizeHref } from '~/paraglide/runtime.js';
+import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { SUPPORT_EMAIL } from '~/site/legal';
 import site from '../../site.config';
 import './home.css';
@@ -61,7 +61,16 @@ const STEPS = [
   { title: () => m.home_market_how_3(), desc: () => m.home_market_how_3_desc() },
 ];
 
+const SIGN_DIRECTORY: Record<string, { name: string; desc: string }> = {
+  'zh-Hant': { name: '百籤總覽', desc: '一次看完月老靈籤100首，逐支閱讀籤詩與姻緣解說。' },
+  'zh-Hans': { name: '百签总览', desc: '查看月老灵签100首目录，按签号阅读签诗与姻缘解说。' },
+  en: { name: '100 oracle sticks', desc: 'Browse every Yuelao verse and its interpretation.' },
+  ja: { name: '月老おみくじ100首', desc: '全100首の原文と解説を読む。' },
+};
+const directoryCopy = () => SIGN_DIRECTORY[getLocale()] ?? SIGN_DIRECTORY.en!;
+
 const WAYS = [
+  { to: '/signs', name: () => directoryCopy().name, desc: () => directoryCopy().desc },
   { to: '/ritual', name: () => m.home_market_way_ritual(), desc: () => m.home_market_way_ritual_desc() },
   { to: '/daily', name: () => m.home_market_way_daily(), desc: () => m.home_market_way_daily_desc() },
   { to: '/tests', name: () => m.home_market_way_tests(), desc: () => m.home_market_way_tests_desc() },
