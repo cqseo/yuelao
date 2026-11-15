@@ -69,8 +69,9 @@ export default defineSite({
   ],
   supportEmail: 'yunhuazhang99@gmail.com',
   // taxCode：深度解讀是 AI 線上生成的個人用數位內容（AI as a Service - Cloud Based - Personal Use）。
-  // Stripe 帳戶預設開 Managed Payments，沒有稅務分類碼會拒絕建立結帳。
-  // taxBehavior：站長決定標價含稅（2026-11-13）——買家在哪都只付 US$2.99，各地消費稅從收入裡扣。
+  // Managed Payments 已在程式裡關掉（2026-11-15，站長選擇自己當賣方，換取微信支付／支付寶）：
+  // Stripe 不再代算代繳各地消費稅，稅務由站長自行負責；automaticTax 維持 false。
+  // taxBehavior：站長決定標價含稅（2026-11-13）——買家在哪都只付 US$2.99。
   billing: { provider: 'stripe', automaticTax: false, taxCode: 'txcd_10105001', taxBehavior: 'inclusive' },
   analytics: {},
 });
