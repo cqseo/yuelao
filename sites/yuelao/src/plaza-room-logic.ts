@@ -3,7 +3,8 @@
 
 export const PLAZA_CAP = 40;
 // 廣場半徑 26.5，加上殿前（z 到 -26）與山門外（z 到 46）
-const BOUND = { x: 28, zMin: -26, zMax: 46 };
+// zMin 要包住整座大殿（殿深 17，後牆在 z ≈ -41）：之前是 -26，跪在殿裡蒲團上的人在別人畫面上會被拉回殿門口
+const BOUND = { x: 28, zMin: -42, zMax: 46 };
 export const PLAZA_ACTIONS = new Set(['wave', 'bow', 'pray', 'heart', 'incense', 'feed', 'offer']);
 export const PLAZA_HOLDS = new Set(['', 'sit', 'kneel', 'away']);
 const MOVE_GAP_MS = 80;

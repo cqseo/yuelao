@@ -502,7 +502,8 @@ export function createWorld(renderer, lowQuality) {
     const len = Math.hypot(s.x, s.z);
     // 2026-11-13：開張的鋪子都改成正面敞開、走得進去的殿（參考心安宮）
     const OPEN_SHOPS = {
-      yuelao: { screen: '/market/screen-yuelao.webp', prompt: '求籤' },
+      // 月老供在大殿；月老殿只是求籤的鋪子：一張櫃台，沒有神像、沒有蒲團
+      yuelao: { counter: true, screen: '/market/screen-yuelao.webp', prompt: '求籤' },
       tarot: {
         kind: 'tarot',
         plaque: '塔羅館',
