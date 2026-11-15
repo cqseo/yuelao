@@ -30,6 +30,22 @@ const RANGES = [
   { days: 90, label: '近 90 天' },
 ];
 
+type SectionId = 'overview' | 'funnel' | 'paths' | 'journeys' | 'sales' | 'pages' | 'traffic';
+const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] = [
+  { id: 'overview', label: '概览', icon: '◎', desc: '核心数字与每日趋势，括号里是跟上一个同长区间比。' },
+  {
+    id: 'funnel',
+    label: '转化漏斗',
+    icon: '▽',
+    desc: '从来访到付款，每一步还剩多少人（按访客、同一浏览器计）。',
+  },
+  { id: 'paths', label: '用户路径', icon: '⇢', desc: '大家进站后怎么走：从哪进、去哪、在哪离开。' },
+  { id: 'journeys', label: '访客旅程', icon: '☰', desc: '最近每一次来访的完整经过，绿底是那次有付款。' },
+  { id: 'sales', label: '商品销售', icon: '¥', desc: '真实付款的订单（不含测试单），收入已扣退款。' },
+  { id: 'pages', label: '页面与动作', icon: '▤', desc: '哪些页面看的人多、哪些按钮按的人多。' },
+  { id: 'traffic', label: '流量来源', icon: '◉', desc: '访客从哪来、用什么设备、在哪个地区、用哪种语言。' },
+];
+
 const PAGE_LABELS: Record<string, string> = {
   '/': '首页',
   '/market': '集市',
@@ -180,44 +196,81 @@ function AdminPage() {
     };
   }, [days, tick]);
 
+  const [section, setSection] = useState<SectionId>('overview');
+  useEffect(() => {
+    const read = () => {
+      const id = location.hash.slice(1);
+      setSection(SECTIONS.some((x) => x.id === id) ? (id as SectionId) : 'overview');
+    };
+    read();
+    addEventListener('hashchange', read);
+    return () => removeEventListener('hashchange', read);
+  }, []);
+  const current = SECTIONS.find((x) => x.id === section) ?? (SECTIONS[0] as (typeof SECTIONS)[number]);
+
   return (
     <div className="admin">
-      <header className="admin-top">
-        <div>
-          <h1>月老 · 后台</h1>
-          <p className="admin-muted">数据按北京时间统计 · 站长本人的操作不计入</p>
+      <aside className="admin-side">
+        <div className="admin-brand">
+          <strong>月老</strong>
+          <span>后台</span>
         </div>
-        <div className="admin-controls">
-          <div className="admin-seg" role="tablist" aria-label="时间范围">
-            {RANGES.map((r) => (
-              <button
-                key={r.days}
-                type="button"
-                role="tab"
-                aria-selected={days === r.days}
-                onClick={() => setDays(r.days)}
-              >
-                {r.label}
-              </button>
-            ))}
+        <nav className="admin-nav" aria-label="后台导航">
+          {SECTIONS.map((x) => (
+            <a key={x.id} href={`#${x.id}`} aria-current={x.id === section ? 'page' : undefined}>
+              <span className="admin-nav-icon" aria-hidden="true">
+                {x.icon}
+              </span>
+              {x.label}
+            </a>
+          ))}
+        </nav>
+        <div className="admin-side-foot">
+          <a href={localizeHref('/')}>← 回网站</a>
+          <span>
+            按北京时间统计
+            <br />
+            站长本人的操作不计入
+          </span>
+        </div>
+      </aside>
+      <main className="admin-main">
+        <header className="admin-top">
+          <div>
+            <h1>{current.label}</h1>
+            <p className="admin-muted">{current.desc}</p>
           </div>
-          <button type="button" className="admin-btn" onClick={() => setTick((t) => t + 1)}>
-            刷新
-          </button>
-          <a className="admin-btn" href={localizeHref('/')}>
-            回网站
-          </a>
-        </div>
-      </header>
-      {load.state === 'loading' && <p className="admin-state">正在计算……</p>}
-      {load.state === 'login' && (
-        <p className="admin-state">
-          请先<a href={localizeHref('/login')}>登录</a>站长账号。
-        </p>
-      )}
-      {load.state === 'forbidden' && <p className="admin-state">这个账号没有后台权限。请用站长信箱登录。</p>}
-      {load.state === 'error' && <p className="admin-state">数据暂时取不到，稍后点「刷新」再试。</p>}
-      {load.state === 'ready' && <Dashboard stats={load.stats} />}
+          <div className="admin-controls">
+            <div className="admin-seg" role="tablist" aria-label="时间范围">
+              {RANGES.map((r) => (
+                <button
+                  key={r.days}
+                  type="button"
+                  role="tab"
+                  aria-selected={days === r.days}
+                  onClick={() => setDays(r.days)}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="admin-btn" onClick={() => setTick((t) => t + 1)}>
+              刷新
+            </button>
+          </div>
+        </header>
+        {load.state === 'loading' && <p className="admin-state">正在计算……</p>}
+        {load.state === 'login' && (
+          <p className="admin-state">
+            请先<a href={localizeHref('/login')}>登录</a>站长账号。
+          </p>
+        )}
+        {load.state === 'forbidden' && (
+          <p className="admin-state">这个账号没有后台权限。请用站长信箱登录。</p>
+        )}
+        {load.state === 'error' && <p className="admin-state">数据暂时取不到，稍后点「刷新」再试。</p>}
+        {load.state === 'ready' && <Dashboard stats={load.stats} section={section} />}
+      </main>
     </div>
   );
 }
@@ -235,15 +288,16 @@ function Delta({ value, prev, money: isMoney }: { value: number; prev: number; m
   );
 }
 
-function Dashboard({ stats }: { stats: Stats }) {
+function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
   const { kpis } = stats;
   const cur = kpis.currency;
   const conv = pct(kpis.payers.value, kpis.visitors.value);
   const [allJourneys, setAllJourneys] = useState(false);
-  const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 12);
+  const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 15);
+  const needsTracking = section !== 'sales';
   return (
     <>
-      {!stats.tracking && (
+      {!stats.tracking && needsTracking && (
         <div className="admin-note">
           访问行为表（site_events）还没在数据库建好，所以访客、浏览、路径暂时都是 0；注册和订单不受影响。
         </div>
@@ -251,188 +305,225 @@ function Dashboard({ stats }: { stats: Stats }) {
       {stats.tracking && stats.meta.eventsTruncated && (
         <div className="admin-note">访问记录太多，只统计了最早的 6 万条。</div>
       )}
-      <section className="admin-kpis" aria-label="核心指标">
-        <Kpi label="访客" value={num(kpis.visitors.value)} delta={<Delta {...kpis.visitors} />} />
-        <Kpi label="浏览量" value={num(kpis.pageViews.value)} delta={<Delta {...kpis.pageViews} />} />
-        <Kpi
-          label="新注册"
-          value={num(kpis.signups.value)}
-          delta={<Delta {...kpis.signups} />}
-          foot={`累计 ${num(kpis.totalUsers)} 位用户`}
-        />
-        <Kpi label="付费订单" value={num(kpis.orders.value)} delta={<Delta {...kpis.orders} />} />
-        <Kpi
-          label="收入（扣退款）"
-          value={money(kpis.revenue.value, cur)}
-          delta={<Delta {...kpis.revenue} money />}
-          foot={kpis.refunded ? `已退款 ${money(kpis.refunded, cur)}` : undefined}
-        />
-        <Kpi
-          label="付费转化"
-          value={conv}
-          foot={`${num(kpis.payers.value)} 人付费 / ${num(kpis.visitors.value)} 访客`}
-        />
-      </section>
 
-      <section className="admin-card">
-        <h2>每日趋势</h2>
-        <div className="admin-multiples">
-          <MiniBars title="访客" days={stats.daily} pick={(d) => d.visitors} fmt={num} />
-          <MiniBars title="新注册" days={stats.daily} pick={(d) => d.signups} fmt={num} />
-          <MiniBars title="付费订单" days={stats.daily} pick={(d) => d.orders} fmt={num} />
-          <MiniBars title="收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
-        </div>
-      </section>
+      {section === 'overview' && (
+        <>
+          <section className="admin-kpis" aria-label="核心指标">
+            <Kpi label="访客" value={num(kpis.visitors.value)} delta={<Delta {...kpis.visitors} />} />
+            <Kpi label="浏览量" value={num(kpis.pageViews.value)} delta={<Delta {...kpis.pageViews} />} />
+            <Kpi
+              label="新注册"
+              value={num(kpis.signups.value)}
+              delta={<Delta {...kpis.signups} />}
+              foot={`累计 ${num(kpis.totalUsers)} 位用户`}
+            />
+            <Kpi label="付费订单" value={num(kpis.orders.value)} delta={<Delta {...kpis.orders} />} />
+            <Kpi
+              label="收入（扣退款）"
+              value={money(kpis.revenue.value, cur)}
+              delta={<Delta {...kpis.revenue} money />}
+              foot={kpis.refunded ? `已退款 ${money(kpis.refunded, cur)}` : undefined}
+            />
+            <Kpi
+              label="付费转化"
+              value={conv}
+              foot={`${num(kpis.payers.value)} 人付费 / ${num(kpis.visitors.value)} 访客`}
+            />
+          </section>
+          <section className="admin-card">
+            <h2>每日趋势</h2>
+            <p className="admin-muted">滑过柱子看当天数字。</p>
+            <div className="admin-multiples">
+              <MiniBars title="访客" days={stats.daily} pick={(d) => d.visitors} fmt={num} />
+              <MiniBars title="新注册" days={stats.daily} pick={(d) => d.signups} fmt={num} />
+              <MiniBars title="付费订单" days={stats.daily} pick={(d) => d.orders} fmt={num} />
+              <MiniBars title="收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
+            </div>
+          </section>
+        </>
+      )}
 
-      <div className="admin-grid">
+      {section === 'funnel' && (
         <section className="admin-card">
           <h2>转化漏斗</h2>
-          <p className="admin-muted">按访客（同一浏览器）计。每一步右边是相对上一步的转化率。</p>
+          <p className="admin-muted">右边是相对上一步的转化率，掉得最多的那一步最值得先改。</p>
           <Funnel steps={stats.funnel} />
         </section>
-        <section className="admin-card">
-          <h2>卖得最好的</h2>
-          {stats.products.length ? (
-            <Table
-              head={['商品', '单数', '收入']}
-              rows={stats.products.map((p) => [
-                findProduct(site, p.id)?.name ?? p.id,
-                num(p.count),
-                money(p.revenue, cur),
-              ])}
-            />
-          ) : (
-            <p className="admin-empty">这段时间还没有付费订单。</p>
-          )}
-        </section>
-      </div>
+      )}
 
-      <section className="admin-card">
-        <h2>用户路径 · 流向</h2>
-        <p className="admin-muted">
-          每次造访的前三步：从哪一页进来 → 接着去哪 → 再去哪。线越粗人越多，「离开」表示到这一步就走了。
-        </p>
-        <Flow flow={stats.flow} />
-      </section>
-
-      <div className="admin-grid">
-        <section className="admin-card">
-          <h2>常见路径</h2>
-          <p className="admin-muted">一次造访依序经过的页面与关键动作（取前 6 步）。</p>
-          {stats.paths.length ? (
-            <ol className="admin-paths">
-              {stats.paths.map((p) => (
-                <li key={p.steps.join('>')}>
-                  <Chips steps={p.steps} />
-                  <span className="admin-count">
-                    {num(p.count)} 次{p.paid ? <em> · {num(p.paid)} 次付款</em> : null}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="admin-empty">还没有路径数据。</p>
-          )}
-        </section>
-        <section className="admin-card">
-          <h2>入口与离开</h2>
-          <div className="admin-two">
-            <div>
-              <h3>从这里进来</h3>
-              <Bars items={stats.entries.map((e) => ({ label: step(e.label), count: e.count }))} />
-            </div>
-            <div>
-              <h3>在这里离开</h3>
-              <Bars items={stats.exits.map((e) => ({ label: step(e.label), count: e.count }))} />
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <section className="admin-card">
-        <h2>最近的访客旅程</h2>
-        <p className="admin-muted">最近的造访，每一行是一个人一次来访做了什么；绿底是那次有付款。</p>
-        {stats.recent.length ? (
-          <div className="admin-scroll">
-            <table className="admin-table admin-journeys">
-              <thead>
-                <tr>
-                  <th>时间</th>
-                  <th>停留</th>
-                  <th>来源 / 设备</th>
-                  <th>经过</th>
-                </tr>
-              </thead>
-              <tbody>
-                {journeys.map((s) => (
-                  <tr key={s.start + s.steps.join()} className={s.paid ? 'paid' : undefined}>
-                    <td>{timeFmt.format(new Date(s.start))}</td>
-                    <td>{duration(s.seconds)}</td>
-                    <td>
-                      {s.referrer ?? '直接打开'}
-                      <br />
-                      <span className="admin-muted">
-                        {DEVICE[s.device ?? ''] ?? '—'} · {COUNTRY[s.country ?? ''] ?? s.country ?? '—'} ·{' '}
-                        {LOCALE[s.locale ?? ''] ?? s.locale ?? '—'}
-                        {s.member ? ' · 会员' : ''}
+      {section === 'paths' && (
+        <>
+          <section className="admin-card">
+            <h2>流向</h2>
+            <p className="admin-muted">
+              每次造访的前三步：从哪一页进来 → 接着去哪 → 再去哪。线越粗人越多，括号里是到这一步就离开的比例。
+            </p>
+            <Flow flow={stats.flow} />
+          </section>
+          <div className="admin-grid">
+            <section className="admin-card">
+              <h2>常见路径</h2>
+              <p className="admin-muted">一次造访依序经过的页面与关键动作（取前 6 步）。</p>
+              {stats.paths.length ? (
+                <ol className="admin-paths">
+                  {stats.paths.map((p) => (
+                    <li key={p.steps.join('>')}>
+                      <Chips steps={p.steps} />
+                      <span className="admin-count">
+                        {num(p.count)} 次{p.paid ? <em> · {num(p.paid)} 次付款</em> : null}
                       </span>
-                    </td>
-                    <td>
-                      <Chips steps={s.steps} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {stats.recent.length > journeys.length && (
-              <button type="button" className="admin-btn admin-more" onClick={() => setAllJourneys(true)}>
-                显示全部 {stats.recent.length} 次
-              </button>
-            )}
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="admin-empty">还没有路径数据。</p>
+              )}
+            </section>
+            <section className="admin-card">
+              <h2>入口与离开</h2>
+              <div className="admin-two">
+                <div>
+                  <h3>从这里进来</h3>
+                  <Bars items={stats.entries.map((e) => ({ label: step(e.label), count: e.count }))} />
+                </div>
+                <div>
+                  <h3>在这里离开</h3>
+                  <Bars items={stats.exits.map((e) => ({ label: step(e.label), count: e.count }))} />
+                </div>
+              </div>
+            </section>
           </div>
-        ) : (
-          <p className="admin-empty">还没有访问记录。</p>
-        )}
-      </section>
+        </>
+      )}
 
-      <div className="admin-grid admin-grid-3">
+      {section === 'journeys' && (
         <section className="admin-card">
-          <h2>热门页面</h2>
-          <Table
-            head={['页面', '访客', '浏览']}
-            rows={stats.pages.map((p) => [step(p.label), num(p.count), num(p.views)])}
-          />
+          {stats.recent.length ? (
+            <div className="admin-scroll">
+              <table className="admin-table admin-journeys">
+                <thead>
+                  <tr>
+                    <th>时间</th>
+                    <th>停留</th>
+                    <th>来源 / 设备</th>
+                    <th>经过</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {journeys.map((s) => (
+                    <tr key={s.start + s.steps.join()} className={s.paid ? 'paid' : undefined}>
+                      <td>{timeFmt.format(new Date(s.start))}</td>
+                      <td>{duration(s.seconds)}</td>
+                      <td>
+                        {s.referrer ?? '直接打开'}
+                        <br />
+                        <span className="admin-muted">
+                          {DEVICE[s.device ?? ''] ?? '—'} · {COUNTRY[s.country ?? ''] ?? s.country ?? '—'} ·{' '}
+                          {LOCALE[s.locale ?? ''] ?? s.locale ?? '—'}
+                          {s.member ? ' · 会员' : ''}
+                        </span>
+                      </td>
+                      <td>
+                        <Chips steps={s.steps} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {stats.recent.length > journeys.length && (
+                <button type="button" className="admin-btn admin-more" onClick={() => setAllJourneys(true)}>
+                  显示全部 {stats.recent.length} 次
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="admin-empty">还没有访问记录。</p>
+          )}
         </section>
-        <section className="admin-card">
-          <h2>从哪来</h2>
-          <Bars
-            items={stats.referrers.map((r) => ({
-              label: r.label === '(direct)' ? '直接打开' : r.label,
-              count: r.count,
-            }))}
-          />
-        </section>
-        <section className="admin-card">
-          <h2>关键动作</h2>
-          <Bars
-            items={stats.events.map((e) => ({ label: EVENT_LABELS[e.label] ?? e.label, count: e.count }))}
-          />
-        </section>
-        <section className="admin-card">
-          <h2>国家 / 地区</h2>
-          <Bars
-            items={stats.countries.map((c) => ({ label: COUNTRY[c.label] ?? c.label, count: c.count }))}
-          />
-        </section>
-        <section className="admin-card">
-          <h2>设备</h2>
-          <Bars items={stats.devices.map((d) => ({ label: DEVICE[d.label] ?? d.label, count: d.count }))} />
-        </section>
-        <section className="admin-card">
-          <h2>界面语言</h2>
-          <Bars items={stats.locales.map((l) => ({ label: LOCALE[l.label] ?? l.label, count: l.count }))} />
-        </section>
-      </div>
+      )}
+
+      {section === 'sales' && (
+        <>
+          <section className="admin-kpis" aria-label="销售指标">
+            <Kpi label="付费订单" value={num(kpis.orders.value)} delta={<Delta {...kpis.orders} />} />
+            <Kpi
+              label="收入（扣退款）"
+              value={money(kpis.revenue.value, cur)}
+              delta={<Delta {...kpis.revenue} money />}
+            />
+            <Kpi label="付费人数" value={num(kpis.payers.value)} delta={<Delta {...kpis.payers} />} />
+            <Kpi label="已退款" value={money(kpis.refunded, cur)} />
+          </section>
+          <section className="admin-card">
+            <h2>每日订单与收入</h2>
+            <div className="admin-multiples admin-multiples-2">
+              <MiniBars title="付费订单" days={stats.daily} pick={(d) => d.orders} fmt={num} />
+              <MiniBars title="收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
+            </div>
+          </section>
+          <section className="admin-card">
+            <h2>各商品</h2>
+            {stats.products.length ? (
+              <Table
+                head={['商品', '单数', '收入']}
+                rows={stats.products.map((p) => [
+                  findProduct(site, p.id)?.name ?? p.id,
+                  num(p.count),
+                  money(p.revenue, cur),
+                ])}
+              />
+            ) : (
+              <p className="admin-empty">这段时间还没有付费订单。</p>
+            )}
+          </section>
+        </>
+      )}
+
+      {section === 'pages' && (
+        <div className="admin-grid">
+          <section className="admin-card">
+            <h2>热门页面</h2>
+            <Table
+              head={['页面', '访客', '浏览']}
+              rows={stats.pages.map((p) => [step(p.label), num(p.count), num(p.views)])}
+            />
+          </section>
+          <section className="admin-card">
+            <h2>关键动作</h2>
+            <Bars
+              items={stats.events.map((e) => ({ label: EVENT_LABELS[e.label] ?? e.label, count: e.count }))}
+            />
+          </section>
+        </div>
+      )}
+
+      {section === 'traffic' && (
+        <div className="admin-grid">
+          <section className="admin-card">
+            <h2>从哪来</h2>
+            <Bars
+              items={stats.referrers.map((r) => ({
+                label: r.label === '(direct)' ? '直接打开' : r.label,
+                count: r.count,
+              }))}
+            />
+          </section>
+          <section className="admin-card">
+            <h2>国家 / 地区</h2>
+            <Bars
+              items={stats.countries.map((c) => ({ label: COUNTRY[c.label] ?? c.label, count: c.count }))}
+            />
+          </section>
+          <section className="admin-card">
+            <h2>设备</h2>
+            <Bars items={stats.devices.map((d) => ({ label: DEVICE[d.label] ?? d.label, count: d.count }))} />
+          </section>
+          <section className="admin-card">
+            <h2>界面语言</h2>
+            <Bars items={stats.locales.map((l) => ({ label: LOCALE[l.label] ?? l.label, count: l.count }))} />
+          </section>
+        </div>
+      )}
     </>
   );
 }
