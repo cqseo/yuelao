@@ -84,6 +84,20 @@ export default {
         true,
       );
     }
+    // Brand domain (2026-11-15): the old workers.dev host 301s to yuexia.app.
+    // Pages only — /api/* stays put (Stripe webhook POSTs and the hall/plaza
+    // WebSocket upgrades must keep reaching the Worker), as does /stats/.
+    if (
+      url.hostname === 'yuelao.cqseo.workers.dev' &&
+      (request.method === 'GET' || request.method === 'HEAD') &&
+      !url.pathname.startsWith('/api/') &&
+      !url.pathname.startsWith('/stats/')
+    ) {
+      return withSecurityHeaders(
+        Response.redirect(`https://yuexia.app${url.pathname}${url.search}`, 301),
+        staging,
+      );
+    }
     // Old /hk/* prefix (P1–P6) is retired: 301 to the same path without it.
     // /hk → /, /hk/ritual → /ritual, /hk/sign/6 → /sign/6. Query kept.
     if (url.pathname === '/hk' || url.pathname.startsWith('/hk/')) {

@@ -2,10 +2,9 @@ import { defineSite } from '@yuelao/core/site';
 
 // All config for this site. Prices use minor currency units.
 // Checkout charges in USD for every visitor, independent of Traditional/Simplified locale.
-// TODO(launch): brand name is a placeholder — see BUILD_PLAN §9.
-//   url is the live preview address (yuelao.cqseo.workers.dev); it becomes the
-//   brand domain when that decision lands — one change here updates canonical,
-//   sitemap and OG everywhere.
+// Brand domain (2026-11-15): yuexia.app — the whole market, not just Yuelao,
+// so the domain stays generic as more shops are added. One change here
+// updates canonical, sitemap and OG everywhere.
 // Prices (2026-11-12, owner decision): one currency, USD, at tidy price points —
 //   single deep reading US$2.99, pack-3 US$6.99, pack-8 US$13.99. Both locales
 //   carry the same price (the `prices` map is locale-keyed for historical reasons).
@@ -21,7 +20,7 @@ const usd = (amount: number) => ({
 export default defineSite({
   id: 'yuelao',
   name: '月老',
-  url: 'https://yuelao.cqseo.workers.dev',
+  url: 'https://yuexia.app',
   locales: ['zh-Hant', 'zh-Hans'],
   defaultLocale: 'zh-Hant',
   products: [
