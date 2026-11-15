@@ -18,6 +18,14 @@ export const HAIRS = [
   { id: 'long', name: '披髮', free: true },
 ];
 
+// 燈籠只在天黑後提：白天收起來、手自然擺動（2026-11-15 站長：白天一直拿著燈很怪）。
+// 0 = 白天不拿，1 = 夜裡拿著。main.js 跟著天色更新。
+let lanternWanted = 1;
+/** @param {number} night 0（白天）–1（夜裡），通常是 1 - world.sky.day */
+export function setLanternNight(night) {
+  lanternWanted = Math.min(1, Math.max(0, (night - 0.25) / 0.35));
+}
+
 export function createAvatar(lowQuality) {
   const root = new THREE.Group();
   const body = new THREE.Group(); // leans and bobs
@@ -198,6 +206,7 @@ export function createAvatar(lowQuality) {
   let hold = null;
   let holdK = 0;
   let lastHold = null;
+  let lampK = lanternWanted;
   return {
     root,
     light,
@@ -238,7 +247,13 @@ export function createAvatar(lowQuality) {
       let bodyX = lean;
       let armL = Math.sin(phase) * 0.55 * k;
       let armLz = 0;
-      let armR = -0.75 + Math.sin(phase + Math.PI) * 0.12 * k; // lantern arm held forward
+      lampK += (lanternWanted - lampK) * Math.min(1, dt * 2);
+      lamp.visible = lampK > 0.02;
+      lamp.scale.setScalar(Math.max(0.001, lampK));
+      light.intensity = 7 * lampK;
+      // 提燈時右手往前伸；沒燈時跟左手一樣自然前後擺
+      const swingR = Math.sin(phase + Math.PI);
+      let armR = (-0.75 + swingR * 0.12 * k) * lampK + swingR * 0.55 * k * (1 - lampK);
       let armRz = 0;
       let headX = 0;
       let drop = 0;
