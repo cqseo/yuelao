@@ -47,7 +47,7 @@ function NotFound() {
           <Link to={localizeHref('/ritual')}>{m.common_not_found_ritual()}</Link>
         </li>
         <li>
-          <Link to={localizeHref('/sign/1')}>{m.common_not_found_signs()}</Link>
+          <Link to={localizeHref('/signs')}>{m.common_not_found_signs()}</Link>
         </li>
         <li>
           <a href={localizeHref('/llms.txt')}>{m.common_not_found_llms()}</a>
