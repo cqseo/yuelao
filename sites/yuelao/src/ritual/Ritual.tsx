@@ -83,7 +83,7 @@ export function Ritual({ initialCat, initialQ }: { initialCat?: RitualCat; initi
 
   const handleVerdict = useCallback((stick: Stick, c: RitualCat) => {
     setVerdict({ stick, cat: c, question: questionRef.current });
-    track('reading_done', { kind: 'ritual', grade: stick.grade });
+    track('reading_done', { kind: 'ritual' });
     setVerdictCount((n) => n + 1);
     recordDraw(stick, c);
   }, []);

@@ -581,43 +581,36 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
       {section === 'users' && <Users />}
       {section === 'wishes' && <Wishes />}
 
-      {section === 'ops' && (
-        <>
-          {ops ? (
-            <>
-              <section className="admin-kpis" aria-label="待处理">
-                <Kpi
-                  label="待审核愿望"
-                  value={n(ops.wishesPending)}
-                  foot="审过才会公开显示（不分时间范围）"
-                />
-                <Kpi
-                  label="解读生成失败"
-                  value={n(ops.failedReadings)}
-                  foot="用户付了款但没拿到解读，需要跟进"
-                />
-              </section>
-              <section className="admin-card">
-                <h2>各功能使用次数</h2>
-                <Table
-                  head={['功能', '次数', '说明']}
-                  rows={[
-                    ['月老完整解签', n(ops.stickReadings), '付费后生成成功的解读'],
-                    ['塔罗完整解读', n(ops.spreadReadings), '付费后生成成功的解读'],
-                    ['许愿', n(ops.wishes), '写下的愿望，含待审核'],
-                    ['同愿', n(ops.blessings), '替别人的愿望祝福'],
-                    ['每日签到', n(ops.checkins), '抄经阁的每日心笺'],
-                    ['大殿上香', n(ops.offerings), '登录用户上香'],
-                  ]}
-                />
-                <p className="admin-muted">显示「—」表示那张表读不到（可能还没在数据库建好）。</p>
-              </section>
-            </>
-          ) : (
-            <p className="admin-empty">内容数据暂时取不到。</p>
-          )}
-        </>
-      )}
+      {section === 'ops' &&
+        (ops ? (
+          <>
+            <section className="admin-kpis" aria-label="待处理">
+              <Kpi label="待审核愿望" value={n(ops.wishesPending)} foot="审过才会公开显示（不分时间范围）" />
+              <Kpi
+                label="解读生成失败"
+                value={n(ops.failedReadings)}
+                foot="用户付了款但没拿到解读，需要跟进"
+              />
+            </section>
+            <section className="admin-card">
+              <h2>各功能使用次数</h2>
+              <Table
+                head={['功能', '次数', '说明']}
+                rows={[
+                  ['月老完整解签', n(ops.stickReadings), '付费后生成成功的解读'],
+                  ['塔罗完整解读', n(ops.spreadReadings), '付费后生成成功的解读'],
+                  ['许愿', n(ops.wishes), '写下的愿望，含待审核'],
+                  ['同愿', n(ops.blessings), '替别人的愿望祝福'],
+                  ['每日签到', n(ops.checkins), '抄经阁的每日心笺'],
+                  ['大殿上香', n(ops.offerings), '登录用户上香'],
+                ]}
+              />
+              <p className="admin-muted">显示「—」表示那张表读不到（可能还没在数据库建好）。</p>
+            </section>
+          </>
+        ) : (
+          <p className="admin-empty">内容数据暂时取不到。</p>
+        ))}
 
       {section === 'pages' && (
         <div className="admin-grid">

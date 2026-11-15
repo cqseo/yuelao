@@ -465,7 +465,7 @@ export function createYuelao(ui) {
         `<p class="kicker">一平一凸</p><h2 class="big">聖筊</h2><p class="note">月老點頭了，這支籤算數。</p>
          <button class="seal" data-a="v">看月老的判詞</button>`,
         () => {
-          ui.emit?.('reading_done', { kind: 'stick', grade: stick.grade });
+          ui.emit?.('reading_done', { kind: 'stick' });
           verdict();
         },
       );
