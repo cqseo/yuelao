@@ -228,81 +228,6 @@
     letter-spacing: 0.16em;
   }
 }
-/* 窄手機（≤ 430px）：大殿前頂欄有五個按鈕，「我的」會被擠出畫面。收起天色鈕、縮小間距 */
-@media (max-width: 430px) {
-  .mk #hud {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
-  .mk #hud .left {
-    gap: 0.5rem;
-  }
-  .mk #hud .right {
-    gap: 0.25rem;
-  }
-  .mk #hud #sky {
-    display: none;
-  }
-  .mk #hud button,
-  .mk #hud .right a {
-    padding: 0 0.45rem;
-    letter-spacing: 0.02em;
-  }
-}
-/* 英、日、泰、韓的按鈕字比中文長：手機上頂欄會把「聲音／我的／語言」擠出畫面。
-   收緊字距與內距；還是放不下就折到第二行，任何按鈕都不會跑到畫面外。 */
-@media (max-width: 640px) {
-  .mk #hud .right {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    row-gap: 0.25rem;
-  }
-  :root:not(:lang(zh)) .mk #hud {
-    padding-left: 0.6rem;
-    padding-right: 0.6rem;
-  }
-  :root:not(:lang(zh)) .mk #hud .left {
-    gap: 0.4rem;
-  }
-  :root:not(:lang(zh)) .mk #hud button,
-  :root:not(:lang(zh)) .mk #hud .right a {
-    padding: 0 0.45rem;
-    letter-spacing: 0;
-  }
-  :root:not(:lang(zh)) .mk #hud-title {
-    font-size: 0.95rem;
-    letter-spacing: 0.04em;
-  }
-  :root:not(:lang(zh)) .mk #hud #almanac,
-  :root:not(:lang(zh)) .mk #hud #sky {
-    display: none;
-  }
-}
-@media (max-width: 480px) {
-  :root:not(:lang(zh)) .mk #hud .mk-lang > summary span {
-    display: none;
-  }
-}
-@media (max-width: 400px) {
-  :root:not(:lang(zh)) .mk #hud:has(#back:not([hidden])) #hud-title {
-    display: none;
-  }
-}
-/* 更窄的手機（≤ 400px）：廣場頂欄再加語言鈕會超出右邊。語言鈕只留地球圖示、按鈕字再小一點 */
-@media (max-width: 400px) {
-  .mk #hud .mk-lang > summary span {
-    display: none;
-  }
-  .mk #hud {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-  .mk #hud button,
-  .mk #hud .right a {
-    padding: 0 0.4rem;
-    letter-spacing: 0;
-  }
-}
 .mk .swatches {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2161,4 +2086,93 @@
   font-size: 0.82rem;
   letter-spacing: 0.06em;
   color: var(--paper-70);
+}
+
+/* ---------- 手機頂欄（≤ 640px）----------
+   用戶以手機為主（站長 2026-11-15）：五顆按鈕在窄螢幕上會疊成一疊、蓋住畫面。
+   手機上頂欄只留「回到廣場／所在位置／在線人數」和一顆選單鈕；第一人稱、外觀、聲音、我的、語言收進選單。 */
+.mk #hud-more {
+  display: none;
+}
+@media (max-width: 640px) {
+  .mk #hud {
+    padding: calc(0.6rem + env(safe-area-inset-top)) 0.75rem 0.6rem;
+    gap: 0.5rem;
+  }
+  .mk #hud .left {
+    gap: 0.5rem;
+    min-width: 0;
+    flex: 1;
+  }
+  .mk #hud-title {
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mk #hud #sky,
+  .mk #hud #almanac {
+    display: none;
+  }
+  .mk #hud #online {
+    margin-left: 0;
+  }
+  .mk #hud #hud-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: 1.15rem;
+    letter-spacing: 0;
+  }
+  .mk #hud.open #hud-more {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .mk #hud .right {
+    display: none;
+    position: absolute;
+    top: calc(100% - 0.2rem);
+    right: 0.75rem;
+    z-index: 30;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    min-width: 10.5rem;
+    padding: 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: rgba(12, 10, 22, 0.94);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  }
+  .mk #hud.open .right {
+    display: flex;
+  }
+  .mk #hud .right > button,
+  .mk #hud .right > a,
+  .mk #hud .right .mk-lang > summary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 0.85rem;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-align: left;
+  }
+  .mk #hud .right .mk-lang {
+    width: 100%;
+  }
+  /* 語言清單在選單裡直接往下展開，不再另外浮一層 */
+  .mk #hud .right .mk-lang .lang-menu-list {
+    position: static;
+    min-width: 0;
+    margin-top: 0.3rem;
+    box-shadow: none;
+  }
 }

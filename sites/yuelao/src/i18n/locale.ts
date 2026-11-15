@@ -11,6 +11,8 @@ import { getLocale, type Locale } from '~/paraglide/runtime.js';
 
 export const PREFIXED = ['en', 'ja', 'th', 'ko'] as const;
 export type Prefixed = (typeof PREFIXED)[number];
+/** 對外展示的語言（選單、hreflang、sitemap）。泰文、韓文的內容還沒譯完：網址照常能開，但先不列出來（站長 2026-11-15）。 */
+export const LISTED: readonly Prefixed[] = ['en', 'ja'];
 export const COOKIE = 'PARAGLIDE_LOCALE';
 
 export function isZh(locale: string): locale is 'zh-Hant' | 'zh-Hans' {
@@ -73,8 +75,6 @@ export function switchLocale(target: Locale) {
 export const LANGS: { id: Locale; label: string; native: string }[] = [
   { id: 'en', label: 'EN', native: 'English' },
   { id: 'ja', label: '日本語', native: '日本語' },
-  { id: 'th', label: 'ไทย', native: 'ไทย' },
-  { id: 'ko', label: '한국어', native: '한국어' },
 ];
 
 /** 標在 <html lang> 與 hreflang 的語言碼。 */
