@@ -10,7 +10,7 @@
   "legal_privacy_choices_heading": "Your choices",
   "legal_privacy_collect_body": "Drawing sticks, casting moon blocks and reading verdicts don't require sign-in: the sticks you draw are stored only in your own browser and never sent to our servers. After you sign in (email code, no password), we keep: your email, purchase history, unlocked in-depth readings and generated reports, wishes you write at the Wishing Pond, and the dates of your daily heart-note check-ins (only which days you checked in). Your email is only used for sign-in codes and necessary transaction notices — never marketing emails.",
   "legal_privacy_collect_heading": "What we collect",
-  "legal_privacy_cookies_body": "We use cookies to remember your language preference and, once you sign in, your sign-in status (first-party only, not readable by browser scripts). No cross-site tracking and no ad trackers.",
+  "legal_privacy_cookies_body": "We use cookies to remember your language preference and, once you sign in, your sign-in status (first-party only, not readable by browser scripts). No cross-site tracking and no ad trackers. We also keep a random ID in your browser and record which pages you view and which main buttons you press (such as entering the market or starting checkout), only to understand how the site is used and improve it. These records contain no email address or IP address and are not shared with third parties.",
   "legal_privacy_cookies_heading": "Cookies",
   "legal_privacy_intro": "{siteName} collects only the data needed to provide the service. Here's how we handle it. This translation is for reference; the Chinese version prevails.",
   "legal_privacy_meta_description": "How {siteName} collects, uses and protects your data.",

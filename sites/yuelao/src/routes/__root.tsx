@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { LangMenu } from '~/i18n/LangMenu';
 import { tr } from '~/i18n/ui';
+import { trackPageView } from '~/lib/track';
 import { m } from '~/paraglide/messages.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { SUPPORT_EMAIL } from '~/site/legal';
@@ -80,10 +81,20 @@ function Layout() {
   }, []);
 
   const location = useLocation();
+  // 第一方統計：每換一頁記一次（站長後台 /admin 看）。
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在路徑變了才記一次瀏覽
+  useEffect(() => {
+    trackPageView();
+  }, [location.pathname]);
   // 儀式頁全幅沉浸、不掛站點頭尾：location.pathname 是去本地化後的
   // 路徑（/ritual）。
   // 首頁（整頁重做）自帶頂欄與頁腳，同樣不掛站點外殼。
-  if (location.pathname === '/' || location.pathname === '/ritual' || location.pathname === '/market') {
+  if (
+    location.pathname === '/' ||
+    location.pathname === '/ritual' ||
+    location.pathname === '/market' ||
+    location.pathname === '/admin'
+  ) {
     return <Outlet />;
   }
 
