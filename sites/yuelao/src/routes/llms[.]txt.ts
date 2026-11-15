@@ -18,6 +18,10 @@ const CONTENT = {
       path: '/ritual',
       description: '把手機當籤筒，真搖一支月老籤，擲筊確認，月老親批。',
     },
+    { title: '百籤總覽', path: '/signs', description: '月老靈籤100首完整 HTML 索引，連到每一支籤頁、籤詩原文與吉凶。' },
+    { title: '月下集市', path: '/market', description: '互動式 3D 月下集市，亦可使用一般版頁面。' },
+    { title: '每日心箋', path: '/daily', description: '每日免費心情提示與反思練習。' },
+    { title: '情感測驗', path: '/tests', description: '免費情感自我整理工具，包含曖昧、復合等問題。' },
     {
       title: '籤頁',
       path: '/sign/1',
