@@ -1,6 +1,7 @@
 import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
 import { useEffect, useRef } from 'react';
 import { track } from '~/lib/track';
+import { currencyDisclosure, estimateLabel, fetchHkdPriceQuote } from '~/lib/hkd-prices';
 import { COMPANION_STARTERS, type CompanionTheme, guidedReply } from '~/site/companion';
 import site from '../../site.config';
 import './market.css';
@@ -41,6 +42,7 @@ export function Market() {
     const locale = contentLocale();
     // 非中文介面：引擎寫進來的中文介面字換成當地語言（內容仍是中文）。
     const ui = uiPrefix();
+    const currencyNote = currencyDisclosure(ui ?? locale);
     let untranslate: (() => void) | undefined;
     if (ui) {
       // 介面字典已在入口載好；內容字典（牌義、判詞）進集市才載，載好再換一次字典
@@ -128,6 +130,7 @@ export function Market() {
       sessionStorage.removeItem(BACK);
     } catch {}
     const shop = {
+      currencyNote,
       prices: Object.fromEntries(
         // 目錄目前沒有 item 商品（外觀免費）；之後加了就會出現在這裡
         (site.products as readonly Product[])
@@ -223,6 +226,7 @@ export function Market() {
     };
 
     const deep = {
+      currencyNote,
       cancelled: payCancelled,
       price: unlock ? formatPrice(priceForLocale(unlock, locale), locale) : '',
       page: (stickId: number, category: string) =>
@@ -338,6 +342,7 @@ export function Market() {
     const spreadProduct = findProduct(site, 'spread_1');
     const SPREAD_PENDING = 'market-spread-pending';
     const spread = {
+      currencyNote,
       cancelled: payCancelled,
       price: spreadProduct ? formatPrice(priceForLocale(spreadProduct, locale), locale) : '',
       async check(key: string) {
@@ -450,6 +455,34 @@ export function Market() {
       track('market_npc_ask', { npc: 'yuelao', ai: !!o.ai });
       return answer;
     }
+    // HKD values are reference estimates only; the server still creates exact USD charges.
+    // Never block the 3D scene loading on an external FX provider.
+    void fetchHkdPriceQuote().then((quote) => {
+      if (!quote || gone) return;
+      const displayLocale = ui ?? locale;
+      if (unlock) {
+        deep.price = estimateLabel(
+          quote,
+          unlock.id,
+          formatPrice(priceForLocale(unlock, locale), locale),
+          displayLocale,
+        );
+      }
+      if (spreadProduct) {
+        spread.price = estimateLabel(
+          quote,
+          spreadProduct.id,
+          formatPrice(priceForLocale(spreadProduct, locale), locale),
+          displayLocale,
+        );
+      }
+      for (const product of site.products) {
+        if (product.kind !== 'item') continue;
+        shop.prices[product.id] = estimateLabel(
+          quote, product.id, formatPrice(priceForLocale(product, locale), locale), displayLocale,
+        );
+      }
+    });
     void import('./engine/main.js').then(({ startMarket }) => {
       if (gone) return;
       stop = startMarket(el, {
