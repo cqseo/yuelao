@@ -5,7 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { almanacLabel, todayEvents } from './almanac.js';
-import { createAvatar, HAIRS, OUTFITS } from './avatar.js';
+import { createAvatar, HAIRS, OUTFITS, setLanternNight } from './avatar.js';
 import {
   activeGlow,
   addGlow,
@@ -191,6 +191,7 @@ export function startMarket(root, opts = {}) {
     await step('正在蓋房子、掛燈籠', 34);
     world = createWorld(renderer, coarse);
     world.setHour(skyHour);
+    setLanternNight(1 - world.sky.day);
     renderer.toneMappingExposure = world.sky.exposure;
     skyLabel();
     avatar = createAvatar(coarse);
@@ -1860,6 +1861,7 @@ export function startMarket(root, opts = {}) {
         skyHour += gap * Math.min(1, Math.min(0.3, (nowMs - skyAt) / 1000) * 1.6);
         skyAt = nowMs;
         world.setHour(skyHour);
+        setLanternNight(1 - world.sky.day);
         renderer.toneMappingExposure = world.sky.exposure;
         bloom.strength = world.sky.bloom;
       }
