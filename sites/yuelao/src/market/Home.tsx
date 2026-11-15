@@ -121,7 +121,10 @@ export function Home() {
         <section className="mh-hero" aria-labelledby="mh-title">
           <img className="mh-hero-img" src="/market/plaza.jpg" alt="" fetchPriority="high" />
           <div className="mh-hero-copy">
-            <h1 id="mh-title">{m.home_market_title()}</h1>
+            <h1 id="mh-title">
+              {m.home_market_title()}
+              <span className="mh-title-seo">{m.home_title()}</span>
+            </h1>
             <p className="mh-lead">{m.home_market_lead()}</p>
             <div className="mh-actions">
               <a
