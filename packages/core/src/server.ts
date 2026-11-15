@@ -1,5 +1,6 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { accountSnapshot } from './account';
+import { adminStatsRequest } from './admin-stats';
 import { aiGenerationEnabled, generatePaidReadingRequest } from './ai-reading';
 import { getUserFromRequest, type SessionUser } from './auth';
 import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCode } from './auth-handlers';
@@ -16,6 +17,7 @@ import { errorResponse } from './http';
 import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
 import type { SiteConfig } from './site';
+import { trackRequest } from './site-events';
 import { generateSpreadReadingRequest, spreadReadingResponse } from './spread-reading';
 import { createAnonClient, createServiceClient } from './supabase';
 import { listWishesResponse, wishActionRequest } from './wishes';
@@ -40,6 +42,14 @@ export function createCore(site: SiteConfig) {
       supabaseAnon: createAnonClient(env),
       supabaseService: createServiceClient(env),
     };
+  }
+
+  function admins(): string[] {
+    const extra = (context().env.ADMIN_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
+    return [...(site.adminEmails ?? [site.supportEmail]), ...extra];
   }
 
   return {
@@ -73,6 +83,27 @@ export function createCore(site: SiteConfig) {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         return companionChatRequest(request, ctx.supabaseService, user, ctx.env);
+      },
+    },
+    analytics: {
+      track: (request: Request) => {
+        const ctx = context();
+        return trackRequest(
+          request,
+          ctx.supabaseService,
+          () => getUserFromRequest(request, ctx.env),
+          admins(),
+        );
+      },
+      adminStats: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return adminStatsRequest(request, ctx.supabaseService, user, admins());
+      },
+      isAdmin: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return Boolean(user && admins().some((a) => a.toLowerCase() === user.email.toLowerCase()));
       },
     },
     hall: {

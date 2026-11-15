@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { tr } from '~/i18n/ui';
+import { track } from '~/lib/track';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 
 export const Route = createFileRoute('/login')({
@@ -87,6 +88,7 @@ function Login() {
     try {
       const res = await callAuth('verify', { email: email.trim(), code: code.trim() });
       if (res.ok) {
+        track('login');
         // 從集市的月老殿過來登入的，登入後回月老殿（固定路徑，不接受外部傳入的網址）。
         let next = localizeHref('/account');
         try {

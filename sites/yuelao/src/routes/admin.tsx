@@ -1,0 +1,742 @@
+import { createFileRoute } from '@tanstack/react-router';
+import type { AdminStats } from '@yuelao/core/admin-stats';
+import { findProduct } from '@yuelao/core/site';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { localizeHref } from '~/paraglide/runtime.js';
+import site from '../../site.config';
+import '~/site/admin.css';
+
+// 站長後台：只有 site.adminEmails 裡的帳號看得到數字（伺服器端檢查，見 packages/core/src/admin-stats.ts）。
+// 只給站長自己看，文字一律簡體中文，不走多語言。
+export const Route = createFileRoute('/admin')({
+  head: () => ({
+    meta: [{ title: '月老 · 后台' }, { name: 'robots', content: 'noindex, nofollow' }],
+  }),
+  component: AdminPage,
+});
+
+type Stats = AdminStats & { tracking: boolean };
+type Load =
+  | { state: 'loading' }
+  | { state: 'login' }
+  | { state: 'forbidden' }
+  | { state: 'error' }
+  | { state: 'ready'; stats: Stats };
+
+const RANGES = [
+  { days: 1, label: '近 24 小时' },
+  { days: 7, label: '近 7 天' },
+  { days: 30, label: '近 30 天' },
+  { days: 90, label: '近 90 天' },
+];
+
+const PAGE_LABELS: Record<string, string> = {
+  '/': '首页',
+  '/market': '集市',
+  '/sign': '签诗总览',
+  '/sign/*': '签诗页',
+  '/ritual': '一般版求签',
+  '/daily': '每日心笺',
+  '/tests': '测验列表',
+  '/tests/*': '测验',
+  '/account': '我的',
+  '/account/*': '解读页',
+  '/login': '登录页',
+  '/billing/*': '付款返回',
+  '/chat': '聊天',
+  '/privacy': '隐私',
+  '/terms': '条款',
+  '/refunds': '退款政策',
+  '/dmca': 'DMCA',
+  '/admin': '后台',
+  '@market_enter': '入市',
+  '@room:yuelao': '月老殿',
+  '@room:tarot': '塔罗馆',
+  '@room:hall': '大殿',
+  '@room:sutra': '抄经阁',
+  '@hall_offer': '上香',
+  '@login': '登录成功',
+  '@checkout': '发起结账',
+  '@paid': '付款成功',
+  '@exit': '离开',
+  '@other': '其他',
+};
+
+const EVENT_LABELS: Record<string, string> = {
+  checkout_start: '发起结账',
+  login: '登录成功',
+  market_enter: '入市',
+  market_room_open: '进店',
+  market_hall_offer: '大殿上香',
+  market_incense: '选香',
+  market_npc_ask: '问月老',
+  market_charm_send: '送平安符',
+  market_charm_open: '打开平安符',
+  market_wardrobe_open: '换装',
+  market_locked_look_try: '试穿付费外观',
+  market_emote: '做动作',
+  market_action: '互动',
+  market_shrine_kneel: '跪拜',
+  market_view: '切换视角',
+  market_sky: '切换天色',
+  market_queue: '排队',
+  market_tap_walk: '点地走路',
+  market_hall_calm_done: '静心完成',
+  wish_plate_tap: '看愿望牌',
+  test_started: '开始测验',
+  test_completed: '完成测验',
+};
+
+const FUNNEL_LABELS: Record<string, string> = {
+  visit: '来访',
+  engage: '逛了首页以外',
+  login: '登录',
+  checkout: '发起结账',
+  paid: '付款',
+};
+
+const COUNTRY: Record<string, string> = {
+  CN: '中国大陆',
+  HK: '香港',
+  TW: '台湾',
+  MO: '澳门',
+  SG: '新加坡',
+  MY: '马来西亚',
+  US: '美国',
+  JP: '日本',
+  KR: '韩国',
+  TH: '泰国',
+  CA: '加拿大',
+  GB: '英国',
+  AU: '澳大利亚',
+};
+
+const DEVICE: Record<string, string> = { mobile: '手机', tablet: '平板', desktop: '电脑' };
+const LOCALE: Record<string, string> = {
+  'zh-Hant': '繁体',
+  'zh-Hans': '简体',
+  en: '英文',
+  ja: '日文',
+  ko: '韩文',
+  th: '泰文',
+};
+
+const step = (key: string) => {
+  if (PAGE_LABELS[key]) return PAGE_LABELS[key];
+  if (key.startsWith('@room:')) return key.slice(6);
+  return key;
+};
+const nf = new Intl.NumberFormat('zh-CN');
+const num = (n: number) => nf.format(n);
+const money = (cents: number, currency: string) =>
+  `${currency === 'USD' ? 'US$' : `${currency} `}${(cents / 100).toLocaleString('zh-CN', {
+    minimumFractionDigits: cents % 100 ? 2 : 0,
+    maximumFractionDigits: 2,
+  })}`;
+const pct = (a: number, b: number) => (b > 0 ? `${((a / b) * 100).toFixed(a / b < 0.1 ? 1 : 0)}%` : '—');
+const timeFmt = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  month: 'numeric',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+const duration = (s: number) =>
+  s < 60 ? `${s} 秒` : s < 3600 ? `${Math.round(s / 60)} 分钟` : `${(s / 3600).toFixed(1)} 小时`;
+
+function AdminPage() {
+  const [days, setDays] = useState(() => {
+    try {
+      return Number(localStorage.getItem('yl-admin-days')) || 7;
+    } catch {
+      return 7;
+    }
+  });
+  const [load, setLoad] = useState<Load>({ state: 'loading' });
+  const [tick, setTick] = useState(0);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tick 只用來手動重新整理
+  useEffect(() => {
+    let alive = true;
+    setLoad((l) => (l.state === 'ready' ? l : { state: 'loading' }));
+    (async () => {
+      const get = () => fetch(`/api/admin/stats?days=${days}`, { credentials: 'same-origin' });
+      let res = await get();
+      if (res.status === 401) {
+        const refreshed = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin' });
+        if (refreshed.ok) res = await get();
+      }
+      if (!alive) return;
+      if (res.status === 401) return setLoad({ state: 'login' });
+      if (res.status === 403) return setLoad({ state: 'forbidden' });
+      if (!res.ok) return setLoad({ state: 'error' });
+      setLoad({ state: 'ready', stats: (await res.json()) as Stats });
+    })().catch(() => alive && setLoad({ state: 'error' }));
+    try {
+      localStorage.setItem('yl-admin-days', String(days));
+    } catch {}
+    return () => {
+      alive = false;
+    };
+  }, [days, tick]);
+
+  return (
+    <div className="admin">
+      <header className="admin-top">
+        <div>
+          <h1>月老 · 后台</h1>
+          <p className="admin-muted">数据按北京时间统计 · 站长本人的操作不计入</p>
+        </div>
+        <div className="admin-controls">
+          <div className="admin-seg" role="tablist" aria-label="时间范围">
+            {RANGES.map((r) => (
+              <button
+                key={r.days}
+                type="button"
+                role="tab"
+                aria-selected={days === r.days}
+                onClick={() => setDays(r.days)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="admin-btn" onClick={() => setTick((t) => t + 1)}>
+            刷新
+          </button>
+          <a className="admin-btn" href={localizeHref('/')}>
+            回网站
+          </a>
+        </div>
+      </header>
+      {load.state === 'loading' && <p className="admin-state">正在计算……</p>}
+      {load.state === 'login' && (
+        <p className="admin-state">
+          请先<a href={localizeHref('/login')}>登录</a>站长账号。
+        </p>
+      )}
+      {load.state === 'forbidden' && <p className="admin-state">这个账号没有后台权限。请用站长信箱登录。</p>}
+      {load.state === 'error' && <p className="admin-state">数据暂时取不到，稍后点「刷新」再试。</p>}
+      {load.state === 'ready' && <Dashboard stats={load.stats} />}
+    </div>
+  );
+}
+
+function Delta({ value, prev, money: isMoney }: { value: number; prev: number; money?: boolean }) {
+  if (!prev && !value) return <span className="admin-delta">与上期持平</span>;
+  if (!prev) return <span className="admin-delta up">上期为 0</span>;
+  const d = (value - prev) / prev;
+  const cls = d > 0.005 ? 'up' : d < -0.005 ? 'down' : '';
+  const arrow = d > 0.005 ? '↑' : d < -0.005 ? '↓' : '→';
+  return (
+    <span className={`admin-delta ${cls}`} title={`上期 ${isMoney ? '' : num(prev)}`}>
+      {arrow} {Math.abs(d * 100).toFixed(0)}% 较上期
+    </span>
+  );
+}
+
+function Dashboard({ stats }: { stats: Stats }) {
+  const { kpis } = stats;
+  const cur = kpis.currency;
+  const conv = pct(kpis.payers.value, kpis.visitors.value);
+  const [allJourneys, setAllJourneys] = useState(false);
+  const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 12);
+  return (
+    <>
+      {!stats.tracking && (
+        <div className="admin-note">
+          访问行为表（site_events）还没在数据库建好，所以访客、浏览、路径暂时都是 0；注册和订单不受影响。
+        </div>
+      )}
+      {stats.tracking && stats.meta.eventsTruncated && (
+        <div className="admin-note">访问记录太多，只统计了最早的 6 万条。</div>
+      )}
+      <section className="admin-kpis" aria-label="核心指标">
+        <Kpi label="访客" value={num(kpis.visitors.value)} delta={<Delta {...kpis.visitors} />} />
+        <Kpi label="浏览量" value={num(kpis.pageViews.value)} delta={<Delta {...kpis.pageViews} />} />
+        <Kpi
+          label="新注册"
+          value={num(kpis.signups.value)}
+          delta={<Delta {...kpis.signups} />}
+          foot={`累计 ${num(kpis.totalUsers)} 位用户`}
+        />
+        <Kpi label="付费订单" value={num(kpis.orders.value)} delta={<Delta {...kpis.orders} />} />
+        <Kpi
+          label="收入（扣退款）"
+          value={money(kpis.revenue.value, cur)}
+          delta={<Delta {...kpis.revenue} money />}
+          foot={kpis.refunded ? `已退款 ${money(kpis.refunded, cur)}` : undefined}
+        />
+        <Kpi
+          label="付费转化"
+          value={conv}
+          foot={`${num(kpis.payers.value)} 人付费 / ${num(kpis.visitors.value)} 访客`}
+        />
+      </section>
+
+      <section className="admin-card">
+        <h2>每日趋势</h2>
+        <div className="admin-multiples">
+          <MiniBars title="访客" days={stats.daily} pick={(d) => d.visitors} fmt={num} />
+          <MiniBars title="新注册" days={stats.daily} pick={(d) => d.signups} fmt={num} />
+          <MiniBars title="付费订单" days={stats.daily} pick={(d) => d.orders} fmt={num} />
+          <MiniBars title="收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
+        </div>
+      </section>
+
+      <div className="admin-grid">
+        <section className="admin-card">
+          <h2>转化漏斗</h2>
+          <p className="admin-muted">按访客（同一浏览器）计。每一步右边是相对上一步的转化率。</p>
+          <Funnel steps={stats.funnel} />
+        </section>
+        <section className="admin-card">
+          <h2>卖得最好的</h2>
+          {stats.products.length ? (
+            <Table
+              head={['商品', '单数', '收入']}
+              rows={stats.products.map((p) => [
+                findProduct(site, p.id)?.name ?? p.id,
+                num(p.count),
+                money(p.revenue, cur),
+              ])}
+            />
+          ) : (
+            <p className="admin-empty">这段时间还没有付费订单。</p>
+          )}
+        </section>
+      </div>
+
+      <section className="admin-card">
+        <h2>用户路径 · 流向</h2>
+        <p className="admin-muted">
+          每次造访的前三步：从哪一页进来 → 接着去哪 → 再去哪。线越粗人越多，「离开」表示到这一步就走了。
+        </p>
+        <Flow flow={stats.flow} />
+      </section>
+
+      <div className="admin-grid">
+        <section className="admin-card">
+          <h2>常见路径</h2>
+          <p className="admin-muted">一次造访依序经过的页面与关键动作（取前 6 步）。</p>
+          {stats.paths.length ? (
+            <ol className="admin-paths">
+              {stats.paths.map((p) => (
+                <li key={p.steps.join('>')}>
+                  <Chips steps={p.steps} />
+                  <span className="admin-count">
+                    {num(p.count)} 次{p.paid ? <em> · {num(p.paid)} 次付款</em> : null}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="admin-empty">还没有路径数据。</p>
+          )}
+        </section>
+        <section className="admin-card">
+          <h2>入口与离开</h2>
+          <div className="admin-two">
+            <div>
+              <h3>从这里进来</h3>
+              <Bars items={stats.entries.map((e) => ({ label: step(e.label), count: e.count }))} />
+            </div>
+            <div>
+              <h3>在这里离开</h3>
+              <Bars items={stats.exits.map((e) => ({ label: step(e.label), count: e.count }))} />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section className="admin-card">
+        <h2>最近的访客旅程</h2>
+        <p className="admin-muted">最近的造访，每一行是一个人一次来访做了什么；绿底是那次有付款。</p>
+        {stats.recent.length ? (
+          <div className="admin-scroll">
+            <table className="admin-table admin-journeys">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>停留</th>
+                  <th>来源 / 设备</th>
+                  <th>经过</th>
+                </tr>
+              </thead>
+              <tbody>
+                {journeys.map((s) => (
+                  <tr key={s.start + s.steps.join()} className={s.paid ? 'paid' : undefined}>
+                    <td>{timeFmt.format(new Date(s.start))}</td>
+                    <td>{duration(s.seconds)}</td>
+                    <td>
+                      {s.referrer ?? '直接打开'}
+                      <br />
+                      <span className="admin-muted">
+                        {DEVICE[s.device ?? ''] ?? '—'} · {COUNTRY[s.country ?? ''] ?? s.country ?? '—'} ·{' '}
+                        {LOCALE[s.locale ?? ''] ?? s.locale ?? '—'}
+                        {s.member ? ' · 会员' : ''}
+                      </span>
+                    </td>
+                    <td>
+                      <Chips steps={s.steps} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {stats.recent.length > journeys.length && (
+              <button type="button" className="admin-btn admin-more" onClick={() => setAllJourneys(true)}>
+                显示全部 {stats.recent.length} 次
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="admin-empty">还没有访问记录。</p>
+        )}
+      </section>
+
+      <div className="admin-grid admin-grid-3">
+        <section className="admin-card">
+          <h2>热门页面</h2>
+          <Table
+            head={['页面', '访客', '浏览']}
+            rows={stats.pages.map((p) => [step(p.label), num(p.count), num(p.views)])}
+          />
+        </section>
+        <section className="admin-card">
+          <h2>从哪来</h2>
+          <Bars
+            items={stats.referrers.map((r) => ({
+              label: r.label === '(direct)' ? '直接打开' : r.label,
+              count: r.count,
+            }))}
+          />
+        </section>
+        <section className="admin-card">
+          <h2>关键动作</h2>
+          <Bars
+            items={stats.events.map((e) => ({ label: EVENT_LABELS[e.label] ?? e.label, count: e.count }))}
+          />
+        </section>
+        <section className="admin-card">
+          <h2>国家 / 地区</h2>
+          <Bars
+            items={stats.countries.map((c) => ({ label: COUNTRY[c.label] ?? c.label, count: c.count }))}
+          />
+        </section>
+        <section className="admin-card">
+          <h2>设备</h2>
+          <Bars items={stats.devices.map((d) => ({ label: DEVICE[d.label] ?? d.label, count: d.count }))} />
+        </section>
+        <section className="admin-card">
+          <h2>界面语言</h2>
+          <Bars items={stats.locales.map((l) => ({ label: LOCALE[l.label] ?? l.label, count: l.count }))} />
+        </section>
+      </div>
+    </>
+  );
+}
+
+function Kpi({
+  label,
+  value,
+  delta,
+  foot,
+}: {
+  label: string;
+  value: string;
+  delta?: ReactNode;
+  foot?: string;
+}) {
+  return (
+    <div className="admin-kpi">
+      <span className="admin-kpi-label">{label}</span>
+      <strong>{value}</strong>
+      {delta}
+      {foot && <span className="admin-muted">{foot}</span>}
+    </div>
+  );
+}
+
+type Day = Stats['daily'][number];
+
+function MiniBars({
+  title,
+  days,
+  pick,
+  fmt,
+}: {
+  title: string;
+  days: Day[];
+  pick: (d: Day) => number;
+  fmt: (v: number) => string;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const values = days.map(pick);
+  const max = Math.max(1, ...values);
+  const total = values.reduce((a, b) => a + b, 0);
+  const W = 300;
+  const H = 96;
+  const gap = days.length > 40 ? 1 : 2;
+  const bw = Math.max(1, (W - gap * (days.length - 1)) / days.length);
+  const shown = hover !== null ? days[hover] : null;
+  return (
+    <figure className="admin-mini">
+      <figcaption>
+        <span>{title}</span>
+        <strong>{shown ? fmt(pick(shown)) : fmt(total)}</strong>
+        <span className="admin-muted">{shown ? shown.day.slice(5).replace('-', '/') : '合计'}</span>
+      </figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${title}每日数字`}>
+        <line x1="0" x2={W} y1={H - 0.5} y2={H - 0.5} className="admin-axis" />
+        {values.map((v, i) => {
+          const h = v ? Math.max(2, (v / max) * (H - 6)) : 0;
+          const x = i * (bw + gap);
+          const day = days[i];
+          return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: 滑過看當天數字，數字也在上方文字裡
+            <g key={day?.day ?? i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+              <rect x={x} y={0} width={bw + gap} height={H} fill="transparent" />
+              {h > 0 && (
+                <rect
+                  x={x}
+                  y={H - h}
+                  width={bw}
+                  height={h}
+                  rx={Math.min(2, bw / 2)}
+                  className={hover === i ? 'admin-bar on' : 'admin-bar'}
+                />
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <div className="admin-mini-axis">
+        <span>{days[0]?.day.slice(5).replace('-', '/')}</span>
+        <span>{days[days.length - 1]?.day.slice(5).replace('-', '/')}</span>
+      </div>
+    </figure>
+  );
+}
+
+function Funnel({ steps }: { steps: Stats['funnel'] }) {
+  const top = Math.max(1, steps[0]?.count ?? 0);
+  return (
+    <ol className="admin-funnel">
+      {steps.map((s, i) => (
+        <li key={s.key}>
+          <span className="admin-funnel-label">{FUNNEL_LABELS[s.key] ?? s.key}</span>
+          <span className="admin-funnel-track">
+            <span
+              className="admin-funnel-fill"
+              style={{ width: `${Math.max(s.count ? 1.5 : 0, (s.count / top) * 100)}%` }}
+            />
+          </span>
+          <span className="admin-funnel-num">{num(s.count)}</span>
+          <span className="admin-funnel-rate">{i === 0 ? '' : pct(s.count, steps[i - 1]?.count ?? 0)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function Bars({ items }: { items: { label: string; count: number }[] }) {
+  if (!items.length) return <p className="admin-empty">暂无数据。</p>;
+  const max = Math.max(1, ...items.map((i) => i.count));
+  return (
+    <ul className="admin-bars">
+      {items.map((i) => (
+        <li key={i.label} title={`${i.label}：${num(i.count)}`}>
+          <span className="admin-bars-label">{i.label}</span>
+          <span className="admin-bars-track">
+            <span className="admin-bars-fill" style={{ width: `${(i.count / max) * 100}%` }} />
+          </span>
+          <span className="admin-bars-num">{num(i.count)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Table({ head, rows }: { head: string[]; rows: string[][] }) {
+  if (!rows.length) return <p className="admin-empty">暂无数据。</p>;
+  return (
+    <table className="admin-table">
+      <thead>
+        <tr>
+          {head.map((h) => (
+            <th key={h}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.join('|')}>
+            {r.map((c, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: 欄位順序固定
+              <td key={i}>{c}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Chips({ steps }: { steps: string[] }) {
+  return (
+    <span className="admin-chips">
+      {steps.map((s, i) => (
+        <span
+          // biome-ignore lint/suspicious/noArrayIndexKey: 同一頁可能出現兩次，順序就是身分
+          key={i}
+          className={`admin-chip ${s.startsWith('@') ? 'act' : ''} ${s === '@paid' ? 'paid' : ''}`}
+        >
+          {step(s)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const FLOW_COLS = 3;
+const FLOW_TOP = 6;
+
+/** 三欄流向圖：每欄是第 N 步的頁面，帶子寬度 = 人次。每欄只留最多的 6 個，其他併成「其他」。 */
+function Flow({ flow }: { flow: Stats['flow'] }) {
+  const [hover, setHover] = useState<string | null>(null);
+  const layout = useMemo(() => {
+    // 每欄節點的人次
+    const cols: Map<string, number>[] = Array.from({ length: FLOW_COLS }, () => new Map());
+    for (const f of flow) {
+      const a = cols[f.stage];
+      const b = cols[f.stage + 1];
+      if (a && f.stage === 0) a.set(f.from, (a.get(f.from) ?? 0) + f.count);
+      if (b && f.to !== '@exit') b.set(f.to, (b.get(f.to) ?? 0) + f.count);
+    }
+    const keep = cols.map(
+      (m) =>
+        new Set(
+          [...m.entries()]
+            .sort((x, y) => y[1] - x[1])
+            .slice(0, FLOW_TOP)
+            .map(([k]) => k),
+        ),
+    );
+    const fold = (stage: number, key: string) => (key === '@exit' || keep[stage]?.has(key) ? key : '@other');
+    const links = new Map<string, number>();
+    const nodes: Map<string, number>[] = Array.from({ length: FLOW_COLS }, () => new Map());
+    const exits = new Map<string, number>();
+    for (const f of flow) {
+      const from = fold(f.stage, f.from);
+      const to = f.to === '@exit' ? '@exit' : fold(f.stage + 1, f.to);
+      if (f.stage === 0) nodes[0]?.set(from, (nodes[0]?.get(from) ?? 0) + f.count);
+      if (to === '@exit') exits.set(`${f.stage}|${from}`, (exits.get(`${f.stage}|${from}`) ?? 0) + f.count);
+      else {
+        nodes[f.stage + 1]?.set(to, (nodes[f.stage + 1]?.get(to) ?? 0) + f.count);
+        const k = `${f.stage}|${from}|${to}`;
+        links.set(k, (links.get(k) ?? 0) + f.count);
+      }
+    }
+    const total = [...(nodes[0]?.values() ?? [])].reduce((a, b) => a + b, 0);
+    return { nodes, links, exits, total };
+  }, [flow]);
+
+  if (!layout.total) return <p className="admin-empty">还没有路径数据。</p>;
+
+  const W = 960;
+  const colW = 180;
+  const pad = 8;
+  const H = 360;
+  const scale = (H - pad * (FLOW_TOP + 1) - 22 * (FLOW_TOP + 1)) / layout.total;
+  const colX = (c: number) => c * ((W - colW) / (FLOW_COLS - 1));
+  // 節點位置
+  const pos = layout.nodes.map((m) => {
+    const out = new Map<string, { y: number; h: number; outY: number; inY: number }>();
+    let y = 0;
+    const order = [...m.entries()].sort((a, b) =>
+      a[0] === '@other' ? 1 : b[0] === '@other' ? -1 : b[1] - a[1],
+    );
+    for (const [k, v] of order) {
+      const h = Math.max(22, v * scale);
+      out.set(k, { y, h, outY: y, inY: y });
+      y += h + pad;
+    }
+    return out;
+  });
+  const ribbons: { d: string; w: number; key: string; from: string; to: string; count: number }[] = [];
+  const sorted = [...layout.links.entries()].sort((a, b) => b[1] - a[1]);
+  for (const [k, count] of sorted) {
+    const [stageS, from, to] = k.split('|') as [string, string, string];
+    const stage = Number(stageS);
+    const a = pos[stage]?.get(from);
+    const b = pos[stage + 1]?.get(to);
+    if (!a || !b) continue;
+    const w = Math.max(1, count * scale);
+    const x0 = colX(stage) + colW;
+    const x1 = colX(stage + 1);
+    const y0 = a.outY + w / 2;
+    const y1 = b.inY + w / 2;
+    a.outY += w;
+    b.inY += w;
+    const mx = (x0 + x1) / 2;
+    ribbons.push({ d: `M${x0},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1}`, w, key: k, from, to, count });
+  }
+  const shownH = Math.max(...pos.map((m) => [...m.values()].reduce((s, n) => Math.max(s, n.y + n.h), 0)));
+
+  return (
+    <div className="admin-flow">
+      <div className="admin-flow-heads">
+        <span>第一步</span>
+        <span>第二步</span>
+        <span>第三步</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${shownH + 2}`} role="img" aria-label="用户路径流向图">
+        {ribbons.map((r) => (
+          // biome-ignore lint/a11y/noStaticElementInteractions: 滑過時高亮，數字也在下方清單
+          <path
+            key={r.key}
+            d={r.d}
+            strokeWidth={r.w}
+            className={`admin-ribbon ${hover && hover !== r.key ? 'dim' : ''}`}
+            onMouseEnter={() => setHover(r.key)}
+            onMouseLeave={() => setHover(null)}
+          >
+            <title>
+              {step(r.from)} → {step(r.to)}：{num(r.count)} 次
+            </title>
+          </path>
+        ))}
+        {pos.map((m, c) =>
+          [...m.entries()].map(([k, n]) => {
+            const exit = layout.exits.get(`${c}|${k}`) ?? 0;
+            const total = layout.nodes[c]?.get(k) ?? 0;
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: c 是欄號（第幾步），不是會變動的順序
+              <g key={`${c}|${k}`} transform={`translate(${colX(c)},${n.y})`}>
+                <rect
+                  width={colW}
+                  height={n.h}
+                  rx={3}
+                  className={`admin-node ${k === '@other' ? 'other' : ''}`}
+                />
+                <text x={8} y={Math.min(n.h / 2, 14) + 4} className="admin-node-text">
+                  {step(k)} · {num(total)}
+                  {exit && c < FLOW_COLS - 1 ? `（${pct(exit, total)}离开）` : ''}
+                </text>
+              </g>
+            );
+          }),
+        )}
+      </svg>
+      {hover && (
+        <p className="admin-flow-tip">
+          {(() => {
+            const r = ribbons.find((x) => x.key === hover);
+            return r ? `${step(r.from)} → ${step(r.to)}：${num(r.count)} 次` : null;
+          })()}
+        </p>
+      )}
+    </div>
+  );
+}

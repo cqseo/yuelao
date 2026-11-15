@@ -34,6 +34,9 @@ export interface CoreEnv {
   /** Explicit model name; server-only, not exposed as a client configuration. */
   OPENAI_CHAT_MODEL?: string;
 
+  /** 額外能看 /admin 後台的信箱（逗號分隔），加在 site.adminEmails 之上。 */
+  ADMIN_EMAILS?: string;
+
   /** 許願池：設成 "true" 才開放讀寫；預設關閉。 */
   WISHES_ENABLED?: string;
   /** 設成 "true" 才把願望文字送 OpenAI moderation 自動審核；否則每則都停在待審，等人工放行。 */

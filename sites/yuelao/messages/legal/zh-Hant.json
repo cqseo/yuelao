@@ -10,7 +10,7 @@
   "legal_privacy_choices_heading": "你的選擇",
   "legal_privacy_collect_body": "求籤、擲筊、看判詞不需要登入：你搖過的籤只存在你自己的瀏覽器裡，不會傳到我們的伺服器。登入後（信箱驗證碼，無需密碼），我們會保存：你的信箱、購買紀錄、已解鎖的深度解讀與生成好的報告、你在許願池寫的願望、每日心箋簽到的日期（只記哪一天簽過）。信箱只用來寄登入驗證碼與必要的交易通知，不發廣告郵件。",
   "legal_privacy_collect_heading": "我們收集什麼",
-  "legal_privacy_cookies_body": "我們用 Cookie 記住繁體／簡體偏好，以及登入後的登入狀態（僅限本站、瀏覽器腳本讀不到）。不做跨站追蹤，也不放廣告追蹤碼。",
+  "legal_privacy_cookies_body": "我們用 Cookie 記住繁體／簡體偏好，以及登入後的登入狀態（僅限本站、瀏覽器腳本讀不到）。不做跨站追蹤，也不放廣告追蹤碼。另外，我們在你的瀏覽器裡存一個隨機編號，記下看了哪些頁面、按了哪些主要按鈕（例如進入集市、開始結帳），只用來了解大家怎麼用、改進網站；這些紀錄不含信箱，不記 IP，也不交給第三方。",
   "legal_privacy_cookies_heading": "Cookie",
   "legal_privacy_intro": "{siteName} 只收集提供服務必要的資料。以下是我們的做法。",
   "legal_privacy_meta_description": "{siteName} 如何收集、使用與保護你的資料。",

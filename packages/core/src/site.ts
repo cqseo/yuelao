@@ -101,6 +101,8 @@ export interface SiteConfig {
   products: readonly Product[];
   /** Contact email shown on legal pages. */
   supportEmail: string;
+  /** 能看 /admin 後台的信箱；不設就只有 supportEmail。部署時還可用 ADMIN_EMAILS（逗號分隔）再加人。 */
+  adminEmails?: readonly string[];
   billing: {
     provider: 'stripe';
     /** Enable Stripe Tax automatic tax calculation; configure it in the Stripe dashboard first. */
