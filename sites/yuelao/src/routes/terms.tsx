@@ -25,6 +25,9 @@ function TermsPage() {
       <h2>{m.legal_terms_content_heading()}</h2>
       <p>{m.legal_terms_body()}</p>
 
+      <h2>{m.legal_terms_seller_heading()}</h2>
+      <p>{m.legal_terms_seller_body()}</p>
+
       <h2>{m.legal_terms_payment_heading()}</h2>
       <p>{m.legal_terms_payment_body()}</p>
 
