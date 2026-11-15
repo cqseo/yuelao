@@ -314,3 +314,50 @@ await assert.rejects(() =>
   liveProvider.parseWebhook(signedWebhook('checkout.session.completed', session, 'evt_test_in_live', false)),
 );
 console.log('PASS: live mode accepts live events and rejects test events');
+
+// Checkout: WeChat Pay needs payment_method_options.wechat_pay.client = 'web' for one-time
+// payments, and must not be sent for subscriptions (Checkout doesn't support it there).
+{
+  const seen: Record<string, unknown>[] = [];
+  const fakeStripe = {
+    checkout: {
+      sessions: {
+        create: async (params: Record<string, unknown>) => {
+          seen.push(params);
+          return { id: 'cs_test_fake', url: 'https://checkout.stripe.test/cs_test_fake' };
+        },
+      },
+    },
+  } as unknown as ConstructorParameters<typeof StripeProvider>[1];
+  const checkoutProvider = new StripeProvider(
+    { secretKey: 'sk_test_yuelao_qa_only_not_real', webhookSecret, automaticTax: false },
+    fakeStripe,
+  );
+  const base = {
+    orderId: 'order_1',
+    siteId: 'yuelao',
+    userId: 'user_1',
+    customerRef: 'cus_test',
+    successUrl: 'https://example.test/ok',
+    cancelUrl: 'https://example.test/cancel',
+  };
+  await checkoutProvider.createCheckout({
+    ...base,
+    product: { id: 'p', kind: 'unlock', name: 'P', price: { amount: 299, currency: 'USD' } },
+  });
+  await checkoutProvider.createCheckout({
+    ...base,
+    orderId: 'order_2',
+    product: {
+      id: 's',
+      kind: 'subscription',
+      name: 'S',
+      price: { amount: 999, currency: 'USD' },
+      interval: 'month',
+    },
+  });
+  assert.deepEqual(seen[0]?.payment_method_options, { wechat_pay: { client: 'web' } });
+  assert.equal(seen[0]?.payment_method_types, undefined);
+  assert.equal(seen[1]?.payment_method_options, undefined);
+  console.log('PASS: one-time checkout declares WeChat Pay web client; subscriptions do not');
+}

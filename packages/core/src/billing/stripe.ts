@@ -226,6 +226,9 @@ export class StripeProvider implements PaymentProvider {
         ],
         metadata,
         ...(subscription ? { subscription_data: { metadata } } : { payment_intent_data: { metadata } }),
+        // WeChat Pay in Checkout only appears when the client is declared; it is
+        // not offered for subscriptions, so this only applies to one-time payments.
+        ...(subscription ? {} : { payment_method_options: { wechat_pay: { client: 'web' as const } } }),
         // Coupons are disabled until order settlement verifies actual discounted totals.
         allow_promotion_codes: false,
         ...(this.options.automaticTax
