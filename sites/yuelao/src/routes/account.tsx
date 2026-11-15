@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-rout
 import { useEffect, useState } from 'react';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
 import { tr } from '~/i18n/ui';
+import { track } from '~/lib/track';
 import { localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
 
@@ -137,6 +138,7 @@ function Account() {
 
   async function checkout(productId: string) {
     if (!data?.billingTestEnabled || busy) return;
+    track('checkout_start', { product: productId, from: 'account' });
     setBusy(true);
     setMessage('');
     try {

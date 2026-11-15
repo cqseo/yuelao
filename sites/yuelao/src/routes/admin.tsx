@@ -30,7 +30,7 @@ const RANGES = [
   { days: 90, label: '近 90 天' },
 ];
 
-type SectionId = 'overview' | 'funnel' | 'paths' | 'journeys' | 'sales' | 'pages' | 'traffic';
+type SectionId = 'overview' | 'funnel' | 'paths' | 'journeys' | 'sales' | 'ops' | 'pages' | 'traffic';
 const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] = [
   { id: 'overview', label: '概览', icon: '◎', desc: '核心数字与每日趋势，括号里是跟上一个同长区间比。' },
   {
@@ -41,7 +41,8 @@ const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] =
   },
   { id: 'paths', label: '用户路径', icon: '⇢', desc: '大家进站后怎么走：从哪进、去哪、在哪离开。' },
   { id: 'journeys', label: '访客旅程', icon: '☰', desc: '最近每一次来访的完整经过，绿底是那次有付款。' },
-  { id: 'sales', label: '商品销售', icon: '¥', desc: '真实付款的订单（不含测试单），收入已扣退款。' },
+  { id: 'sales', label: '订单与销售', icon: '¥', desc: '真实付款的订单（不含测试单），收入已扣退款。' },
+  { id: 'ops', label: '内容与运营', icon: '✎', desc: '各功能被用了多少次，以及现在等着你处理的事。' },
   { id: 'pages', label: '页面与动作', icon: '▤', desc: '哪些页面看的人多、哪些按钮按的人多。' },
   { id: 'traffic', label: '流量来源', icon: '◉', desc: '访客从哪来、用什么设备、在哪个地区、用哪种语言。' },
 ];
@@ -71,6 +72,9 @@ const PAGE_LABELS: Record<string, string> = {
   '@room:hall': '大殿',
   '@room:sutra': '抄经阁',
   '@hall_offer': '上香',
+  '@reading': '看到结果',
+  '@unlock': '点解锁',
+  '@deep': '看付费解读',
   '@login': '登录成功',
   '@checkout': '发起结账',
   '@paid': '付款成功',
@@ -80,6 +84,15 @@ const PAGE_LABELS: Record<string, string> = {
 
 const EVENT_LABELS: Record<string, string> = {
   checkout_start: '发起结账',
+  reading_done: '看到签文／牌面结果',
+  unlock_click: '点「解锁」',
+  deep_read: '看付费解读',
+  daily_checkin: '每日签到',
+  wish_make: '许愿',
+  wish_bless: '同愿',
+  wish_report: '举报愿望',
+  wish_withdraw: '撤下愿望',
+  wish_pool_open: '打开许愿池',
   login: '登录成功',
   market_enter: '入市',
   market_room_open: '进店',
@@ -106,7 +119,8 @@ const EVENT_LABELS: Record<string, string> = {
 const FUNNEL_LABELS: Record<string, string> = {
   visit: '来访',
   engage: '逛了首页以外',
-  login: '登录',
+  reading: '看到签文／牌面结果',
+  unlock: '点「解锁」',
   checkout: '发起结账',
   paid: '付款',
 };
@@ -125,6 +139,14 @@ const COUNTRY: Record<string, string> = {
   CA: '加拿大',
   GB: '英国',
   AU: '澳大利亚',
+};
+
+const ORDER_STATUS: Record<string, string> = {
+  paid: '已付款',
+  pending: '未付款',
+  failed: '失败',
+  expired: '已过期',
+  refunded: '已退款',
 };
 
 const DEVICE: Record<string, string> = { mobile: '手机', tablet: '平板', desktop: '电脑' };
@@ -294,7 +316,9 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
   const conv = pct(kpis.payers.value, kpis.visitors.value);
   const [allJourneys, setAllJourneys] = useState(false);
   const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 15);
-  const needsTracking = section !== 'sales';
+  const needsTracking = section !== 'sales' && section !== 'ops';
+  const ops = stats.ops;
+  const n = (v: number | null | undefined) => (v === null || v === undefined ? '—' : num(v));
   return (
     <>
       {!stats.tracking && needsTracking && (
@@ -329,7 +353,22 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
               value={conv}
               foot={`${num(kpis.payers.value)} 人付费 / ${num(kpis.visitors.value)} 访客`}
             />
+            <Kpi
+              label="登录访客"
+              value={num(kpis.loggedIn)}
+              foot={`占访客 ${pct(kpis.loggedIn, kpis.visitors.value)}`}
+            />
+            <Kpi
+              label="结账完成率"
+              value={pct(stats.checkout.paid, stats.checkout.started)}
+              foot={`${num(stats.checkout.paid)} 付款 / ${num(stats.checkout.started)} 次进付款页`}
+            />
           </section>
+          {ops?.wishesPending ? (
+            <div className="admin-note">
+              许愿池有 {num(ops.wishesPending)} 条愿望等你审核，审过才会显示给其他人。
+            </div>
+          ) : null}
           <section className="admin-card">
             <h2>每日趋势</h2>
             <p className="admin-muted">滑过柱子看当天数字。</p>
@@ -346,7 +385,9 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
       {section === 'funnel' && (
         <section className="admin-card">
           <h2>转化漏斗</h2>
-          <p className="admin-muted">右边是相对上一步的转化率，掉得最多的那一步最值得先改。</p>
+          <p className="admin-muted">
+            右边是相对上一步的转化率，掉得最多的那一步最值得先改。「看到结果」「点解锁」是新加的记录，更早的访问里没有这两步。
+          </p>
           <Funnel steps={stats.funnel} />
         </section>
       )}
@@ -453,6 +494,20 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
             />
             <Kpi label="付费人数" value={num(kpis.payers.value)} delta={<Delta {...kpis.payers} />} />
             <Kpi label="已退款" value={money(kpis.refunded, cur)} />
+            <Kpi
+              label="进付款页"
+              value={num(stats.checkout.started)}
+              foot={`完成 ${pct(stats.checkout.paid, stats.checkout.started)}`}
+            />
+            <Kpi
+              label="没付就走"
+              value={num(stats.checkout.abandoned)}
+              foot={
+                stats.checkout.failed
+                  ? `另有 ${num(stats.checkout.failed)} 次建单失败`
+                  : '进了付款页超过半小时没付'
+              }
+            />
           </section>
           <section className="admin-card">
             <h2>每日订单与收入</h2>
@@ -476,6 +531,66 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
               <p className="admin-empty">这段时间还没有付费订单。</p>
             )}
           </section>
+          <section className="admin-card">
+            <h2>订单明细</h2>
+            <p className="admin-muted">
+              最近 60 张，含没付款的和测试单。订单号和用户「我的」页里看到的一样，处理退款时用它对。
+            </p>
+            {stats.orderList.length ? (
+              <div className="admin-scroll">
+                <Table
+                  head={['下单时间', '订单号', '商品', '金额', '状态']}
+                  rows={stats.orderList.map((o) => [
+                    timeFmt.format(new Date(o.created)),
+                    o.no,
+                    findProduct(site, o.product)?.name ?? o.product,
+                    money(o.amount, o.currency),
+                    `${ORDER_STATUS[o.status] ?? o.status}${o.refunded ? `（退 ${money(o.refunded, o.currency)}）` : ''}${o.live ? '' : ' · 测试单'}`,
+                  ])}
+                />
+              </div>
+            ) : (
+              <p className="admin-empty">这段时间没有订单。</p>
+            )}
+          </section>
+        </>
+      )}
+
+      {section === 'ops' && (
+        <>
+          {ops ? (
+            <>
+              <section className="admin-kpis" aria-label="待处理">
+                <Kpi
+                  label="待审核愿望"
+                  value={n(ops.wishesPending)}
+                  foot="审过才会公开显示（不分时间范围）"
+                />
+                <Kpi
+                  label="解读生成失败"
+                  value={n(ops.failedReadings)}
+                  foot="用户付了款但没拿到解读，需要跟进"
+                />
+              </section>
+              <section className="admin-card">
+                <h2>各功能使用次数</h2>
+                <Table
+                  head={['功能', '次数', '说明']}
+                  rows={[
+                    ['月老完整解签', n(ops.stickReadings), '付费后生成成功的解读'],
+                    ['塔罗完整解读', n(ops.spreadReadings), '付费后生成成功的解读'],
+                    ['许愿', n(ops.wishes), '写下的愿望，含待审核'],
+                    ['同愿', n(ops.blessings), '替别人的愿望祝福'],
+                    ['每日签到', n(ops.checkins), '抄经阁的每日心笺'],
+                    ['大殿上香', n(ops.offerings), '登录用户上香'],
+                  ]}
+                />
+                <p className="admin-muted">显示「—」表示那张表读不到（可能还没在数据库建好）。</p>
+              </section>
+            </>
+          ) : (
+            <p className="admin-empty">内容数据暂时取不到。</p>
+          )}
         </>
       )}
 

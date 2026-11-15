@@ -464,7 +464,10 @@ export function createYuelao(ui) {
       ui.panel(
         `<p class="kicker">一平一凸</p><h2 class="big">聖筊</h2><p class="note">月老點頭了，這支籤算數。</p>
          <button class="seal" data-a="v">看月老的判詞</button>`,
-        () => verdict(),
+        () => {
+          ui.emit?.('reading_done', { kind: 'stick', grade: stick.grade });
+          verdict();
+        },
       );
     } else if (result === 'xiao') {
       say('笑筊。你問得不夠清楚，靜下心再擲一次。');
@@ -630,6 +633,7 @@ export function createYuelao(ui) {
           if (deepState && deepState.state !== 'none') openDeep();
           else {
             state = 'deep';
+            ui.emit?.('unlock_click', { product: 'unlock_1' });
             void pay();
           }
         } else if (a === 'leave') ui.leave();
@@ -785,6 +789,7 @@ export function createYuelao(ui) {
   }
   function showDeep(body) {
     state = 'deep';
+    ui.emit?.('deep_read', { product: 'unlock_1' });
     say('寫好了，慢慢看。');
     ui.panel(
       `<p class="kicker">${stick.no}　完整解籤</p><div class="deep-body" id="deep-body"></div>

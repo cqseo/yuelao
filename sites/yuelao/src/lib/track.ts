@@ -95,7 +95,15 @@ function listen() {
 
 // 同一種事件 10 秒內只記一次（例如集市裡點地走路），免得把資料庫灌爆；關鍵事件不限。
 const THROTTLE_MS = 10_000;
-const UNTHROTTLED = new Set(['page_view', 'login', 'checkout_start', 'market_room_open']);
+const UNTHROTTLED = new Set([
+  'page_view',
+  'login',
+  'checkout_start',
+  'market_room_open',
+  'reading_done',
+  'unlock_click',
+  'deep_read',
+]);
 const lastSent = new Map<string, number>();
 
 function enqueue(name: string, props?: Props) {

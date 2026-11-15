@@ -46,7 +46,15 @@ console.log('PASS: track batches are validated and cleaned');
 
 // 彙總：兩位訪客，一位登入、結帳、付款
 const t = (min: number) => new Date(now.getTime() - min * 60_000).toISOString();
-const ev = (vid: string, sid: string, min: number, name: string, path: string, user: string | null = null, props = {}) => ({
+const ev = (
+  vid: string,
+  sid: string,
+  min: number,
+  name: string,
+  path: string,
+  user: string | null = null,
+  props = {},
+) => ({
   at: t(min),
   vid,
   sid,
@@ -67,6 +75,7 @@ const stats = computeStats({
     ev('vA_aaaaaaaa', 'sA1_aaaaaaa', 59, 'page_view', '/market'),
     ev('vA_aaaaaaaa', 'sA1_aaaaaaa', 58, 'market_enter', '/market'),
     ev('vA_aaaaaaaa', 'sA1_aaaaaaa', 57, 'market_room_open', '/market', null, { room: 'tarot' }),
+    ev('vA_aaaaaaaa', 'sA1_aaaaaaa', 56, 'reading_done', '/market', null, { kind: 'tarot' }),
     ev('vA_aaaaaaaa', 'sA1_aaaaaaa', 55, 'page_view', '/login'),
     ev('vA_aaaaaaaa', 'sA1_aaaaaaa', 54, 'login', '/login', 'user-a'),
     ev('vA_aaaaaaaa', 'sA1_aaaaaaa', 53, 'page_view', '/market', 'user-a'),
@@ -111,13 +120,29 @@ assert.equal(stats.kpis.revenue.value, 299);
 assert.equal(stats.kpis.signups.value, 1);
 assert.deepEqual(
   stats.funnel.map((f) => f.count),
-  [2, 1, 1, 1, 1],
+  [2, 1, 1, 1, 1, 1],
+  'visit, engage, reading, unlock (implied by checkout), checkout, paid',
 );
-assert.deepEqual(stats.paths[0]?.steps ?? [], ['/', '/market', '@market_enter', '@room:tarot', '/login', '@login']);
+assert.equal(stats.kpis.loggedIn, 1);
+assert.deepEqual(stats.checkout, { started: 1, paid: 1, failed: 0, abandoned: 0 });
+assert.equal(stats.orderList.length, 2, 'the order list shows live and test orders');
+assert.equal(stats.orderList.filter((o) => o.live).length, 1);
+assert.equal(stats.ops, null);
+assert.deepEqual(stats.paths[0]?.steps ?? [], [
+  '/',
+  '/market',
+  '@market_enter',
+  '@room:tarot',
+  '@reading',
+  '/login',
+]);
 const journey = stats.recent.find((r) => r.paid);
 assert.ok(journey, 'payment is attached to the session');
 assert.equal(journey.steps[journey.steps.length - 1], '@paid');
 assert.ok(stats.flow.some((f) => f.stage === 0 && f.from === '/' && f.to === '/market'));
-assert.ok(stats.flow.some((f) => f.from === '/' && f.to === '@exit'), 'single-page visit exits');
+assert.ok(
+  stats.flow.some((f) => f.from === '/' && f.to === '@exit'),
+  'single-page visit exits',
+);
 assert.equal(stats.daily.length, 8);
 console.log('PASS: stats aggregate visitors, live orders, funnel, paths and journeys');

@@ -56,6 +56,20 @@ export interface StatsInput {
   profiles: ProfileRow[];
   totalUsers: number;
   eventsTruncated: boolean;
+  /** Counts read straight from content tables; null when that table could not be read. */
+  ops?: OpsCounts;
+}
+
+/** 內容與運營：各功能在區間內被用了幾次，以及現在等著站長處理的事。 */
+export interface OpsCounts {
+  stickReadings: number | null;
+  spreadReadings: number | null;
+  failedReadings: number | null;
+  wishes: number | null;
+  wishesPending: number | null;
+  blessings: number | null;
+  checkins: number | null;
+  offerings: number | null;
 }
 
 /** Strips the language prefix and folds ids/slugs so pages group together (/en/sign/12 → /sign/*). */
@@ -113,6 +127,9 @@ function stepOf(e: EventRow): string | null {
     const room = typeof e.props?.room === 'string' ? e.props.room : '';
     return room ? `@room:${room}` : null;
   }
+  if (e.name === 'reading_done') return '@reading';
+  if (e.name === 'unlock_click') return '@unlock';
+  if (e.name === 'deep_read') return '@deep';
   if (e.name === 'login') return '@login';
   if (e.name === 'checkout_start') return '@checkout';
   return null;
@@ -201,11 +218,18 @@ export function computeStats(input: StatsInput) {
   const engaged = new Set<string>();
   const loggedIn = new Set<string>();
   const checkout = new Set<string>();
+  const readers = new Set<string>();
+  const unlockers = new Set<string>();
   for (const e of cur) {
     if (e.name !== 'page_view' || normalizePath(e.path) !== '/') engaged.add(e.vid);
     if (e.user_id || e.name === 'login') loggedIn.add(e.vid);
     if (e.name === 'checkout_start') checkout.add(e.vid);
+    if (e.name === 'reading_done') readers.add(e.vid);
+    if (e.name === 'unlock_click') unlockers.add(e.vid);
   }
+  // 後面的步驟一定經過前面的步驟：去結帳的人必定按過解鎖、看過結果（舊資料沒記這兩步時也不會倒掛）。
+  for (const vid of checkout) unlockers.add(vid);
+  for (const vid of unlockers) readers.add(vid);
   let payingVisitors = 0;
   for (const vid of vids) {
     const user = vidUser.get(vid);
@@ -214,7 +238,8 @@ export function computeStats(input: StatsInput) {
   const funnel = [
     { key: 'visit', count: vids.size },
     { key: 'engage', count: engaged.size },
-    { key: 'login', count: loggedIn.size },
+    { key: 'reading', count: readers.size },
+    { key: 'unlock', count: unlockers.size },
     { key: 'checkout', count: checkout.size },
     { key: 'paid', count: payingVisitors },
   ];
@@ -346,9 +371,39 @@ export function computeStats(input: StatsInput) {
     products.set(o.product_id, p);
   }
 
+  // 結帳：區間內建立的正式訂單，付了幾張、放棄幾張。
+  const liveCur = liveOrders.filter((o) => inRange(Date.parse(o.created_at)));
+  const checkoutStats = {
+    started: liveCur.length,
+    paid: liveCur.filter((o) => o.status === 'paid').length,
+    failed: liveCur.filter((o) => o.status === 'failed').length,
+    // 超過半小時還沒付的算放棄；半小時內的可能還在付款頁
+    abandoned: liveCur.filter(
+      (o) => o.status !== 'paid' && o.status !== 'failed' && end - Date.parse(o.created_at) > 30 * 60_000,
+    ).length,
+  };
+  const orderList = input.orders
+    .filter((o) => inRange(Date.parse(o.created_at)) || (o.paid_at && inRange(Date.parse(o.paid_at))))
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, 60)
+    .map((o) => ({
+      no: o.id.slice(0, 8).toUpperCase(),
+      created: o.created_at,
+      paid: o.paid_at,
+      product: o.product_id,
+      amount: o.amount,
+      currency: o.currency,
+      status: o.status,
+      live: isLive(o),
+      refunded: Math.min(o.amount, input.refunds.get(o.id) ?? 0),
+    }));
+
   return {
     range: { days, start: new Date(start).toISOString(), end: new Date(end).toISOString() },
-    kpis,
+    kpis: { ...kpis, loggedIn: loggedIn.size },
+    checkout: checkoutStats,
+    orderList,
+    ops: input.ops ?? null,
     daily,
     funnel,
     pages: distinctBy(
@@ -470,9 +525,55 @@ export async function adminStatsRequest(
     }
   }
 
+  // 內容表各數一次；哪張表讀不到（還沒建）就回 null，不拖垮整頁。
+  const from = new Date(now.getTime() - days * 86_400_000).toISOString();
+  type Counter = PromiseLike<{ count: number | null; error: unknown }>;
+  const count = async (query: Counter): Promise<number | null> => {
+    try {
+      const { count: n, error } = await query;
+      return error ? null : (n ?? 0);
+    } catch {
+      return null;
+    }
+  };
+  const head = (table: string) => database.from(table).select('*', { count: 'exact', head: true });
+  const [
+    stickReadings,
+    spreadReadings,
+    failedStick,
+    failedSpread,
+    wishes,
+    wishesPending,
+    blessings,
+    checkins,
+    offerings,
+  ] = await Promise.all([
+    count(head('paid_ai_readings').eq('status', 'ready').gte('created_at', from)),
+    count(head('spread_ai_readings').eq('status', 'ready').gte('created_at', from)),
+    count(head('paid_ai_readings').eq('status', 'failed').gte('created_at', from)),
+    count(head('spread_ai_readings').eq('status', 'failed').gte('created_at', from)),
+    count(head('wishes').gte('created_at', from)),
+    count(head('wishes').eq('status', 'pending')),
+    count(head('wish_blessings').gte('created_at', from)),
+    count(head('daily_checkins').gte('created_at', from)),
+    count(head('hall_offerings').gte('created_at', from)),
+  ]);
+  const ops: OpsCounts = {
+    stickReadings,
+    spreadReadings,
+    failedReadings:
+      failedStick === null && failedSpread === null ? null : (failedStick ?? 0) + (failedSpread ?? 0),
+    wishes,
+    wishesPending,
+    blessings,
+    checkins,
+    offerings,
+  };
+
   const stats = computeStats({
     days,
     now,
+    ops,
     events: eventsResult?.rows ?? [],
     orders: ordersResult.rows,
     refunds,

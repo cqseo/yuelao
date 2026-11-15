@@ -2045,6 +2045,10 @@
 .mk #hud:has(#back:not([hidden])) #almanac {
   display: none;
 }
+/* 農曆日期與節氣名只有中文，其他語言的頂欄不顯示 */
+:root:not(:lang(zh)) .mk #hud #almanac {
+  display: none;
+}
 @media (max-width: 430px) {
   .mk #hud #almanac {
     display: none;
