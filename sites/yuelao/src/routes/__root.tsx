@@ -20,6 +20,7 @@ export const Route = createRootRoute({
       { rel: 'stylesheet', href: appCss },
       { rel: 'stylesheet', href: sereneCss },
       { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
+      { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
     ],
     // Analytics scripts are skipped in local dev so dev traffic stays out of reports.
     scripts: import.meta.env.DEV ? [] : analyticsScripts(site),
