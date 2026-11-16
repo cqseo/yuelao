@@ -141,7 +141,7 @@ export async function adminUsersRequest(
   const { data, error, count } = await query.order('created_at', { ascending: false }).limit(200);
   if (error) return errorResponse(503, 'users_unavailable');
   const profiles = (data ?? []) as { id: string; email: string; locale: string; created_at: string }[];
-  const paid = new Map<string, { orders: number; amount: number; currency: string; last: string | null }>();
+  const paid = new Map<string, { orders: number; byCurrency: Record<string, number>; last: string | null }>();
   const ids = profiles.map((p) => p.id);
   for (let i = 0; i < ids.length; i += 100) {
     const { data: orders } = await db
@@ -152,9 +152,10 @@ export async function adminUsersRequest(
     for (const o of (orders ?? []) as OrderLite[]) {
       // 測試模式的單不算
       if (!o.checkout_ref?.startsWith('cs_live_')) continue;
-      const row = paid.get(o.user_id) ?? { orders: 0, amount: 0, currency: o.currency, last: null };
+      const row = paid.get(o.user_id) ?? { orders: 0, byCurrency: {} as Record<string, number>, last: null };
       row.orders++;
-      row.amount += o.amount;
+      const currency = o.currency.toUpperCase();
+      row.byCurrency[currency] = (row.byCurrency[currency] ?? 0) + o.amount;
       if (o.paid_at && (!row.last || o.paid_at > row.last)) row.last = o.paid_at;
       paid.set(o.user_id, row);
     }
@@ -169,8 +170,12 @@ export async function adminUsersRequest(
       createdAt: p.created_at,
       admin: isAdminEmail(p.email, admins),
       paidOrders: paid.get(p.id)?.orders ?? 0,
-      paidAmount: paid.get(p.id)?.amount ?? 0,
-      currency: paid.get(p.id)?.currency ?? 'USD',
+      // Backward compatible HKD-only summary; never add cents across currencies.
+      paidAmount: paid.get(p.id)?.byCurrency.HKD ?? 0,
+      currency: 'HKD',
+      paidAmountByCurrency: Object.entries(paid.get(p.id)?.byCurrency ?? {})
+        .map(([currency, amount]) => ({ currency, amount }))
+        .sort((a, b) => a.currency.localeCompare(b.currency)),
       lastPaidAt: paid.get(p.id)?.last ?? null,
     })),
   });

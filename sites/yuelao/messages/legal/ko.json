@@ -36,7 +36,7 @@
   "legal_terms_liability_heading": "책임의 제한",
   "legal_terms_meta_description": "{siteName} 이용 규칙.",
   "legal_terms_meta_title": "서비스 약관 — {siteName}",
-  "legal_terms_payment_body": "가격은 미국 달러로 표시되며 세금이 포함되어 있어 결제 시 추가되지 않아요. 심층 풀이는 한 번 결제로 영구 열람할 수 있으며 자동 갱신되지 않아요. 질문 패키지 횟수는 만료되지 않으며 한 번 쓸 때마다 한 번 차감돼요. 결제는 Stripe가 처리하며 카드, Apple Pay, Google Pay, WeChat Pay 등을 쓸 수 있어요. 결제 페이지에는 지역에 따라 현지 통화로 환산한 금액이 표시될 수 있으며, 실제 청구 금액은 결제 페이지에 표시된 금액이에요.",
+  "legal_terms_payment_body": "사이트의 표시 가격과 Stripe 실제 청구 통화는 모두 홍콩 달러(HKD)이며 세금이 포함되어 있습니다. 심층 풀이는 한 번 결제하면 계속 볼 수 있고 자동 갱신되지 않습니다. 질문 패키지의 남은 사용 횟수는 만료되지 않습니다. 결제 방법은 Stripe 화면에서 제공되는 방법에 따라 달라집니다. 카드사에서 홍콩 달러를 카드 결제 통화로 환산하거나 수수료를 부과할 수 있습니다. 이전 주문의 결제 통화는 변경되지 않습니다.",
   "legal_terms_payment_heading": "결제와 열기",
   "legal_terms_seller_body": "이 사이트는 WEBPAY(홍콩)가 운영해요. 이 사이트에서 구매하면 판매자는 WEBPAY이며, 카드나 WeChat 명세서에도 WEBPAY로 표시돼요. 구매, 결제, 환불에 관한 문의는 아래 이메일로 보내 주시면 저희가 직접 처리해요.",
   "legal_terms_seller_heading": "판매자",

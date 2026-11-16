@@ -81,8 +81,8 @@ function Account() {
           : c;
   const [data, setData] = useState<AccountData | null>(null);
   const [view, setView] = useState<'loading' | 'ready' | 'login' | 'error'>('loading');
-  // 全站統一以美元結帳（2026-11-12）；舊訂單可能是港幣或新台幣，顯示時照原幣種。
-  const currency = 'USD';
+  // 新交易統一以港幣結帳；舊訂單（USD/TWD）仍以原交易幣種顯示。
+  const currency = 'HKD';
   const [redeemStick, setRedeemStick] = useState('1');
   const [redeemCategory, setRedeemCategory] = useState<'him' | 'single' | 'reunion'>('him');
   const [busy, setBusy] = useState(false);

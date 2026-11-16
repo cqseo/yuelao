@@ -189,7 +189,7 @@ const step = (key: string) => {
 const nf = new Intl.NumberFormat('zh-CN');
 const num = (n: number) => nf.format(n);
 const money = (cents: number, currency: string) =>
-  `${currency === 'USD' ? 'US$' : `${currency} `}${(cents / 100).toLocaleString('zh-CN', {
+  `${currency === 'USD' ? 'US$' : currency === 'HKD' ? 'HK$' : `${currency} `}${(cents / 100).toLocaleString('zh-CN', {
     minimumFractionDigits: cents % 100 ? 2 : 0,
     maximumFractionDigits: 2,
   })}`;
@@ -335,6 +335,7 @@ function Delta({ value, prev, money: isMoney }: { value: number; prev: number; m
 function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
   const { kpis } = stats;
   const cur = kpis.currency;
+  const otherCurrencyNote = kpis.otherCurrencies.map((x) => `${money(x.revenue, x.currency)}（已退 ${money(x.refunded, x.currency)}，${num(x.orders)} 单）`).join('；');
   const conv = pct(kpis.payers.value, kpis.visitors.value);
   const [allJourneys, setAllJourneys] = useState(false);
   const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 15);
@@ -365,10 +366,10 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
             />
             <Kpi label="付费订单" value={num(kpis.orders.value)} delta={<Delta {...kpis.orders} />} />
             <Kpi
-              label="收入（扣退款）"
+              label="港币收入（扣退款）"
               value={money(kpis.revenue.value, cur)}
               delta={<Delta {...kpis.revenue} money />}
-              foot={kpis.refunded ? `已退款 ${money(kpis.refunded, cur)}` : undefined}
+              foot={[kpis.refunded ? `港币退款 ${money(kpis.refunded, cur)}` : '', otherCurrencyNote ? `其他币种另计：${otherCurrencyNote}` : ''].filter(Boolean).join('；') || undefined}
             />
             <Kpi
               label="付费转化"
@@ -398,7 +399,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
               <MiniBars title="访客" days={stats.daily} pick={(d) => d.visitors} fmt={num} />
               <MiniBars title="新注册" days={stats.daily} pick={(d) => d.signups} fmt={num} />
               <MiniBars title="付费订单" days={stats.daily} pick={(d) => d.orders} fmt={num} />
-              <MiniBars title="收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
+              <MiniBars title="港币收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
             </div>
           </section>
         </>
@@ -507,10 +508,13 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
 
       {section === 'sales' && (
         <>
+          {otherCurrencyNote && (
+            <div className="admin-note">本期存在非港币历史订单，未与港币收入相加：{otherCurrencyNote}。请在下方订单明细查看原始币种。</div>
+          )}
           <section className="admin-kpis" aria-label="销售指标">
             <Kpi label="付费订单" value={num(kpis.orders.value)} delta={<Delta {...kpis.orders} />} />
             <Kpi
-              label="收入（扣退款）"
+              label="港币收入（扣退款）"
               value={money(kpis.revenue.value, cur)}
               delta={<Delta {...kpis.revenue} money />}
             />
@@ -532,17 +536,17 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
             />
           </section>
           <section className="admin-card">
-            <h2>每日订单与收入</h2>
+            <h2>每日订单与港币收入</h2>
             <div className="admin-multiples admin-multiples-2">
               <MiniBars title="付费订单" days={stats.daily} pick={(d) => d.orders} fmt={num} />
-              <MiniBars title="收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
+              <MiniBars title="港币收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
             </div>
           </section>
           <section className="admin-card">
             <h2>各商品</h2>
             {stats.products.length ? (
               <Table
-                head={['商品', '单数', '收入']}
+                head={['商品', '单数', '港币收入']}
                 rows={stats.products.map((p) => [
                   findProduct(site, p.id)?.name ?? p.id,
                   num(p.count),
@@ -679,6 +683,7 @@ type AdminUser = {
   paidOrders: number;
   paidAmount: number;
   currency: string;
+  paidAmountByCurrency: { currency: string; amount: number }[];
   lastPaidAt: string | null;
 };
 
@@ -752,7 +757,7 @@ function Users() {
                   dateFmt.format(new Date(u.createdAt)),
                   LOCALE[u.locale] ?? u.locale,
                   num(u.paidOrders),
-                  u.paidOrders ? money(u.paidAmount, u.currency) : '—',
+                  u.paidOrders ? u.paidAmountByCurrency.map((p) => money(p.amount, p.currency)).join(' / ') : '—',
                   u.lastPaidAt ? dateFmt.format(new Date(u.lastPaidAt)) : '—',
                 ])}
               />
