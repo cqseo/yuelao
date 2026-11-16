@@ -93,6 +93,7 @@ export function LiteMarket() {
           )}
           <p className="lite-market__note">{c.notes}</p>
           <nav className="lite-market__nav">
+            <a href={localizeHref('/account')}>{getLocale() === 'en' ? 'My paid readings' : getLocale() === 'ja' ? '購入済み解説' : getLocale() === 'zh-Hans' ? '我的已购解读' : '我的已購解讀'}</a>
             <a href={localizeHref('/market#yuelao')}>{c.retry}</a>
             <a href={localizeHref('/')}>{c.home}</a>
           </nav>
