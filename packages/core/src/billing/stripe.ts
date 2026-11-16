@@ -209,6 +209,9 @@ export class StripeProvider implements PaymentProvider {
         mode: subscription ? 'subscription' : 'payment',
         customer: request.customerRef,
         client_reference_id: request.orderId,
+        // HKD products must remain HKD at Checkout; Adaptive Pricing can otherwise
+        // convert the charge into the visitor's local currency despite HKD price_data.
+        ...(product.price.currency.toUpperCase() === 'HKD' ? { adaptive_pricing: { enabled: false } } : {}),
         line_items: [
           {
             quantity: 1,
