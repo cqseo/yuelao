@@ -14,9 +14,9 @@ const CONTENT = {
   pages: [
     { title: '月老首頁', path: '/', description: '線上月老求籤：3D 月下集市，免費搖籤、擲筊、看判詞。' },
     {
-      title: '搖籤',
-      path: '/ritual',
-      description: '把手機當籤筒，真搖一支月老籤，擲筊確認，月老親批。',
+      title: '月老殿互動求籤',
+      path: '/market#yuelao',
+      description: '在 3D 月下集市的月老殿搖籤、擲筊、看判詞。原獨立求籤頁 /ritual 已永久轉向此處。',
     },
     {
       title: '籤頁',
