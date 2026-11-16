@@ -10,6 +10,9 @@ import site from '../../site.config';
 export const PAGES = [
   '/',
   '/ritual',
+  '/signs',
+  '/about',
+  '/methodology',
   '/market',
   '/tests',
   '/daily',

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { LangMenu } from '~/i18n/LangMenu';
 import { tr } from '~/i18n/ui';
 import { m } from '~/paraglide/messages.js';
-import { localizeHref } from '~/paraglide/runtime.js';
+import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { SUPPORT_EMAIL } from '~/site/legal';
 import site from '../../site.config';
 import './home.css';
@@ -61,7 +61,16 @@ const STEPS = [
   { title: () => m.home_market_how_3(), desc: () => m.home_market_how_3_desc() },
 ];
 
+const SIGN_DIRECTORY: Record<string, { name: string; desc: string }> = {
+  'zh-Hant': { name: '百籤總覽', desc: '一次看完月老靈籤100首，逐支閱讀籤詩與姻緣解說。' },
+  'zh-Hans': { name: '百签总览', desc: '查看月老灵签100首目录，按签号阅读签诗与姻缘解说。' },
+  en: { name: '100 oracle sticks', desc: 'Browse every Yuelao verse and its interpretation.' },
+  ja: { name: '月老おみくじ100首', desc: '全100首の原文と解説を読む。' },
+};
+const directoryCopy = () => SIGN_DIRECTORY[getLocale()] ?? SIGN_DIRECTORY.en!;
+
 const WAYS = [
+  { to: '/signs', name: () => directoryCopy().name, desc: () => directoryCopy().desc },
   { to: '/ritual', name: () => m.home_market_way_ritual(), desc: () => m.home_market_way_ritual_desc() },
   { to: '/daily', name: () => m.home_market_way_daily(), desc: () => m.home_market_way_daily_desc() },
   { to: '/tests', name: () => m.home_market_way_tests(), desc: () => m.home_market_way_tests_desc() },
@@ -112,7 +121,10 @@ export function Home() {
         <section className="mh-hero" aria-labelledby="mh-title">
           <img className="mh-hero-img" src="/market/plaza.jpg" alt="" fetchPriority="high" />
           <div className="mh-hero-copy">
-            <h1 id="mh-title">{m.home_market_title()}</h1>
+            <h1 id="mh-title">
+              {m.home_market_title()}
+              <span className="mh-title-seo">{m.home_title()}</span>
+            </h1>
             <p className="mh-lead">{m.home_market_lead()}</p>
             <div className="mh-actions">
               <a
@@ -217,6 +229,8 @@ export function Home() {
       <footer className="mh-foot">
         <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: tr(site.name) })}</span>
         <nav>
+          <Link to={localizeHref('/about')}>{getLocale() === 'en' ? 'About' : getLocale() === 'ja' ? '月下について' : getLocale() === 'zh-Hans' ? '关于月下' : '關於月下'}</Link>
+          <Link to={localizeHref('/methodology')}>{getLocale() === 'en' ? 'Sources & Methodology' : getLocale() === 'ja' ? '出典と解説方法' : getLocale() === 'zh-Hans' ? '来源与解读方法' : '來源與解讀方法'}</Link>
           <Link to="/privacy">{m.common_footer_privacy()}</Link>
           <Link to="/terms">{m.common_footer_terms()}</Link>
           <Link to="/refunds">{m.common_footer_refunds()}</Link>

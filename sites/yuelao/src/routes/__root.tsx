@@ -47,7 +47,7 @@ function NotFound() {
           <Link to={localizeHref('/ritual')}>{m.common_not_found_ritual()}</Link>
         </li>
         <li>
-          <Link to={localizeHref('/sign/1')}>{m.common_not_found_signs()}</Link>
+          <Link to={localizeHref('/signs')}>{m.common_not_found_signs()}</Link>
         </li>
         <li>
           <a href={localizeHref('/llms.txt')}>{m.common_not_found_llms()}</a>
@@ -137,6 +137,8 @@ function Layout() {
       <footer className="site-footer">
         <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: tr(site.name) })}</span>
         <nav>
+          <Link to={localizeHref('/about')}>{getLocale() === 'en' ? 'About' : getLocale() === 'ja' ? '月下について' : getLocale() === 'zh-Hans' ? '关于月下' : '關於月下'}</Link>
+          <Link to={localizeHref('/methodology')}>{getLocale() === 'en' ? 'Sources & Methodology' : getLocale() === 'ja' ? '出典と解説方法' : getLocale() === 'zh-Hans' ? '来源与解读方法' : '來源與解讀方法'}</Link>
           <Link to="/privacy">{m.common_footer_privacy()}</Link>
           <Link to="/terms">{m.common_footer_terms()}</Link>
           <Link to="/refunds">{m.common_footer_refunds()}</Link>

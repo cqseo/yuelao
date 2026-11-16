@@ -52,6 +52,14 @@ export const Route = createFileRoute('/sign/$id')({
       image: `${site.url}/ritual/temple-fair.jpg`,
       jsonLd: [
         {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: tr(site.name), item: site.url },
+            { '@type': 'ListItem', position: 2, name: tr('月老靈籤100首總覽'), item: absoluteUrl(site, localizeHref('/signs', { locale })) },
+            { '@type': 'ListItem', position: 3, name: tr(stick.no), item: absoluteUrl(site, path) },
+          ],
+        },
+        {
           '@type': 'Article',
           headline: `${tr(stick.no)} ${tr(stick.grade)}`,
           inLanguage: locale,
@@ -77,7 +85,7 @@ function SignPage() {
   return (
     <article className="sign-page">
       <h1>
-        {tr(s.no)} · {tr(s.grade)}
+        {tr(site.name)} · {tr(s.no)} · {tr(s.grade)}
       </h1>
       <div className="sign-card">
         <div className="no">{tr(s.no)}</div>
@@ -88,6 +96,9 @@ function SignPage() {
         <img className="sign-knot-img" src={knotImage(s.knot)} alt="" loading="lazy" />
         <div className="knot">{tr(s.knotName)}</div>
       </div>
+      <p className="muted">
+        <Link to={localizeHref('/methodology')}>{getLocale() === 'en' ? 'Verse sources and reading methods' : getLocale() === 'ja' ? '詩の出典と解説方法' : getLocale() === 'zh-Hans' ? '签诗来源与解读方法' : '籤詩來源與解讀方法'}</Link>
+      </p>
       {resolved.fallback && <p className="muted">{m.ritual_locale_note()}</p>}
 
       <section className="sign-verdicts">
@@ -147,6 +158,7 @@ function SignPage() {
         <Link className="primary" to={localizeHref('/ritual')}>
           {m.sign_ritual_cta()}
         </Link>
+        <Link to={localizeHref('/signs')}>{tr('月老靈籤100首總覽')}</Link>
         <Link to="/">{m.sign_back_home()}</Link>
       </nav>
     </article>
