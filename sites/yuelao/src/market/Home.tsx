@@ -22,7 +22,7 @@ export const FAQS = [
 
 const NAV = [
   { to: '/market#enter', label: () => m.home_market_nav_market(), hard: true },
-  // 求籤在 3D 月老殿裡；一般版頁面仍在（下方「不進集市也可以」與搜尋引擎用）。問月老對話已拿掉（2026-11-13）
+  // 求籤只在 3D 月老殿裡。首頁與導覽可透過 #yuelao 直接開殿。
   { to: '/market#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
   { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true },
   { to: '/tests', label: () => m.home_market_nav_tests() },
@@ -62,9 +62,9 @@ const STEPS = [
 ];
 
 const WAYS = [
-  { to: '/ritual', name: () => m.home_market_way_ritual(), desc: () => m.home_market_way_ritual_desc() },
-  { to: '/daily', name: () => m.home_market_way_daily(), desc: () => m.home_market_way_daily_desc() },
-  { to: '/tests', name: () => m.home_market_way_tests(), desc: () => m.home_market_way_tests_desc() },
+  { to: '/market#yuelao', hard: true, name: () => m.home_market_way_ritual(), desc: () => m.home_market_way_ritual_desc() },
+  { to: '/daily', hard: false, name: () => m.home_market_way_daily(), desc: () => m.home_market_way_daily_desc() },
+  { to: '/tests', hard: false, name: () => m.home_market_way_tests(), desc: () => m.home_market_way_tests_desc() },
 ];
 
 export function Home() {
@@ -122,9 +122,9 @@ export function Home() {
               >
                 {m.home_market_enter()}
               </a>
-              <Link className="mh-plain" to={localizeHref('/ritual')}>
+              <a className="mh-plain" href={localizeHref('/market#yuelao')} data-rybbit-event="home_market_yuelao_direct">
                 {m.home_market_plain()}
-              </Link>
+              </a>
             </div>
             <p className="mh-note">{m.home_market_note()}</p>
           </div>
@@ -170,10 +170,17 @@ export function Home() {
           <ul className="mh-ways">
             {WAYS.map((w) => (
               <li key={w.to}>
-                <Link to={localizeHref(w.to)}>
-                  <b>{w.name()}</b>
-                  <span>{w.desc()}</span>
-                </Link>
+                {w.hard ? (
+                  <a href={localizeHref(w.to)}>
+                    <b>{w.name()}</b>
+                    <span>{w.desc()}</span>
+                  </a>
+                ) : (
+                  <Link to={localizeHref(w.to)}>
+                    <b>{w.name()}</b>
+                    <span>{w.desc()}</span>
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
