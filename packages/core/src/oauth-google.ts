@@ -63,9 +63,11 @@ function isReady(request: Request, env: CoreEnv, baseURL: string): boolean {
 }
 
 function redirectToLogin(request: Request, baseURL: string): Response {
-  const response = Response.redirect(new URL('/login?google=failed', baseURL).toString(), 303);
+  const response = new Response(null, {
+    status: 303,
+    headers: { location: new URL('/login?google=failed', baseURL).toString(), 'cache-control': 'private, no-store' },
+  });
   response.headers.append('set-cookie', verifierCookie(request, '', 0));
-  response.headers.set('cache-control', 'private, no-store');
   return response;
 }
 
