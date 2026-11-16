@@ -465,6 +465,7 @@ export function Market() {
       stop = startMarket(el, {
         onBootFailure: () => activateLite('boot'),
         onEvent: track,
+        locale,
         starters: COMPANION_STARTERS.map((s) => s[locale]),
         aiStatus: () => ({ available: !!ai?.enabled && !ai.loginRequired && ai.remaining !== 0 }),
         ask,
