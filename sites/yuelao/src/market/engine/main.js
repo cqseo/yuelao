@@ -171,6 +171,7 @@ export function startMarket(root, opts = {}) {
   let film;
 
   async function start() {
+    const bootStartedAt = performance.now();
     await step('正在備墨', 6);
     try {
       await Promise.all([
@@ -256,10 +257,16 @@ export function startMarket(root, opts = {}) {
     on('resize', resize);
     applyCam();
     await step('正在點燈', 90);
-    for (const s of Object.values(rooms)) renderer.compile(s.scene, s.camera);
+    // Compile only the requested room before showing the scene. Other rooms
+    // compile on first entry; visitors linking to Yuelao need not wait for tarot,
+    // hall and sutra GPU shader compilation before the ritual can start.
+    const requested = location.hash === '#ask' ? 'yuelao' : location.hash.slice(1);
+    const entryRoom = rooms[requested];
+    if (entryRoom) renderer.compile(entryRoom.scene, entryRoom.camera);
     render(0);
     await step('開市了', 100);
     boot.classList.add('gone');
+    emit('market_boot_ready', { durationMs: Math.round(performance.now() - bootStartedAt), deepLink: Boolean(location.hash) });
     menu.classList.add('show');
     mode = 'menu';
     raf = requestAnimationFrame(loop);
