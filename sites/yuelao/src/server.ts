@@ -99,6 +99,25 @@ export default {
         staging,
       );
     }
+    // GSC requires this exact HTML filename to return HTTP 200 without any
+    // redirect. Cloudflare Static Assets rewrites *.html to extensionless paths,
+    // so we serve the user's original verification bytes directly from Worker.
+    if (url.pathname === '/googlebf55c8128dcb3d0f.html' &&
+        (request.method === 'GET' || request.method === 'HEAD')) {
+      return withSecurityHeaders(
+        new Response(
+          request.method === 'HEAD' ? null : 'google-site-verification: googlebf55c8128dcb3d0f.html',
+          {
+            status: 200,
+            headers: {
+              'content-type': 'text/html; charset=utf-8',
+              'cache-control': 'public, max-age=300',
+            },
+          },
+        ),
+        staging,
+      );
+    }
     // OAuth originally returned to a child path under /login, which rendered the
     // login parent's form instead of completing navigation. Keep old bookmarks
     // working, while the new callback uses a top-level non-nested route.
