@@ -1,11 +1,13 @@
-name: HKD reference display and USD checkout
+name: HKD checkout and mixed-currency accounting
 
 on:
   pull_request:
     paths:
       - "sites/yuelao/**"
       - "packages/core/**"
-      - "tools/test-hkd-display.ts"
+      - "tools/test-hkd-checkout.ts"
+      - "tools/test-admin-stats.ts"
+      - "tools/test-checkout-failure.ts"
       - "pnpm-lock.yaml"
       - ".github/workflows/hkd-display-check.yml"
   workflow_dispatch:
@@ -14,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  validate-prices:
+  validate-hkd:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -31,7 +33,11 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Validate display-rate and USD charge invariant
-        run: pnpm exec tsx tools/test-hkd-display.ts
-      - name: Typecheck and build site
+      - name: HKD product currency and price invariants
+        run: pnpm exec tsx tools/test-hkd-checkout.ts
+      - name: Stripe checkout failure and recovery
+        run: pnpm exec tsx tools/test-checkout-failure.ts
+      - name: Multi-currency admin stats regression
+        run: pnpm exec tsx tools/test-admin-stats.ts
+      - name: Typecheck and build production site
         run: pnpm --filter ./sites/yuelao check
