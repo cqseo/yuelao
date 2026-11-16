@@ -44,7 +44,7 @@ function NotFound() {
           <Link to="/">{m.common_not_found_home()}</Link>
         </li>
         <li>
-          <Link to={localizeHref('/ritual')}>{m.common_not_found_ritual()}</Link>
+          <a href={localizeHref('/market#yuelao')}>{m.common_not_found_ritual()}</a>
         </li>
         <li>
           <Link to={localizeHref('/sign/1')}>{m.common_not_found_signs()}</Link>
@@ -87,12 +87,9 @@ function Layout() {
   useEffect(() => {
     trackPageView();
   }, [location.pathname]);
-  // 儀式頁全幅沉浸、不掛站點頭尾：location.pathname 是去本地化後的
-  // 路徑（/ritual）。
-  // 首頁（整頁重做）自帶頂欄與頁腳，同樣不掛站點外殼。
+  // 首頁與 3D 集市自帶頂欄與頁腳；沒有獨立的求籤功能頁。
   if (
     location.pathname === '/' ||
-    location.pathname === '/ritual' ||
     location.pathname === '/market' ||
     location.pathname === '/admin'
   ) {
@@ -106,7 +103,7 @@ function Layout() {
           {tr(site.name)}
         </Link>
         {/* 主導航：和首頁同一組、同一順序（DESIGN.md「頂欄一致」）。左上「月老」回首頁；
-            隱私權、服務條款只在頁腳。求籤、每日心箋都在 3D 集市裡，一般版頁面仍在。 */}
+            隱私權、服務條款只在頁腳。求籤入口直接到 3D 月老殿。 */}
         <nav className="site-nav" aria-label={m.common_nav_label()}>
           <a href={localizeHref('/market#enter')}>{m.home_market_nav_market()}</a>
           <a href={localizeHref('/market#yuelao')}>{m.home_market_nav_ritual()}</a>
