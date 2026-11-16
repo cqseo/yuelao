@@ -13,6 +13,11 @@ import sereneCss from '~/site/serene.css?url';
 import appCss from '~/site/styles.css?url';
 import site from '../../site.config';
 
+// Public Google Tag Manager container: enable only on the production website.
+// GTM tags themselves (including GA4) are configured and published in Google Tag Manager.
+const GTM_ID = 'GTM-KW3PZC25';
+const loadGoogleTag = !import.meta.env.DEV && import.meta.env.VITE_SITE_STAGING !== 'true';
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }],
@@ -61,9 +66,33 @@ function Document({ children }: { children: ReactNode }) {
   return (
     <html lang={getLocale()}>
       <head>
+        {loadGoogleTag && (
+          <>
+            {/* Google tag: production only; retain the website owner's supplied snippet. */}
+            <script async src={`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`} />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: "window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date());",
+              }}
+            />
+          </>
+        )}
         <HeadContent />
       </head>
       <body>
+        {/* Search Console GTM ownership checks require the noscript snippet
+            immediately after <body>, before other elements. */}
+        {loadGoogleTag && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: 'none', visibility: 'hidden' }}
+              title="Google Tag Manager"
+            />
+          </noscript>
+        )}
         {import.meta.env.VITE_SITE_STAGING === 'true' && (
           <div className="staging-notice" role="status">
             <strong>月老 2.0 · 預覽環境</strong>　僅供介面驗收，登入、AI 與付款均未啟用。
