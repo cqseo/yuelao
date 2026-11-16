@@ -39,6 +39,12 @@ export function Market() {
   useEffect(() => {
     const el = root.current;
     if (!el) return;
+    // Bookmarkable same-route fallback for low-end devices and deterministic QA.
+    if (new URLSearchParams(window.location.search).get('lite') === '1') {
+      track('market_lite_manual', { source: 'url' });
+      setLite(true);
+      return;
+    }
     let stop: (() => void) | undefined;
     let gone = false;
     const locale = contentLocale();
