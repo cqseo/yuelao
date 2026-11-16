@@ -15,6 +15,7 @@ import { dailyCheckinRequest } from './daily-checkin';
 import type { CoreEnv } from './env';
 import { hallOfferingRequest } from './hall-offering';
 import { errorResponse } from './http';
+import { finishGoogleLogin, startGoogleLogin } from './oauth-google';
 import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
 import type { SiteConfig } from './site';
@@ -73,6 +74,14 @@ export function createCore(site: SiteConfig) {
       verify: (request: Request) => verifyEmailCode(request, context().supabaseAnon),
       refresh: (request: Request) => refreshLogin(request, context().supabaseAnon),
       logout: (request: Request) => logoutUser(request, context().supabaseService),
+      googleStart: (request: Request) => {
+        const ctx = context();
+        return startGoogleLogin(request, ctx.env, ctx.baseURL);
+      },
+      googleCallback: (request: Request) => {
+        const ctx = context();
+        return finishGoogleLogin(request, ctx.env, ctx.baseURL);
+      },
     },
     companion: {
       status: async (request: Request) => {
