@@ -188,14 +188,18 @@ export function LiteMarket() {
     track('checkout_start', { product: 'unlock_1', from: 'market', lite: true });
     try {
       const response = await liteCheckout(result.id, situation);
-      if (response.state === 'login' || response.state === 'redirect') {
-        if (!saveLitePending(result.id, situation, question, response.state === 'login' ? 'login' : 'pay')) {
+      if (response.state === 'login') {
+        if (!saveLitePending(result.id, situation, question, 'login')) {
           setMessage(payC.storage);
           return;
         }
-        window.location.assign(
-          response.state === 'login' ? localizeHref('/login') : response.url,
-        );
+        window.location.assign(localizeHref('/login'));
+      } else if (response.state === 'redirect') {
+        if (!saveLitePending(result.id, situation, question, 'pay')) {
+          setMessage(payC.storage);
+          return;
+        }
+        window.location.assign(response.url);
       } else if (response.state === 'owned') {
         setPayment('checking');
         setRefresh((n) => n + 1);
