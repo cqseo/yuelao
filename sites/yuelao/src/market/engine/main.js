@@ -99,6 +99,7 @@ export function startMarket(root, opts = {}) {
     askStarters: () => opts.starters || [],
     aiStatus: () => opts.aiStatus?.() || { available: false },
     look: () => ({ ...avatar.state }),
+    locale: opts.locale || 'zh-Hant',
     deep: opts.deep || null,
     spread: opts.spread || null,
     leave: () => leaveRoom(),
