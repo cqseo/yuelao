@@ -37,7 +37,8 @@ function createOAuthClient(env: CoreEnv, request: Request, state: { verifier: st
     auth: {
       flowType: 'pkce',
       autoRefreshToken: false,
-      persistSession: false,
+      // Keep PKCE storage active; the adapter deliberately ignores session tokens.
+      persistSession: true,
       detectSessionInUrl: false,
       storage: {
         getItem: (key: string) => (key.endsWith('-code-verifier') ? readVerifier(request) : null),
