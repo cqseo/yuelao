@@ -7,7 +7,7 @@ import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
 
 // 首頁（整頁重做，2026-11-12）：月下集市的門面，內容在 ~/market/Home。
-// 舊的問事總目版式已整個換掉；求籤、心箋、問月老、測驗各自的頁面不變，首頁只留入口。
+// 求籤只在 3D 月老殿；首頁直達 #yuelao。簽文查閱與測驗等資訊頁仍可被索引。
 export const Route = createFileRoute('/')({
   head: () => {
     const head = pageHead(site, {

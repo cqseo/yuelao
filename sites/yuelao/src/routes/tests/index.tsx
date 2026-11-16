@@ -83,9 +83,9 @@ function TestsIndex() {
                 '這些測驗由本站編寫，屬於自我反思工具，並非臨床心理量表。答題內容僅在目前頁面計算；不收集你的具體選項。',
               )}
         </p>
-        <Link to={localizeHref('/ritual')}>
-          {zh ? '或者，先去求一支月老签' : tr('或者，先去求一支月老籤')}
-        </Link>
+        <a href={localizeHref('/market#yuelao')}>
+          {zh ? '或者，进月老殿求一支签' : tr('或者，進月老殿求一支籤')}
+        </a>
       </aside>
     </div>
   );

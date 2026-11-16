@@ -542,8 +542,8 @@ export function Market() {
           <button type="button" className="seal" id="enter">
             {tr('入市')}
           </button>
-          <a className="ghost" href={localizeHref('/ritual')}>
-            {tr('改用一般版求籤')}
+          <a className="ghost" href={localizeHref('/')}>
+            {tr('返回首頁')}
           </a>
         </div>
         <small>{tr('今晚開張：月老殿、塔羅館、大殿、抄經閣、許願池')}</small>
@@ -557,8 +557,8 @@ export function Market() {
           <div id="boot-bar" />
         </div>
         <p id="boot-text">{tr('正在點燈')}</p>
-        <a className="ghost" href={localizeHref('/ritual')}>
-          {tr('改用一般版求籤')}
+        <a className="ghost" href={localizeHref('/')}>
+          {tr('返回首頁')}
         </a>
       </div>
     </div>

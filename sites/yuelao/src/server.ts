@@ -1,4 +1,5 @@
 import handler from '@tanstack/react-start/server-entry';
+import { legacyRitualDestination } from './market/legacy-ritual';
 import { proxyRybbit } from '@yuelao/core/analytics';
 import { paraglideMiddleware } from '~/paraglide/server.js';
 import './i18n/strategy';
@@ -98,11 +99,20 @@ export default {
         staging,
       );
     }
+    // Retired 2D ritual pages: a direct browser URL now opens the real 3D Yuelao hall.
+    // Preserve only the language prefix; never carry private `q` text to a new URL.
+    if (request.method === 'GET' || request.method === 'HEAD') {
+      const target = legacyRitualDestination(url);
+      if (target) return withSecurityHeaders(Response.redirect(target, 301), staging);
+    }
     // Old /hk/* prefix (P1–P6) is retired: 301 to the same path without it.
-    // /hk → /, /hk/ritual → /ritual, /hk/sign/6 → /sign/6. Query kept.
+    // /hk → /, /hk/ritual → /market#yuelao, /hk/sign/6 → /sign/6.
     if (url.pathname === '/hk' || url.pathname.startsWith('/hk/')) {
       const target = url.pathname === '/hk' ? '/' : url.pathname.slice(3);
       const dest = new URL(target + url.search, url.origin);
+      // Legacy /hk/ritual should not strand a visitor at the removed 2D page.
+      const hall = legacyRitualDestination(dest);
+      if (hall) return withSecurityHeaders(Response.redirect(hall, 301), staging);
       return withSecurityHeaders(Response.redirect(dest, 301), staging);
     }
     // 大殿同拜的 WebSocket：交給對應那間殿的 Durable Object。只收同源的升級請求；

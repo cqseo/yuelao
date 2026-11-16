@@ -144,9 +144,9 @@ function SignPage() {
       </section>
 
       <nav className="sign-nav">
-        <Link className="primary" to={localizeHref('/ritual')}>
+        <a className="primary" href={localizeHref('/market#yuelao')}>
           {m.sign_ritual_cta()}
-        </Link>
+        </a>
         <Link to="/">{m.sign_back_home()}</Link>
       </nav>
     </article>

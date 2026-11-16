@@ -1,0 +1,35 @@
+name: Market-only ritual route verification
+
+on:
+  pull_request:
+    paths:
+      - "sites/yuelao/**"
+      - "tools/test-market-ritual-entry.ts"
+      - ".github/workflows/market-ritual-entry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-market-ritual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Test legacy redirects and entry links
+        run: pnpm exec tsx tools/test-market-ritual-entry.ts
+      - name: Typecheck and build
+        run: pnpm --filter ./sites/yuelao check
