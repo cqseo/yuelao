@@ -1,6 +1,7 @@
 import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
 import { useEffect, useRef, useState } from 'react';
 import { LiteMarket } from './LiteMarket';
+import { hasLitePending } from './lite-pending';
 import { track } from '~/lib/track';
 import { COMPANION_STARTERS, type CompanionTheme, guidedReply } from '~/site/companion';
 import site from '../../site.config';
@@ -40,7 +41,7 @@ export function Market() {
     const el = root.current;
     if (!el) return;
     // Bookmarkable same-route fallback for low-end devices and deterministic QA.
-    if (new URLSearchParams(window.location.search).get('lite') === '1') {
+    if (new URLSearchParams(window.location.search).get('lite') === '1' || hasLitePending()) {
       track('market_lite_manual', { source: 'url' });
       setLite(true);
       return;

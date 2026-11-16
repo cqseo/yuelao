@@ -23,3 +23,58 @@
 .lite-market__nav a { color:#dcbb7c; min-height:44px; display:inline-flex; align-items:center; }
 .lite-market :focus-visible { outline:2px solid #dcbb7c; outline-offset:3px; }
 @media(max-width:440px){.lite-market__paper{padding:1.1rem}.lite-market__choices button{flex:1 1 40%;}}
+
+
+/* Paid AI upgrade inside the same accessible, low-power market page. */
+.lite-market__premium {
+  margin-top: 1.35rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid rgba(220,187,124,.7);
+  border-radius: 6px;
+  background: rgba(32,24,34,.98);
+}
+.lite-market__premium h2 {
+  margin: 0 0 .5rem;
+  color: #f1daaa;
+  font-size: clamp(1.18rem, 3.5vw, 1.5rem);
+}
+.lite-market__premium a { color: #f5d59d; text-decoration: underline; }
+.lite-market__price { display:block; color:#f6d29a; font-size:1.85rem; line-height:1.5; font-weight:700; }
+.lite-market__premium > p { margin:.5rem 0 .85rem; font-size:.88rem; }
+.lite-market__consent {
+  display:flex!important;
+  gap:.6rem;
+  align-items:flex-start;
+  margin:1rem 0;
+  font-size:.84rem;
+  line-height:1.7;
+  cursor:pointer;
+}
+.lite-market__consent input { flex:none; width:20px; height:20px; margin-top:.25rem; accent-color:#d6b57b; }
+.lite-market__pay, .lite-market__retry {
+  display:block;
+  width:100%;
+  min-height:52px;
+  padding:.75rem 1rem;
+  border:1px solid #f4d6a4;
+  border-radius:5px;
+  background:#aa3229;
+  color:#fff7eb;
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+}
+.lite-market__retry { background:#30273a; }
+.lite-market__pay:disabled, .lite-market__retry:disabled { opacity:.45; cursor:not-allowed; }
+.lite-market__warning { color:#ffe0ac; border-left:3px solid #d6b57b; padding-left:.75rem; }
+.lite-market__deep-body {
+  margin:.85rem 0;
+  padding:1rem;
+  background:#efe5cf;
+  border-radius:6px;
+  color:#34221c;
+  font-size:.98rem;
+  line-height:1.9;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
