@@ -866,6 +866,7 @@ export function createYuelao(ui) {
         stick = kept;
         cat = back.category;
         draftQ = back.question || '';
+        readingEmitted = true; // Returning from login/payment is not a new reading.
         resetHero();
         if (back.why === 'pay' && ui.deep.cancelled) {
           // 在付款頁按了返回：沒有付款，回到判詞
