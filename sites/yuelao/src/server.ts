@@ -34,9 +34,9 @@ export { PlazaRoom } from './plaza-room';
 
 // CSP: TanStack Start's streaming/hydration uses an inline <script> and
 // React renders inline style attributes, so script/style need
-// 'unsafe-inline' — a nonce-based policy is not available here. Everything
-// else is 'self'-only; the app loads no third-party scripts, fonts or
-// images (analytics, when enabled, is proxied through our own /stats/).
+// 'unsafe-inline' — a nonce-based policy is not available here. External
+// scripts and tracking connections are explicitly restricted to Google's
+// Tag Manager and Analytics origins; all other origins stay blocked.
 // DeviceMotion (shake) needs no CSP permission; do NOT add a
 // Permissions-Policy that disables accelerometer/gyroscope.
 // 最多開幾間殿（每間 60 人）；滿了客戶端會試下一間。
@@ -45,7 +45,7 @@ const MAX_PLAZAS = 50;
 
 const SECURITY_HEADERS: Record<string, string> = {
   'content-security-policy':
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com; font-src 'self'; connect-src 'self' blob: https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com; frame-src https://www.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
   'x-frame-options': 'DENY',
