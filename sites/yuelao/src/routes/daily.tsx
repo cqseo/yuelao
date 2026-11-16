@@ -215,9 +215,9 @@ function DailyPage() {
         <span className="serene-eyebrow">{t('讓今天再多一點溫柔', '让今天再多一点温柔')}</span>
         <h2>{t('有心事，還可以慢慢說。', '有心事，还可以慢慢说。')}</h2>
         <div>
-          <Link to={localizeHref('/ritual')}>
-            {t('免費求一支籤', '免费求一支签')} <span>↗</span>
-          </Link>
+          <a href={localizeHref('/market#yuelao')}>
+            {t('去月老殿免費求籤', '去月老殿免费求签')} <span>↗</span>
+          </a>
           <Link to={localizeHref('/tests')}>
             {t('做一個情感測驗', '做一个情感测试')} <span>↗</span>
           </Link>
