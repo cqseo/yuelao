@@ -8,5 +8,6 @@ export const getPublicConfig = createServerFn({ method: 'GET' }).handler(async (
   return {
     supabaseUrl: env.SUPABASE_URL || null,
     supabaseAnonKey: env.SUPABASE_ANON_KEY || null,
+    googleAuthEnabled: env.GOOGLE_AUTH_ENABLED === 'true' && Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY),
   };
 });
