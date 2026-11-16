@@ -709,7 +709,6 @@ export function createTarot(ui) {
         <p class="deep-teaser">${esc(teaser)}</p>
         <p class="unlock-note">上面是每張牌各自的意思。完整解讀把三張連起來，七段都只寫你問的那件事。</p>
         <button class="offer" id="deep-btn" data-a="deep">解鎖完整解讀　${ui.spread.price}</button>
-        <p class="note small">${ui.spread.currencyNote || ''}</p>
         <p class="note small unlock-login" id="deep-login" hidden>需先登入（免費），登入完會回到這一把牌。</p>
         <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
         ${tarotSampleHtml()}
