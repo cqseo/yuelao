@@ -36,7 +36,7 @@
   "legal_terms_liability_heading": "Limitation of liability",
   "legal_terms_meta_description": "The rules for using {siteName}.",
   "legal_terms_meta_title": "Terms of Service — {siteName}",
-  "legal_terms_payment_body": "Prices are shown in US dollars and include tax; nothing is added at checkout. In-depth readings are a one-time payment with permanent access and never auto-renew; question-pack credits don't expire and are used one at a time. Payments are processed by Stripe; you can pay by card, Apple Pay, Google Pay, WeChat Pay and more. The checkout page may show the amount converted to your local currency; the amount shown at checkout is what you are charged.",
+  "legal_terms_payment_body": "All listed prices and Stripe charges are in Hong Kong dollars (HKD), including tax; no tax is added at checkout. In-depth readings are one-time purchases with permanent access and no auto-renewal. Question-pack credits do not expire and are used one at a time. Stripe processes payment; the payment methods offered may vary. A bank or card issuer may convert HKD into your account currency and charge a fee. Previously placed orders retain the currency in which they were originally paid.",
   "legal_terms_payment_heading": "Payment and unlocking",
   "legal_terms_seller_body": "This site is run by WEBPAY (Hong Kong). When you buy here, WEBPAY is the seller, and your card or WeChat statement will show WEBPAY. For any question about a purchase, charge or refund, email us at the address below and we will handle it directly.",
   "legal_terms_seller_heading": "Who you are buying from",
