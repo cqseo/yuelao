@@ -281,6 +281,14 @@ export function createYuelao(ui) {
     npc.talk();
     ui.say(npc.name, text);
   };
+  const QUICK_QUESTIONS = {
+    'zh-Hant': ['我們還有機會嗎？', '我該主動聯繫嗎？', '近期怎樣遇見適合的人？'],
+    'zh-Hans': ['我们还有机会吗？', '我该主动联系吗？', '近期怎样遇见合适的人？'],
+    en: ['Does this relationship have a chance?', 'Should I reach out first?', 'How can I meet someone compatible?'],
+    ja: ['この関係にまだ可能性はある？', '自分から連絡すべき？', '良い出会いのために何をすればいい？'],
+    ko: ['이 관계에 아직 기회가 있을까요?', '제가 먼저 연락해야 할까요?', '어떻게 좋은 사람을 만날 수 있을까요?'],
+    th: ['ความสัมพันธ์นี้ยังมีโอกาสไหม?', 'ฉันควรติดต่อก่อนหรือไม่?', 'ทำอย่างไรจึงจะพบคนที่เหมาะสม?'],
+  };
   const PICK_LINES = {
     him: '心裡有人了。那就搖吧，籤筒不會騙你。',
     single: '還沒遇到？緣分這條線，我替你找找。',
@@ -289,6 +297,7 @@ export function createYuelao(ui) {
 
   // ---------- flow ----------
   let state = 'idle';
+  let readingEmitted = false;
   let cat = 'him';
   let stick = null;
   let energy = 0;
@@ -318,6 +327,8 @@ export function createYuelao(ui) {
          <h2>你想問月老什麼</h2>
          <label class="ask-q"><textarea id="ask-q" maxlength="${Q_MAX}" rows="3" placeholder="例：我和他還有機會嗎">${esc(draftQ)}</textarea>
            <span class="ask-meta"><span>一件具體的事，說清楚一點</span><span id="ask-n">${[...draftQ].length}/${Q_MAX}</span></span></label>
+         <p class="kicker">常見問法 · 點一下帶入</p>
+         <div class="chips quick-questions">${(QUICK_QUESTIONS[ui.locale] || QUICK_QUESTIONS['zh-Hant']).map((q,i)=>`<button type="button" data-a="quick:${i}">${esc(q)}</button>`).join('')}</div>
          <p class="kicker">你現在的情況</p>
          <div class="chips sits">${SITS.map(
            (x) =>
@@ -328,6 +339,15 @@ export function createYuelao(ui) {
          <button class="seal" data-a="go">求籤</button>`,
         (a) => {
           if (a === 'daily') return dailySign();
+          if (a.startsWith('quick:')) {
+            const i = Number(a.slice(6));
+            const pick = (QUICK_QUESTIONS[ui.locale] || QUICK_QUESTIONS['zh-Hant'])[i];
+            if (pick) {
+              draftQ = pick;
+              ui.emit?.('quick_question_click', { index: i });
+              return render();
+            }
+          }
           if (a.startsWith('sit:')) {
             sit = a.slice(4);
             try {
@@ -340,6 +360,7 @@ export function createYuelao(ui) {
             if ([...q].length < 2) return render('先寫下想問的事，一句話就好。');
             draftQ = q;
             cat = (SITS.find((x) => x.key === sit) || SITS[0]).cat;
+            ui.emit?.('ritual_begin', { category: cat, lite: false, hasQuestion: true });
             say(PICK_LINES[cat]);
             showShake();
           }
@@ -359,6 +380,7 @@ export function createYuelao(ui) {
   }
 
   function showShake() {
+    readingEmitted = false;
     state = 'shake';
     energy = 0;
     stick = STICKS[Math.floor(Math.random() * STICKS.length)];
@@ -594,6 +616,10 @@ export function createYuelao(ui) {
       </section>`;
   }
   function verdict() {
+    if (!readingEmitted && stick) {
+      readingEmitted = true;
+      ui.emit?.('reading_done', { category: cat, lite: false, stickId: stick.id });
+    }
     state = 'verdict';
     ui.panel('');
     say('判詞寫好了，拿去看。往下還有白話和完整解籤。');
