@@ -50,7 +50,7 @@ const PAY: Record<string, {
 }> = {
   'zh-Hant': {
     title: '付費完整解籤', note: '單次港幣 HKD 付款。已解鎖同一支籤與情境時，不再重複收費。',
-    consent: '我已閱讀條款和隱私說明，同意將自願輸入的問題交由第三方 AI 生成個人化解籤。',
+    consent: '我已閱讀條款和隱私說明，同意將自願輸入的問題提供給第三方自動化解讀服務，用於生成個人化解籤。',
     buy: '解鎖完整解籤', generate: '請月老寫我的完整解籤', view: '在帳戶查看完整解籤',
     checking: '正在核對有沒有已購權益…', generating: '正在寫完整解籤，請勿重複付款…',
     pending: '付款尚未確認，請勿重複付款。可稍後再核對或在帳戶查看紀錄。',
@@ -61,7 +61,7 @@ const PAY: Record<string, {
   },
   'zh-Hans': {
     title: '付费完整解签', note: '单次港币 HKD 付款。已解锁同一支签与情境不会重复收费。',
-    consent: '我已阅读条款和隐私说明，同意将自愿输入的问题提供给第三方 AI 生成个性化解签。',
+    consent: '我已阅读条款和隐私说明，同意将自愿输入的问题提供给第三方自动化解读服务，用于生成个性化解签。',
     buy: '解锁完整解签', generate: '请月老写我的完整解签', view: '在账户查看完整解签',
     checking: '正在核对已购权益…', generating: '正在生成完整解签，请勿重复付款…',
     pending: '付款尚未确认，请勿重复付款。可稍后核对或在账户查看订单。',
@@ -72,7 +72,7 @@ const PAY: Record<string, {
   },
   en: {
     title: 'Optional paid in-depth reading', note: 'Actual charge is in HKD. The same stick/category is never charged twice after unlocking.',
-    consent: 'I have read the Terms and Privacy Policy, and agree to send my optional question to a third-party AI service to create a personalized reading.',
+    consent: 'I have read the Terms and Privacy Policy, and agree that my optional question may be sent to a third-party automated reading service to generate a personalized interpretation.',
     buy: 'Unlock full reading', generate: 'Generate my full reading', view: 'View saved reading in my account',
     checking: 'Checking existing access…', generating: 'Generating your reading. Do not pay again…',
     pending: 'Payment has not yet been confirmed. Do not pay again; check later or view your account.',
@@ -83,7 +83,7 @@ const PAY: Record<string, {
   },
   ja: {
     title: '有料の詳しい解説', note: '実際の請求通貨は香港ドル（HKD）です。同じおみくじと状況は二重請求しません。',
-    consent: '利用規約とプライバシーポリシーを読み、任意の質問を第三者AIサービスに送信することに同意します。',
+    consent: '利用規約とプライバシーポリシーを読み、任意で入力した質問を個別の解説生成のため第三者の自動解説サービスへ送信することに同意します。',
     buy: '詳しい解説を購入', generate: '詳しい解説を生成', view: '購入済みの解説を見る',
     checking: '権利を確認しています…', generating: '生成しています。再度支払わないでください…',
     pending: 'まだ決済が確認できません。再度支払わず、しばらく後で確認してください。',
