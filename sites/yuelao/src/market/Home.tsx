@@ -2,8 +2,9 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { LangMenu } from '~/i18n/LangMenu';
 import { tr } from '~/i18n/ui';
+import { track } from '~/lib/track';
 import { m } from '~/paraglide/messages.js';
-import { localizeHref } from '~/paraglide/runtime.js';
+import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { SUPPORT_EMAIL } from '~/site/legal';
 import site from '../../site.config';
 import './home.css';
@@ -61,7 +62,16 @@ const STEPS = [
   { title: () => m.home_market_how_3(), desc: () => m.home_market_how_3_desc() },
 ];
 
+const INDEX_COPY: Record<string, { name: string; desc: string }> = {
+  'zh-Hant': { name: '百籤總覽', desc: '從第一籤到第一百籤，查原文、吉凶與解說。' },
+  'zh-Hans': { name: '百签总览', desc: '从第一签到第一百签，查看签诗、吉凶与解说。' },
+  en: { name: 'All 100 oracle sticks', desc: 'Browse each verse, grade and relationship interpretation.' },
+  ja: { name: '全100首のおみくじ', desc: '原文と吉凶・恋愛の解説を読む。' },
+};
+const indexCopy = () => INDEX_COPY[getLocale()] ?? INDEX_COPY.en!;
+
 const WAYS = [
+  { to: '/signs', hard: false, name: () => indexCopy().name, desc: () => indexCopy().desc },
   { to: '/market#yuelao', hard: true, name: () => m.home_market_way_ritual(), desc: () => m.home_market_way_ritual_desc() },
   { to: '/daily', hard: false, name: () => m.home_market_way_daily(), desc: () => m.home_market_way_daily_desc() },
   { to: '/tests', hard: false, name: () => m.home_market_way_tests(), desc: () => m.home_market_way_tests_desc() },
@@ -112,17 +122,18 @@ export function Home() {
         <section className="mh-hero" aria-labelledby="mh-title">
           <img className="mh-hero-img" src="/market/plaza.jpg" alt="" fetchPriority="high" />
           <div className="mh-hero-copy">
-            <h1 id="mh-title">{m.home_market_title()}</h1>
+            <h1 id="mh-title">{m.home_market_title()}<span className="mh-title-seo">{m.home_title()}</span></h1>
             <p className="mh-lead">{m.home_market_lead()}</p>
             <div className="mh-actions">
               <a
                 className="mh-enter"
                 href={localizeHref('/market#enter')}
                 data-rybbit-event="home_market_enter"
+                onClick={() => track('home_market_enter_click', { destination: 'market' })}
               >
                 {m.home_market_enter()}
               </a>
-              <a className="mh-plain" href={localizeHref('/market#yuelao')} data-rybbit-event="home_market_yuelao_direct">
+              <a className="mh-plain" href={localizeHref('/market#yuelao')} data-rybbit-event="home_market_yuelao_direct" onClick={() => track('home_yuelao_click', { destination: 'market_yuelao' })}>
                 {m.home_market_plain()}
               </a>
             </div>
@@ -141,7 +152,7 @@ export function Home() {
                 {r.hash ? (
                   <a
                     href={localizeHref(`/market#${r.hash}`)}
-                    data-rybbit-event={`home_market_room_${r.hash}`}
+                    data-rybbit-event={`home_market_room_${r.hash}`} onClick={() => track('home_room_click', { room: r.hash })}
                   >
                     {m.home_market_room_go()}
                   </a>
@@ -224,6 +235,8 @@ export function Home() {
       <footer className="mh-foot">
         <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: tr(site.name) })}</span>
         <nav>
+          <Link to={localizeHref('/about')}>{getLocale() === 'en' ? 'About YUEXIA' : getLocale() === 'ja' ? '月下について' : getLocale() === 'zh-Hans' ? '关于月下' : '關於月下'}</Link>
+          <Link to={localizeHref('/methodology')}>{getLocale() === 'en' ? 'Sources & methodology' : getLocale() === 'ja' ? '出典と解説方法' : getLocale() === 'zh-Hans' ? '来源与解读方法' : '來源與解讀方法'}</Link>
           <Link to="/privacy">{m.common_footer_privacy()}</Link>
           <Link to="/terms">{m.common_footer_terms()}</Link>
           <Link to="/refunds">{m.common_footer_refunds()}</Link>

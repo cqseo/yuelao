@@ -128,6 +128,7 @@
   letter-spacing: 0.14em;
   text-shadow: 0 4px 40px rgba(0, 0, 0, 0.7);
 }
+.mh-title-seo { display:block; margin-top:0.6rem; color:var(--paper-70); font-size:clamp(1rem,2.4vw,1.5rem); font-weight:400; line-height:1.6; letter-spacing:0.09em; }
 .mh-lead {
   max-width: 27rem;
   margin: 1rem 0 1.75rem;
@@ -160,7 +161,11 @@
   background: #c53c33;
 }
 .mh-plain {
-  min-height: 44px;
+  min-height: 56px;
+  padding: 0.65rem 1.2rem;
+  border: 1px solid rgba(220,187,124,0.72);
+  border-radius: 3px;
+  background: rgba(7,8,18,0.48);
   display: inline-flex;
   align-items: center;
   font-size: 0.9375rem;
@@ -170,6 +175,7 @@
   text-underline-offset: 6px;
 }
 .mh-plain:hover {
+  background: rgba(220,187,124,0.13);
   color: var(--paper);
 }
 .mh-note {

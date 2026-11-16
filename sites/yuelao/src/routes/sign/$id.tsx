@@ -44,13 +44,22 @@ export const Route = createFileRoute('/sign/$id')({
     if (!stick) return { meta: [{ name: 'robots', content: 'noindex' }] };
     const locale = getLocale();
     const path = localizeHref(`/sign/${stick.id}`, { locale });
-    const firstLine = stick.poem.split('\n')[0] ?? '';
+    // First lines often end with punctuation; description templates add their own separator.
+    const firstLine = (stick.poem.split('\n')[0] ?? '').replace(/[，,。、；;：:\s]+$/u, '');
     return pageHead(site, {
       title: m.sign_meta_title({ no: tr(stick.no), grade: tr(stick.grade) }),
       description: m.sign_meta_description({ no: tr(stick.no), grade: tr(stick.grade), line: firstLine }),
       path,
       image: `${site.url}/ritual/temple-fair.jpg`,
       jsonLd: [
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: '月下', item: site.url },
+            { '@type': 'ListItem', position: 2, name: '月老靈籤100首', item: absoluteUrl(site, localizeHref('/signs', { locale })) },
+            { '@type': 'ListItem', position: 3, name: tr(stick.no), item: absoluteUrl(site, path) },
+          ],
+        },
         {
           '@type': 'Article',
           headline: `${tr(stick.no)} ${tr(stick.grade)}`,
@@ -77,7 +86,7 @@ function SignPage() {
   return (
     <article className="sign-page">
       <h1>
-        {tr(s.no)} · {tr(s.grade)}
+        {getLocale() === 'en' ? 'Yuelao Oracle · ' : getLocale() === 'ja' ? '月老おみくじ · ' : getLocale() === 'zh-Hans' ? '月老灵签 · ' : '月老靈籤 · '}{tr(s.no)} · {tr(s.grade)}
       </h1>
       <div className="sign-card">
         <div className="no">{tr(s.no)}</div>
@@ -143,10 +152,14 @@ function SignPage() {
         </ul>
       </section>
 
+      <p className="muted">
+        <Link to={localizeHref('/methodology')}>{getLocale() === 'en' ? 'Verse sources and methodology' : getLocale() === 'ja' ? 'おみくじの出典と解説方法' : getLocale() === 'zh-Hans' ? '签诗来源与解读方法' : '籤詩來源與解讀方法'}</Link>
+      </p>
       <nav className="sign-nav">
         <a className="primary" href={localizeHref('/market#yuelao')}>
           {m.sign_ritual_cta()}
         </a>
+        <Link to={localizeHref('/signs')}>{getLocale() === 'en' ? 'All 100 sticks' : getLocale() === 'ja' ? '全100首一覧' : getLocale() === 'zh-Hans' ? '查看100支签' : '查看100支籤'}</Link>
         <Link to="/">{m.sign_back_home()}</Link>
       </nav>
     </article>

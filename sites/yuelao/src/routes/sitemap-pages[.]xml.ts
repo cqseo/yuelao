@@ -10,6 +10,9 @@ import site from '../../site.config';
 export const PAGES = [
   '/',
   '/market',
+  '/signs',
+  '/about',
+  '/methodology',
   '/tests',
   '/daily',
   ...TESTS.map((t) => `/tests/${t.slug}`),
