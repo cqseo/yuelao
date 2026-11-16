@@ -1,7 +1,7 @@
 # Google 一鍵登入接入與驗收（yuexia.app）
 
-**狀態：等待站長完成 Google Cloud OAuth + Supabase Google Provider 設定。**
-代碼在 `feat/google-oauth-pkce-login` 分支，`GOOGLE_AUTH_ENABLED=false`，此時不會在前端顯示 Google 按鈕。
+**狀態：Google Provider 已由 2026-11-16 的公開 OAuth 302 跳轉確認啟用；GitHub CI 5 項通過。待 PR 合併、正式部署和瀏覽器登入驗收。**
+代碼在 `feat/google-oauth-pkce-login` 分支，正式環境 `GOOGLE_AUTH_ENABLED=true`；只有合併進 `main` 並成功部署後，前端才會顯示按鈕。
 
 ## 站長在 Google Cloud 上操作
 
