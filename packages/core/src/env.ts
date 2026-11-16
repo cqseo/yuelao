@@ -9,6 +9,8 @@ export interface CoreEnv {
   SUPABASE_SERVICE_ROLE_KEY: string;
   /** Sender address shown on emails. */
   EMAIL_FROM: string;
+  /** Google login is gated until the Supabase Google provider + redirect allowlist are configured. */
+  GOOGLE_AUTH_ENABLED?: string;
   /** Overrides site.url in local dev, e.g. http://localhost:5173. */
   APP_URL?: string;
 
