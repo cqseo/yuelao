@@ -97,17 +97,162 @@ const PAY: Record<string, {
 
 export function LiteMarket() {
   const c = WORDS[getLocale()] ?? WORDS.en!;
+  const payC = PAY[getLocale()] ?? PAY.en!;
   const [situation, setSituation] = useState<Situation>('him');
   const [question, setQuestion] = useState('');
   const [result, setResult] = useState<Stick | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const [waitingForPayment, setWaitingForPayment] = useState(false);
+  const [payment, setPayment] = useState<PaymentStatus>('idle');
+  const [report, setReport] = useState('');
+  const [message, setMessage] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+  const inFlight = useRef(false);
+  const price = litePrice();
+
+  useEffect(() => {
+    // The normal login + Stripe return URL is /market#yuelao. Restore the
+    // same lite reading from sessionStorage, without ever putting the question in a URL.
+    const pending = takeLitePending();
+    const url = new URL(window.location.href);
+    const cancelled = url.searchParams.get('pay') === 'cancelled';
+    if (cancelled) {
+      url.searchParams.delete('pay');
+      window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    }
+    if (pending) {
+      setSituation(pending.category);
+      setQuestion(pending.question);
+      setResult(STICKS[pending.stickId - 1] ?? null);
+      setWaitingForPayment(pending.why === 'pay' && !cancelled);
+      if (cancelled) setMessage(payC.cancelled);
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || !result) return;
+    let cancelled = false;
+    const id = result.id;
+    const check = async () => {
+      setPayment('checking');
+      const attempts = waitingForPayment ? 35 : 1;
+      for (let i = 0; i < attempts; i++) {
+        const access = await liteCheck(id, situation);
+        if (cancelled) return;
+        if (access.state === 'ready' || access.state === 'unlocked') {
+          setPayment(access.state);
+          setReport(access.state === 'ready' ? access.body : '');
+          if (waitingForPayment) setWaitingForPayment(false);
+          return;
+        }
+        if (access.state === 'error') {
+          setPayment('error');
+          return;
+        }
+        if (!waitingForPayment) {
+          setPayment('none');
+          return;
+        }
+        if (i < attempts - 1) await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (!cancelled) setPayment('pending'); // Never offer a second charge after return.
+    };
+    void check();
+    return () => { cancelled = true; };
+  }, [hydrated, result, situation, refresh, waitingForPayment]);
+
   const draw = () => {
+    if (busy || waitingForPayment) return;
     const bytes = new Uint32Array(1);
     crypto.getRandomValues(bytes);
     const stick = STICKS[bytes[0]! % STICKS.length]!;
     setResult(stick);
+    setReport('');
+    setConsent(false);
+    setMessage('');
+    setPayment('checking');
+    setRefresh((n) => n + 1);
     track('ritual_begin', { category: situation, lite: true, hasQuestion: question.trim().length > 0 });
     track('reading_done', { category: situation, lite: true, stickId: stick.id });
   };
+
+  async function buy() {
+    if (!result || busy || inFlight.current || payment !== 'none' || !consent || !price) return;
+    inFlight.current = true;
+    setBusy(true);
+    setMessage('');
+    track('unlock_click', { product: 'unlock_1', lite: true });
+    track('checkout_start', { product: 'unlock_1', from: 'market', lite: true });
+    try {
+      const response = await liteCheckout(result.id, situation);
+      if (response.state === 'login' || response.state === 'redirect') {
+        if (!saveLitePending(result.id, situation, question, response.state === 'login' ? 'login' : 'pay')) {
+          setMessage(payC.storage);
+          return;
+        }
+        window.location.assign(
+          response.state === 'login' ? localizeHref('/login') : response.url,
+        );
+      } else if (response.state === 'owned') {
+        setPayment('checking');
+        setRefresh((n) => n + 1);
+      } else {
+        setMessage(response.state === 'closed' ? payC.failed : payC.failed);
+        setPayment('error');
+      }
+    } catch {
+      setMessage(payC.failed);
+      setPayment('error');
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function generate() {
+    if (!result || busy || inFlight.current || payment !== 'unlocked' || !consent) return;
+    inFlight.current = true;
+    setBusy(true);
+    setPayment('generating');
+    setMessage('');
+    try {
+      const status = await liteGenerate(result.id, situation, question);
+      if (status === 'error') {
+        setPayment('unlocked'); // Keep purchased entitlement and retry option.
+        setMessage(payC.failed);
+        return;
+      }
+      for (let i = 0; i < 30; i++) {
+        const access = await liteCheck(result.id, situation);
+        if (access.state === 'ready') {
+          setReport(access.body);
+          setPayment('ready');
+          setQuestion('');
+          track('deep_read', { product: 'unlock_1', lite: true });
+          return;
+        }
+        if (access.state === 'error') break;
+        if (i < 29) await new Promise((r) => setTimeout(r, 2500));
+      }
+      setPayment('unlocked');
+      setMessage(payC.failed);
+    } catch {
+      setPayment('unlocked');
+      setMessage(payC.failed);
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+
+  const readingHref = result ? localizeHref(liteReadingUrl(result.id, situation)) : '';
+  const checking = payment === 'checking' || payment === 'generating';
+  const canPurchase = payment === 'none';
+  const canGenerate = payment === 'unlocked';
+  const showConsent = canPurchase || canGenerate;
 
   return (
     <main className="lite-market">
@@ -132,18 +277,80 @@ export function LiteMarket() {
                   key={s}
                   type="button"
                   aria-pressed={situation === s}
-                  onClick={() => { setSituation(s); setResult(null); }}
+                  disabled={busy || waitingForPayment}
+                  onClick={() => {
+                    setSituation(s);
+                    setResult(null);
+                    setPayment('idle');
+                    setConsent(false);
+                    setMessage('');
+                    setWaitingForPayment(false);
+                  }}
                 >{c.choices[i]}</button>
               ))}
             </div>
           </fieldset>
-          <button className="lite-market__draw" type="button" onClick={draw}>{result ? c.again : c.draw}</button>
+          <button
+            className="lite-market__draw"
+            type="button"
+            disabled={busy || waitingForPayment}
+            onClick={draw}
+          >{result ? c.again : c.draw}</button>
           {result && (
             <section className="lite-market__result" aria-live="polite">
               <h2>{result.no} · {result.grade}</h2>
               <p className="lite-market__poem">{result.poem}</p>
               <p>{result.verdict[situation]}</p>
               <a href={localizeHref('/sign/' + result.id)}>{c.reading}</a>
+            </section>
+          )}
+          {result && (
+            <section className="lite-market__premium" aria-label={payC.title}>
+              <h2>{payC.title}</h2>
+              <strong className="lite-market__price">{price}</strong>
+              <p>{payC.note}</p>
+              {checking && <p role="status">{payment === 'generating' ? payC.generating : payC.checking}</p>}
+              {payment === 'ready' && (
+                <>
+                  <p>{payC.owned}</p>
+                  <div className="lite-market__deep-body">{report}</div>
+                  <a href={readingHref}>{payC.view}</a>
+                </>
+              )}
+              {canGenerate && <p>{payC.owned}</p>}
+              {showConsent && (
+                <>
+                  <label className="lite-market__consent">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                    />
+                    <span>
+                      {payC.consent}{' '}
+                      <a href={localizeHref('/terms')} target="_blank" rel="noopener noreferrer">Terms</a>
+                      {' · '}
+                      <a href={localizeHref('/privacy')} target="_blank" rel="noopener noreferrer">Privacy</a>
+                    </span>
+                  </label>
+                  <button
+                    className="lite-market__pay"
+                    type="button"
+                    disabled={!consent || busy || !price}
+                    onClick={() => void (canGenerate ? generate() : buy())}
+                  >{canGenerate ? payC.generate : payC.buy + ' · ' + price}</button>
+                </>
+              )}
+              {(payment === 'pending' || payment === 'error') && (
+                <>
+                  <p role="status">{payment === 'pending' ? payC.pending : payC.failed}</p>
+                  <button className="lite-market__retry" type="button" onClick={() => setRefresh((n) => n + 1)}>
+                    {payC.verify}
+                  </button>
+                </>
+              )}
+              {message && <p role="alert" className="lite-market__warning">{message}</p>}
+              <p><a href={localizeHref('/account')}>{payC.pack}</a></p>
             </section>
           )}
           <p className="lite-market__note">{c.notes}</p>
