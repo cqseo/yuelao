@@ -152,7 +152,22 @@ export function computeStats(input: StatsInput) {
   const paidCur = paid.filter((o) => inRange(Date.parse(o.paid_at as string)));
   const paidPrev = paid.filter((o) => inPrev(Date.parse(o.paid_at as string)));
   const net = (o: OrderRow) => Math.max(0, o.amount - (input.refunds.get(o.id) ?? 0));
-  const sum = (list: OrderRow[]) => list.reduce((s, o) => s + net(o), 0);
+  // Financial totals must never sum HKD cents and historical USD/TWD cents.
+  // HKD is the current selling currency; other paid orders stay in a separate breakdown.
+  const hkdPaid = (list: OrderRow[]) => list.filter((o) => o.currency.toUpperCase() === 'HKD');
+  const sum = (list: OrderRow[]) => hkdPaid(list).reduce((total, o) => total + net(o), 0);
+  const nonHkdByCurrency = new Map<string, { revenue: number; refunded: number; orders: number }>();
+  for (const o of paidCur) {
+    const currency = o.currency.toUpperCase();
+    if (currency === 'HKD') continue;
+    const item = nonHkdByCurrency.get(currency) ?? { revenue: 0, refunded: 0, orders: 0 };
+    item.orders++;
+    item.revenue += net(o);
+    item.refunded += Math.min(o.amount, input.refunds.get(o.id) ?? 0);
+    nonHkdByCurrency.set(currency, item);
+  }
+  const otherCurrencies = [...nonHkdByCurrency].map(([currency, totals]) => ({ currency, ...totals }))
+    .sort((a, b) => a.currency.localeCompare(b.currency));
   const signCur = input.profiles.filter((p) => inRange(Date.parse(p.created_at)));
   const signPrev = input.profiles.filter((p) => inPrev(Date.parse(p.created_at)));
 
@@ -170,9 +185,10 @@ export function computeStats(input: StatsInput) {
       value: new Set(paidCur.map((o) => o.user_id)).size,
       prev: new Set(paidPrev.map((o) => o.user_id)).size,
     },
-    refunded: paidCur.reduce((s, o) => s + Math.min(o.amount, input.refunds.get(o.id) ?? 0), 0),
+    refunded: hkdPaid(paidCur).reduce((s, o) => s + Math.min(o.amount, input.refunds.get(o.id) ?? 0), 0),
+    otherCurrencies,
     totalUsers: input.totalUsers,
-    currency: paidCur[0]?.currency ?? paid[0]?.currency ?? 'USD',
+    currency: 'HKD', // summary revenue is HKD-only; otherCurrencies is shown separately
   };
 
   // 每天一格（北京時間）；1 天的區間也給當天一格。
@@ -205,7 +221,7 @@ export function computeStats(input: StatsInput) {
     const d = byDay.get(dayKey(Date.parse(o.paid_at as string)));
     if (d) {
       d.orders++;
-      d.revenue += net(o);
+      if (o.currency.toUpperCase() === 'HKD') d.revenue += net(o);
     }
   }
 
@@ -367,7 +383,7 @@ export function computeStats(input: StatsInput) {
   for (const o of paidCur) {
     const p = products.get(o.product_id) ?? { count: 0, revenue: 0 };
     p.count++;
-    p.revenue += net(o);
+    if (o.currency.toUpperCase() === 'HKD') p.revenue += net(o);
     products.set(o.product_id, p);
   }
 
