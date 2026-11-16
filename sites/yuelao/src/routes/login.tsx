@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { tr } from '~/i18n/ui';
 import { track } from '~/lib/track';
+import { getPublicConfig } from '~/lib/public-config';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 
 export const Route = createFileRoute('/login')({
@@ -10,6 +11,45 @@ export const Route = createFileRoute('/login')({
   }),
   component: Login,
 });
+
+const GOOGLE_COPY: Record<string, { login: string; divider: string; failed: string; busy: string }> = {
+  'zh-Hant': {
+    login: '使用 Google 帳戶繼續',
+    divider: '或使用電子信箱登入',
+    failed: 'Google 登入未完成，請再試一次或改用電子信箱。',
+    busy: '正在前往 Google…',
+  },
+  'zh-Hans': {
+    login: '使用 Google 账号继续',
+    divider: '或使用邮箱登录',
+    failed: 'Google 登录未完成，请重试或使用邮箱登录。',
+    busy: '正在前往 Google…',
+  },
+  en: {
+    login: 'Continue with Google',
+    divider: 'Or sign in with email',
+    failed: 'Google sign-in did not complete. Try again or use email.',
+    busy: 'Opening Google…',
+  },
+  ja: {
+    login: 'Google でログイン',
+    divider: 'またはメールでログイン',
+    failed: 'Google ログインに失敗しました。再試行するかメールをご利用ください。',
+    busy: 'Google に移動しています…',
+  },
+  ko: {
+    login: 'Google로 계속하기',
+    divider: '또는 이메일로 로그인',
+    failed: 'Google 로그인에 실패했습니다. 다시 시도하거나 이메일을 사용해 주세요.',
+    busy: 'Google로 이동 중…',
+  },
+  th: {
+    login: 'ดำเนินการต่อด้วย Google',
+    divider: 'หรือเข้าสู่ระบบด้วยอีเมล',
+    failed: 'ไม่สามารถเข้าสู่ระบบด้วย Google ได้ โปรดลองอีกครั้งหรือใช้อีเมล',
+    busy: 'กำลังเปิด Google…',
+  },
+};
 
 function Login() {
   const zh = getLocale() === 'zh-Hans';
@@ -20,6 +60,27 @@ function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const googleCopy = GOOGLE_COPY[getLocale()] ?? GOOGLE_COPY.en!;
+
+  useEffect(() => {
+    if (import.meta.env.VITE_AUTH_ENABLED !== 'true') return;
+    let active = true;
+    void getPublicConfig()
+      .then((config) => {
+        if (active) setGoogleEnabled(config.googleAuthEnabled === true);
+      })
+      .catch(() => {
+        if (active) setGoogleEnabled(false);
+      });
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('google') === 'failed') {
+      setError((GOOGLE_COPY[getLocale()] ?? GOOGLE_COPY.en!).failed);
+      url.searchParams.delete('google');
+      window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    }
+    return () => { active = false; };
+  }, []);
 
   // Public V2 release: free tools are online; email login and paid
   // delivery only appear after live Auth/Stripe/AI integration is verified.
@@ -49,6 +110,32 @@ function Login() {
       body: JSON.stringify(data),
     });
     return res;
+  }
+
+  async function startGoogle() {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const res = await fetch('/api/auth/google/start', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: '{}',
+      });
+      const payload = (await res.json()) as { url?: string };
+      if (!res.ok || !payload.url) throw new Error('google_auth_unavailable');
+      const url = new URL(payload.url);
+      if (url.protocol !== 'https:' || !url.pathname.endsWith('/auth/v1/authorize')) {
+        throw new Error('unexpected_auth_url');
+      }
+      try { sessionStorage.setItem('yuelao-google-locale', getLocale()); } catch {}
+      window.location.assign(url.toString());
+    } catch {
+      setError(googleCopy.failed);
+      setBusy(false);
+    }
   }
 
   async function send() {
@@ -121,6 +208,20 @@ function Login() {
             '使用邮箱接收六位验证码。无需密码，你的订单和已购权益只会显示在自己的账户。',
           )}
         </p>
+        {step === 'email' && googleEnabled && (
+          <div className="auth-social">
+            <button className="auth-google-button" type="button" disabled={busy} onClick={() => void startGoogle()}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22">
+                <path fill="#4285F4" d="M21.35 12.2c0-.71-.06-1.39-.18-2.05H12v3.88h5.24a4.5 4.5 0 0 1-1.95 2.95v2.46h3.17c1.86-1.72 2.89-4.25 2.89-7.24z" />
+                <path fill="#34A853" d="M12 21.7c2.65 0 4.87-.88 6.49-2.38l-3.17-2.46c-.88.59-2 .94-3.32.94-2.56 0-4.73-1.73-5.51-4.05H3.22v2.53A9.81 9.81 0 0 0 12 21.7z" />
+                <path fill="#FBBC05" d="M6.49 13.75a5.89 5.89 0 0 1 0-3.5V7.72H3.22a9.81 9.81 0 0 0 0 8.56z" />
+                <path fill="#EA4335" d="M12 6.1c1.44 0 2.73.5 3.75 1.48l2.81-2.81A9.59 9.59 0 0 0 12 2.3a9.81 9.81 0 0 0-8.78 5.42l3.27 2.53C7.27 7.83 9.44 6.1 12 6.1z" />
+              </svg>
+              <span>{busy ? googleCopy.busy : googleCopy.login}</span>
+            </button>
+            <p className="auth-social-divider"><span>{googleCopy.divider}</span></p>
+          </div>
+        )}
         {step === 'email' ? (
           <form
             onSubmit={(e) => {
