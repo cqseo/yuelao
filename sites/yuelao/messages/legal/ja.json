@@ -36,7 +36,7 @@
   "legal_terms_liability_heading": "責任の制限",
   "legal_terms_meta_description": "{siteName}の利用ルール。",
   "legal_terms_meta_title": "利用規約 — {siteName}",
-  "legal_terms_payment_body": "価格は米ドル表示の税込みで、決済時に追加されることはありません。詳しい解説は1回払いでずっと閲覧でき、自動更新はありません。相談パックの回数は期限がなく、1回使うごとに1回分減ります。支払いはStripeが処理し、カード、Apple Pay、Google Pay、WeChat Payなどが使えます。決済ページでは地域に応じて現地通貨に換算した金額が表示される場合があり、実際の請求額は決済ページの表示どおりです。",
+  "legal_terms_payment_body": "表示価格とStripeでの実際の請求通貨は、いずれも香港ドル（HKD）です。税込み価格で、決済時に税が加算されることはありません。詳しい解説は1回払いで継続して閲覧でき、自動更新はありません。相談パックの回数に有効期限はありません。支払い方法はStripeの画面に表示されるものから選べます。カード会社がHKDを口座通貨に換算したり、手数料を請求したりする場合があります。過去の注文の通貨は変更されません。",
   "legal_terms_payment_heading": "支払いと解放",
   "legal_terms_seller_body": "本サイトはWEBPAY（香港）が運営しています。本サイトでの購入の販売者はWEBPAYで、カードやWeChatの明細にもWEBPAYと表示されます。購入・請求・返金に関するお問い合わせは、下記のメールアドレスまでご連絡ください。当社が直接対応します。",
   "legal_terms_seller_heading": "販売者",
