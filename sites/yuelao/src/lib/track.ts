@@ -1,5 +1,5 @@
 // 第一方行為紀錄：事件先排隊，攢一小批（或頁面要離開時）送到 /api/track，寫進自己的資料庫，給 /admin 後台看。
-// 不放第三方追蹤碼。訪客 id（vid）存在 localStorage，一次造訪的 id（sid）30 分鐘沒動作就換新。
+// 本模組仍為第一方統計；第三方 Google Tag Manager 由站點根文件載入。訪客 id（vid）存在 localStorage，一次造訪的 id（sid）30 分鐘沒動作就換新。
 // 若之後開了 Rybbit，事件也會照舊轉給它。
 
 type Props = Record<string, string | number | boolean>;
