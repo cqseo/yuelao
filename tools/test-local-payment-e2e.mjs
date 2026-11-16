@@ -42,7 +42,7 @@ const ITEM = {
   kind: 'item',
   name: 'QA item',
   prices: {
-    'zh-Hant': { amount: 399, currency: PACK3.currency },
+    'zh-Hant': { amount: 2800, currency: PACK3.currency },
     'zh-Hans': { amount: 399, currency: PACK3.currency },
   },
 };
