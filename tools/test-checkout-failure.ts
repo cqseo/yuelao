@@ -43,7 +43,7 @@ const req = () =>
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       productId: 'unlock_1',
-      currency: 'USD',
+      currency: 'HKD',
       locale: 'zh-Hant',
       from: 'market',
       stickId: 7,
