@@ -99,6 +99,22 @@ export default {
         staging,
       );
     }
+    // OAuth originally returned to a child path under /login, which rendered the
+    // login parent's form instead of completing navigation. Keep old bookmarks
+    // working, while the new callback uses a top-level non-nested route.
+    if (request.method === 'GET' || request.method === 'HEAD') {
+      const legacyOAuth = url.pathname.match(/^\/(?:(en|ja|th|ko)\/)?login\/complete\/?$/);
+      if (legacyOAuth) {
+        const path = legacyOAuth[1] ? `/${legacyOAuth[1]}/auth-complete` : '/auth-complete';
+        return withSecurityHeaders(
+          new Response(null, {
+            status: 302,
+            headers: { location: new URL(path, url.origin).toString(), 'cache-control': 'private, no-store' },
+          }),
+          staging,
+        );
+      }
+    }
     // Retired 2D ritual pages: a direct browser URL now opens the real 3D Yuelao hall.
     // Preserve only the language prefix; never carry private `q` text to a new URL.
     if (request.method === 'GET' || request.method === 'HEAD') {
