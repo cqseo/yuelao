@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { tr } from '~/i18n/ui';
 import { track } from '~/lib/track';
@@ -9,15 +9,8 @@ export const Route = createFileRoute('/login')({
   head: () => ({
     meta: [{ title: tr('月老 · 登入') }, { name: 'robots', content: 'noindex, nofollow' }],
   }),
-  component: LoginRoute,
+  component: Login,
 });
-
-// /login/complete is a nested file route. Render its Outlet rather than
-// accidentally displaying the parent login form after a successful OAuth callback.
-function LoginRoute() {
-  const { pathname } = useLocation();
-  return /(?:^|\/)login\/complete\/?$/.test(pathname) ? <Outlet /> : <Login />;
-}
 
 const GOOGLE_COPY: Record<string, { login: string; divider: string; failed: string; busy: string }> = {
   'zh-Hant': {
