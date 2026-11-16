@@ -1,5 +1,6 @@
 import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { LiteMarket } from './LiteMarket';
 import { track } from '~/lib/track';
 import { COMPANION_STARTERS, type CompanionTheme, guidedReply } from '~/site/companion';
 import site from '../../site.config';
@@ -9,7 +10,7 @@ import { watchTranslate } from '~/i18n/dom';
 import { LangMenu } from '~/i18n/LangMenu';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
 import { tr, uiDict } from '~/i18n/ui';
-import { localizeHref } from '~/paraglide/runtime.js';
+import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 
 type AiStatus = { enabled: boolean; loginRequired: boolean; dailyLimit: number; remaining?: number };
 
@@ -18,6 +19,8 @@ type AiStatus = { enabled: boolean; loginRequired: boolean; dailyLimit: number; 
 // 所以伺服器渲染和其他頁面都不會背到這包程式。
 export function Market() {
   const root = useRef<HTMLDivElement>(null);
+  const stopRef = useRef<(() => void) | undefined>(undefined);
+  const [lite, setLite] = useState(false);
 
   // 手機頂欄選單：點選單外面就收起來
   useEffect(() => {
@@ -450,9 +453,17 @@ export function Market() {
       track('market_npc_ask', { npc: 'yuelao', ai: !!o.ai });
       return answer;
     }
+    const activateLite = (reason: 'boot' | 'module') => {
+      if (gone) return;
+      track('market_3d_failure', { reason });
+      stopRef.current?.();
+      stopRef.current = undefined;
+      setLite(true);
+    };
     void import('./engine/main.js').then(({ startMarket }) => {
       if (gone) return;
       stop = startMarket(el, {
+        onBootFailure: () => activateLite('boot'),
         onEvent: track,
         starters: COMPANION_STARTERS.map((s) => s[locale]),
         aiStatus: () => ({ available: !!ai?.enabled && !ai.loginRequired && ai.remaining !== 0 }),
@@ -462,13 +473,17 @@ export function Market() {
         shop,
         wishes,
       });
-    });
+      stopRef.current = stop;
+    }).catch(() => activateLite('module'));
     return () => {
       gone = true;
-      stop?.();
+      stopRef.current?.();
+      stopRef.current = undefined;
       untranslate?.();
     };
   }, []);
+
+  if (lite) return <LiteMarket />;
 
   return (
     <div className="mk" ref={root}>
@@ -552,11 +567,17 @@ export function Market() {
       <section id="card" />
       <div id="fade" />
       <div id="boot">
-        <h1>{tr('月下集市')}</h1>
+        <p className="boot-title">{tr('月下集市')}</p>
         <div className="bar">
           <div id="boot-bar" />
         </div>
         <p id="boot-text">{tr('正在點燈')}</p>
+        <button type="button" className="ghost" onClick={() => {
+          track('market_lite_manual');
+          stopRef.current?.();
+          stopRef.current = undefined;
+          setLite(true);
+        }}>{getLocale() === 'en' ? 'Low-power mode' : getLocale() === 'ja' ? '軽量モード' : getLocale() === 'zh-Hans' ? '轻量模式' : '輕量模式'}</button>
         <a className="ghost" href={localizeHref('/')}>
           {tr('返回首頁')}
         </a>
