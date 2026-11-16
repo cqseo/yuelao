@@ -1,0 +1,35 @@
+name: Lightweight market premium purchase and safety
+on:
+  pull_request:
+    paths:
+      - "sites/yuelao/**"
+      - "tools/test-lite-premium.ts"
+      - ".github/workflows/lite-premium-check.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lightweight premium flow
+        run: pnpm exec tsx tools/test-lite-premium.ts
+      - name: HKD checkout invariant
+        run: pnpm exec tsx tools/test-hkd-checkout.ts
+      - name: Existing market and admin tests
+        run: |
+          pnpm exec tsx tools/test-market-lite.ts
+          pnpm exec tsx tools/test-market-ritual-entry.ts
+          pnpm exec tsx tools/test-admin-stats.ts
+      - name: Typecheck and production build
+        run: pnpm --filter ./sites/yuelao check
