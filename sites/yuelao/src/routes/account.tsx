@@ -2,7 +2,6 @@ import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-rout
 import { useEffect, useState } from 'react';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
 import { tr } from '~/i18n/ui';
-import { fetchHkdPriceQuote, type HkdPriceQuote } from '~/lib/hkd-prices';
 import { track } from '~/lib/track';
 import { localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
@@ -81,22 +80,13 @@ function Account() {
           ? t('複合', '复合')
           : c;
   const [data, setData] = useState<AccountData | null>(null);
-  const [hkdQuote, setHkdQuote] = useState<HkdPriceQuote | null>(null);
   const [view, setView] = useState<'loading' | 'ready' | 'login' | 'error'>('loading');
-  // 全站統一以美元結帳（2026-11-12）；舊訂單可能是港幣或新台幣，顯示時照原幣種。
-  const currency = 'USD';
+  // 新交易統一以港幣結帳；舊訂單（USD/TWD）仍以原交易幣種顯示。
+  const currency = 'HKD';
   const [redeemStick, setRedeemStick] = useState('1');
   const [redeemCategory, setRedeemCategory] = useState<'him' | 'single' | 'reunion'>('him');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    let active = true;
-    void fetchHkdPriceQuote().then((quote) => {
-      if (active) setHkdQuote(quote);
-    });
-    return () => { active = false; };
-  }, []);
 
   useEffect(() => {
     let active = true;
@@ -292,16 +282,7 @@ function Account() {
                           ? t('問事三次包', '问事三次包')
                           : t('問事八次包', '问事八次包')}
                       </h3>
-                      <strong>
-                        {price
-                          ? hkdQuote?.prices[product.id]
-                            ? (zh ? '约' : '約') + hkdQuote.prices[product.id]!.approxHkd
-                            : money(price.amount, currency)
-                          : '—'}
-                      </strong>
-                      {price && (
-                        <small>{t('Stripe 實際扣款', 'Stripe 实际扣款')} {money(price.amount, currency)}</small>
-                      )}
+                      <strong>{price ? money(price.amount, currency) : '—'}</strong>
                       <button
                         type="button"
                         disabled={!data.billingTestEnabled || busy}
@@ -315,10 +296,6 @@ function Account() {
                   );
                 })}
             </div>
-            <p className="muted">
-              {t('港幣金額按每日參考匯率估算，實際以美元扣款；發卡銀行可能採用不同匯率或收取手續費。', '港币金额按每日参考汇率估算，实际以美元扣款；发卡银行可能采用不同汇率或收取手续费。')}
-              {' '}{hkdQuote && <a href="https://www.exchangerate-api.com/" target="_blank" rel="noopener noreferrer">ExchangeRate-API</a>}
-            </p>
             {message && (
               <p role="alert" className="auth-error">
                 {message}
