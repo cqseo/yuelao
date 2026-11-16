@@ -588,7 +588,6 @@ export function createYuelao(ui) {
         <p class="deep-teaser">${esc(teaser)}</p>
         <p class="unlock-note">這一段還沒說完。解鎖之後它會完整，另外六段只寫你問的那件事。</p>
         <button class="offer" id="deep-btn" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>
-        <p class="note small">${ui.deep.currencyNote || ''}</p>
         <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
         ${yuelaoSampleHtml()}
         <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
