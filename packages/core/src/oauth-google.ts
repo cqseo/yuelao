@@ -118,7 +118,7 @@ export async function finishGoogleLogin(request: Request, env: CoreEnv, baseURL:
 
   const result = sessionResponse(
     request,
-    Response.redirect(new URL('/login/complete', baseURL).toString(), 303),
+    Response.redirect(new URL('/auth-complete', baseURL).toString(), 303),
     data.session,
   );
   result.headers.append('set-cookie', verifierCookie(request, '', 0));
