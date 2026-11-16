@@ -1,0 +1,33 @@
+name: Market lite mode and first-ritual funnel
+
+on:
+  pull_request:
+    paths:
+      - "sites/yuelao/**"
+      - "tools/test-market-lite.ts"
+      - ".github/workflows/market-lite-check.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Market lite and tracking tests
+        run: pnpm exec tsx tools/test-market-lite.ts
+      - name: Historical ritual redirects
+        run: pnpm exec tsx tools/test-market-ritual-entry.ts
+      - name: Preserve HKD prices
+        run: pnpm exec tsx tools/test-hkd-checkout.ts
+      - name: Typecheck and site build
+        run: pnpm --filter ./sites/yuelao check

@@ -1,0 +1,25 @@
+/* In-place market fallback: no standalone /ritual route, no canvas dependency. */
+.lite-market, .lite-market * { box-sizing:border-box; }
+.lite-market { min-height:100svh; background:#070812; color:#efe5cf; font-family:"Noto Serif TC","Songti TC",serif; }
+.lite-market__night { min-height:100svh; display:grid; place-items:center; padding:clamp(1rem,4vw,4rem); background:linear-gradient(180deg,rgba(7,8,18,.65),rgba(7,8,18,.98)),url('/market/plaza.jpg') center/cover no-repeat; }
+.lite-market__paper { width:min(100%,44rem); padding:clamp(1.25rem,4vw,2.75rem); background:rgba(15,16,31,.96); border:1px solid rgba(220,187,124,.6); border-radius:10px; box-shadow:0 20px 55px rgba(0,0,0,.45); }
+.lite-market__eyebrow { margin:0 0 0.5rem; color:#dcbb7c; letter-spacing:.2em; font-size:.78rem; }
+.lite-market h1 { margin:0 0 1rem; font-size:clamp(1.8rem,5vw,2.7rem); font-weight:500; line-height:1.4; }
+.lite-market p { line-height:1.8; }
+.lite-market label { display:block; margin-top:1.4rem; }
+.lite-market textarea { display:block; width:100%; min-height:4rem; margin:.5rem 0 1rem; padding:.8rem; border:1px solid #827251; border-radius:4px; background:#121527; color:#efe5cf; font:inherit; resize:vertical; }
+.lite-market fieldset { margin:0; padding:0; border:0; min-width:0; }
+.lite-market legend { margin:0 0 .5rem; }
+.lite-market__choices { display:flex; gap:.5rem; flex-wrap:wrap; }
+.lite-market__choices button { min-height:44px; padding:.55rem .8rem; border:1px solid #766a52; border-radius:5px; background:transparent; color:#efe5cf; cursor:pointer; font:inherit; }
+.lite-market__choices button[aria-pressed="true"] { background:#6b251e; border-color:#dcbb7c; }
+.lite-market__draw { display:block; width:100%; min-height:52px; margin:1.2rem 0; border:1px solid #e9c594; border-radius:5px; background:#aa3229; color:#fff5e9; font:inherit; font-weight:700; cursor:pointer; }
+.lite-market__result { margin-top:1.3rem; padding:1.25rem; color:#2a1d14; background:#efe5cf; border-radius:5px; }
+.lite-market__result h2 { color:#892b20; font-size:1.2rem; }
+.lite-market__result a { color:#7c2922; text-decoration:underline; }
+.lite-market__poem { white-space:pre-line; font-size:1.15rem; }
+.lite-market__note { font-size:.78rem; color:#b8afa1; }
+.lite-market__nav { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; border-top:1px solid #60523b; padding-top:1rem; margin-top:1rem; }
+.lite-market__nav a { color:#dcbb7c; min-height:44px; display:inline-flex; align-items:center; }
+.lite-market :focus-visible { outline:2px solid #dcbb7c; outline-offset:3px; }
+@media(max-width:440px){.lite-market__paper{padding:1.1rem}.lite-market__choices button{flex:1 1 40%;}}

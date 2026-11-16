@@ -99,6 +99,7 @@ export function startMarket(root, opts = {}) {
     askStarters: () => opts.starters || [],
     aiStatus: () => opts.aiStatus?.() || { available: false },
     look: () => ({ ...avatar.state }),
+    locale: opts.locale || 'zh-Hant',
     deep: opts.deep || null,
     spread: opts.spread || null,
     leave: () => leaveRoom(),
@@ -1900,7 +1901,8 @@ export function startMarket(root, opts = {}) {
 
   start().catch((e) => {
     if (dead) return;
-    bootText.textContent = '這台裝置開不了 3D 集市。可以改用一般版求籤。';
+    bootText.textContent = '3D 無法啟動，正切換到月老殿輕量模式…';
+    opts.onBootFailure?.();
     root.classList.add('failed');
     console.error(e);
   });

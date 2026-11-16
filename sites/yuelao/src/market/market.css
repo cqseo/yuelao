@@ -67,7 +67,7 @@
   opacity: 0;
   pointer-events: none;
 }
-.mk #boot h1 {
+.mk #boot .boot-title {
   margin: 0;
   font-weight: 300;
   font-size: 2rem;
@@ -1047,6 +1047,8 @@
   background: rgba(220, 187, 124, 0.12);
   color: var(--paper-70);
 }
+.mk .quick-questions { flex-wrap:wrap; gap:.5rem; }
+.mk .quick-questions button { min-height:42px; white-space:normal; text-align:left; line-height:1.5; }
 .mk .chips {
   display: flex;
   flex-wrap: wrap;
