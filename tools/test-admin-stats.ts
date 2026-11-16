@@ -116,7 +116,9 @@ const stats = computeStats({
 assert.equal(stats.kpis.visitors.value, 2);
 assert.equal(stats.kpis.visitors.prev, 1);
 assert.equal(stats.kpis.orders.value, 1, 'test-mode orders are excluded');
-assert.equal(stats.kpis.revenue.value, 299);
+assert.equal(stats.kpis.revenue.value, 0, 'historical USD cents are not HKD');
+assert.equal(stats.kpis.currency, 'HKD');
+assert.deepEqual(stats.kpis.otherCurrencies, [{ currency: 'USD', orders: 1, revenue: 299, refunded: 0 }]);
 assert.equal(stats.kpis.signups.value, 1);
 assert.deepEqual(
   stats.funnel.map((f) => f.count),
@@ -145,4 +147,27 @@ assert.ok(
   'single-page visit exits',
 );
 assert.equal(stats.daily.length, 8);
+// Historical USD and current HKD orders must never be summed as one currency.
+const mixed = computeStats({
+  days: 7,
+  now,
+  events: [],
+  orders: [
+    { id: 'hk', user_id: 'a', product_id: 'unlock_1', amount: 1800, currency: 'HKD',
+      status: 'paid', checkout_ref: 'cs_live_hk', created_at: t(60), paid_at: t(50) },
+    { id: 'us', user_id: 'b', product_id: 'unlock_1', amount: 299, currency: 'USD',
+      status: 'paid', checkout_ref: 'cs_live_us', created_at: t(60), paid_at: t(50) },
+  ],
+  refunds: new Map([['hk', 200], ['us', 99]]),
+  profiles: [],
+  totalUsers: 0,
+  eventsTruncated: false,
+});
+assert.equal(mixed.kpis.revenue.value, 1600);
+assert.equal(mixed.kpis.refunded, 200);
+assert.deepEqual(mixed.kpis.otherCurrencies, [{ currency: 'USD', orders: 1, revenue: 200, refunded: 99 }]);
+assert.equal(mixed.daily.reduce((sum, day) => sum + day.revenue, 0), 1600);
+assert.equal(mixed.orderList.find(o => o.id === 'us')?.currency, 'USD');
+assert.equal(mixed.orderList.find(o => o.id === 'hk')?.currency, 'HKD');
+
 console.log('PASS: stats aggregate visitors, live orders, funnel, paths and journeys');
