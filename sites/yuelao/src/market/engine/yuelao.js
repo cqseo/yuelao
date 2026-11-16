@@ -637,10 +637,26 @@ export function createYuelao(ui) {
          <span class="p-seal">月老已批</span>
        </div>
        ${explainBlock()}
+       <p class="note small">這是文化體驗與自我整理，不代表對方的真實心意。<a href="/methodology" target="_blank" rel="noopener noreferrer">來源與解讀方法</a></p>
        ${unlockBlock()}
        <button type="button" class="share-btn" data-a="share">分享籤圖</button>
+       <button type="button" class="share-btn" data-a="copy-link">複製這支籤的連結</button>
        <div class="card-actions"><button class="seal" data-a="again">再求一支</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       (a) => {
+        if (a === 'copy-link') {
+          const url = new URL(`/sign/${stick.id}`, location.origin).href;
+          if (!navigator.clipboard?.writeText) {
+            say('無法自動複製，可從這支籤的分享圖找到網址。');
+            return;
+          }
+          void navigator.clipboard.writeText(url)
+            .then(() => {
+              ui.emit?.('sign_link_copy', { stickId: stick.id });
+              say('連結複製好了，可以分享給朋友。不包含你寫的問題。');
+            })
+            .catch(() => say('複製失敗，請稍後再試。'));
+          return;
+        }
         if (a === 'share') {
           // 分享圖不放問的那句話（私事），只放籤、判詞與站名
           void shareVerdict({

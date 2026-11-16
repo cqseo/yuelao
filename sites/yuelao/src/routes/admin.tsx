@@ -74,7 +74,10 @@ const PAGE_LABELS: Record<string, string> = {
   '/market': '集市',
   '/sign': '签诗总览',
   '/sign/*': '签诗页',
-  '/ritual': '一般版求签',
+  '/signs': '百签目录',
+  '/about': '关于月下',
+  '/methodology': '签诗来源及解读方法',
+  '/ritual': '旧求签页（已跳转）',
   '/daily': '每日心笺',
   '/tests': '测验列表',
   '/tests/*': '测验',
@@ -89,6 +92,12 @@ const PAGE_LABELS: Record<string, string> = {
   '/dmca': 'DMCA',
   '/admin': '后台',
   '@market_enter': '入市',
+  '@home_yuelao': '首页直达月老殿',
+  '@ritual_start': '开始求签',
+  '@quick_question': '选择快捷问题',
+  '@lite_mode': '切换轻量模式',
+  '@3d_failure': '3D 启动失败',
+  '@share_link': '复制签文链接',
   '@room:yuelao': '月老殿',
   '@room:tarot': '塔罗馆',
   '@room:hall': '大殿',
@@ -107,6 +116,15 @@ const PAGE_LABELS: Record<string, string> = {
 const EVENT_LABELS: Record<string, string> = {
   checkout_start: '发起结账',
   reading_done: '看到签文／牌面结果',
+  ritual_begin: '开始求签',
+  quick_question_click: '选择快捷问题',
+  market_boot_ready: '集市完成加载',
+  market_3d_failure: '3D 初始化失败',
+  market_lite_manual: '使用轻量模式',
+  home_yuelao_click: '首页直接求签',
+  home_market_enter_click: '首页进入集市',
+  home_room_click: '首页选择房间',
+  sign_link_copy: '复制签文链接',
   unlock_click: '点「解锁」',
   deep_read: '看付费解读',
   daily_checkin: '每日签到',
@@ -141,6 +159,7 @@ const EVENT_LABELS: Record<string, string> = {
 const FUNNEL_LABELS: Record<string, string> = {
   visit: '来访',
   engage: '逛了首页以外',
+  start: '开始求签／抽牌（含历史补全）',
   reading: '看到签文／牌面结果',
   unlock: '点「解锁」',
   checkout: '发起结账',
@@ -409,7 +428,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
         <section className="admin-card">
           <h2>转化漏斗</h2>
           <p className="admin-muted">
-            右边是相对上一步的转化率，掉得最多的那一步最值得先改。「看到结果」「点解锁」是新加的记录，更早的访问里没有这两步。
+            右边是相对上一步的转化率，掉得最多的那一步最值得先改。旧数据缺少「开始求签」事件时，会由已看到结果的访客补全这一步，避免漏斗倒挂。
           </p>
           <Funnel steps={stats.funnel} />
         </section>

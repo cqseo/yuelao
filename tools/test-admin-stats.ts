@@ -122,8 +122,8 @@ assert.deepEqual(stats.kpis.otherCurrencies, [{ currency: 'USD', orders: 1, reve
 assert.equal(stats.kpis.signups.value, 1);
 assert.deepEqual(
   stats.funnel.map((f) => f.count),
-  [2, 1, 1, 1, 1, 1],
-  'visit, engage, reading, unlock (implied by checkout), checkout, paid',
+  [2, 1, 1, 1, 1, 1, 1],
+  'visit, engage, start (historical implied), reading, unlock, checkout, paid',
 );
 assert.equal(stats.kpis.loggedIn, 1);
 assert.deepEqual(stats.checkout, { started: 1, paid: 1, failed: 0, abandoned: 0 });
@@ -169,5 +169,22 @@ assert.deepEqual(mixed.kpis.otherCurrencies, [{ currency: 'USD', orders: 1, reve
 assert.equal(mixed.daily.reduce((sum, day) => sum + day.revenue, 0), 1600);
 assert.equal(mixed.orderList.find(o => o.no === 'US')?.currency, 'USD');
 assert.equal(mixed.orderList.find(o => o.no === 'HK')?.currency, 'HKD');
+
+// New first-party events should make the previously invisible start-to-read stage measurable.
+const newFunnel = computeStats({
+  days: 7,
+  now,
+  events: [
+    ev('vD_dddddddd', 'sD1_ddddddd', 60, 'page_view', '/'),
+    ev('vD_dddddddd', 'sD1_ddddddd', 59, 'home_yuelao_click', '/'),
+    ev('vD_dddddddd', 'sD1_ddddddd', 58, 'page_view', '/market'),
+    ev('vD_dddddddd', 'sD1_ddddddd', 57, 'ritual_begin', '/market'),
+    ev('vD_dddddddd', 'sD1_ddddddd', 56, 'reading_done', '/market'),
+  ],
+  orders: [], refunds: new Map(), profiles: [], totalUsers: 0, eventsTruncated: false,
+});
+assert.deepEqual(newFunnel.funnel.map((s) => s.count), [1, 1, 1, 1, 0, 0, 0]);
+assert.ok(newFunnel.recent.some((s) => s.steps.includes('@ritual_start')));
+assert.ok(newFunnel.recent.some((s) => s.steps.includes('@home_yuelao')));
 
 console.log('PASS: stats aggregate visitors, live orders, funnel, paths and journeys');

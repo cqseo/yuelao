@@ -5,6 +5,7 @@ on:
     paths:
       - "sites/yuelao/**"
       - "tools/test-market-lite.ts"
+      - "tools/test-performance-funnel.ts"
       - ".github/workflows/market-lite-check.yml"
   workflow_dispatch:
 permissions:
@@ -25,8 +26,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Market lite and tracking tests
         run: pnpm exec tsx tools/test-market-lite.ts
+      - name: Performance and funnel assertions
+        run: pnpm exec tsx tools/test-performance-funnel.ts
       - name: Historical ritual redirects
         run: pnpm exec tsx tools/test-market-ritual-entry.ts
+      - name: Admin visit-to-payment funnel
+        run: pnpm exec tsx tools/test-admin-stats.ts
       - name: Preserve HKD prices
         run: pnpm exec tsx tools/test-hkd-checkout.ts
       - name: Typecheck and site build

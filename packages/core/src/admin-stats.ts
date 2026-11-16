@@ -122,6 +122,12 @@ type Step = { key: string; at: number };
 function stepOf(e: EventRow): string | null {
   if (e.name === 'page_view') return normalizePath(e.path);
   if (e.name === 'market_enter') return '@market_enter';
+  if (e.name === 'home_yuelao_click') return '@home_yuelao';
+  if (e.name === 'ritual_begin') return '@ritual_start';
+  if (e.name === 'quick_question_click') return '@quick_question';
+  if (e.name === 'market_lite_manual') return '@lite_mode';
+  if (e.name === 'market_3d_failure') return '@3d_failure';
+  if (e.name === 'sign_link_copy') return '@share_link';
   if (e.name === 'market_hall_offer') return '@hall_offer';
   if (e.name === 'market_room_open') {
     const room = typeof e.props?.room === 'string' ? e.props.room : '';
@@ -235,17 +241,22 @@ export function computeStats(input: StatsInput) {
   const loggedIn = new Set<string>();
   const checkout = new Set<string>();
   const readers = new Set<string>();
+  const starters = new Set<string>();
   const unlockers = new Set<string>();
   for (const e of cur) {
     if (e.name !== 'page_view' || normalizePath(e.path) !== '/') engaged.add(e.vid);
     if (e.user_id || e.name === 'login') loggedIn.add(e.vid);
     if (e.name === 'checkout_start') checkout.add(e.vid);
     if (e.name === 'reading_done') readers.add(e.vid);
+    if (e.name === 'ritual_begin') starters.add(e.vid);
     if (e.name === 'unlock_click') unlockers.add(e.vid);
   }
   // 後面的步驟一定經過前面的步驟：去結帳的人必定按過解鎖、看過結果（舊資料沒記這兩步時也不會倒掛）。
   for (const vid of checkout) unlockers.add(vid);
   for (const vid of unlockers) readers.add(vid);
+  // Older visits had completion but no start event; count these as started so
+  // a later funnel stage can never exceed the preceding one.
+  for (const vid of readers) starters.add(vid);
   let payingVisitors = 0;
   for (const vid of vids) {
     const user = vidUser.get(vid);
@@ -254,6 +265,7 @@ export function computeStats(input: StatsInput) {
   const funnel = [
     { key: 'visit', count: vids.size },
     { key: 'engage', count: engaged.size },
+    { key: 'start', count: starters.size },
     { key: 'reading', count: readers.size },
     { key: 'unlock', count: unlockers.size },
     { key: 'checkout', count: checkout.size },
@@ -458,7 +470,7 @@ export function computeStats(input: StatsInput) {
     events: countBy(
       cur.filter((e) => e.name !== 'page_view'),
       (e) => e.name,
-      12,
+      20,
     ),
     products: [...products.entries()].map(([id, p]) => ({ id, ...p })).sort((a, b) => b.revenue - a.revenue),
     paths: [...pathCounts.values()].sort((a, b) => b.count - a.count).slice(0, 15),
