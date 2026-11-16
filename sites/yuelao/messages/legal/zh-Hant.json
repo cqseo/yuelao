@@ -36,7 +36,7 @@
   "legal_terms_liability_heading": "責任限制",
   "legal_terms_meta_description": "使用 {siteName} 的規則。",
   "legal_terms_meta_title": "服務條款 — {siteName}",
-  "legal_terms_payment_body": "價格以美元標示，已含稅，結帳時不另加。深度解讀一次付費、永久查閱，不會自動續費；問事包的次數不過期，用一次扣一次。付款由 Stripe 處理，可用銀行卡、Apple Pay、Google Pay、微信支付等。結帳頁可能依你所在地區，以當地貨幣顯示換算後的金額，實際扣款以結帳頁為準。",
+  "legal_terms_payment_body": "網站標價與 Stripe 實際收款均以港幣（HKD）計價，價格已含稅，結帳不再另加稅款。深度解讀一次付費、可持續查閱，不會自動續費；問事包次數不過期，用一次扣一次。付款方式以 Stripe 結帳頁面實際可用的選項為準。發卡銀行可能把港幣換算成持卡人帳戶幣種並收取手續費；歷史訂單仍依原交易幣種顯示。",
   "legal_terms_payment_heading": "付款與解鎖",
   "legal_terms_seller_body": "本站由 WEBPAY（香港）經營。你在本站購買時，交易對象（賣方）就是 WEBPAY，銀行卡或微信的帳單上也會顯示 WEBPAY。購買、扣款或退款上的任何問題，請寫信到下方信箱，由我們直接處理。",
   "legal_terms_seller_heading": "賣方是誰",
