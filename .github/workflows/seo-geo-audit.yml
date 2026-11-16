@@ -1,0 +1,30 @@
+name: SEO GEO catalog and site safety
+on:
+  pull_request:
+    paths:
+      - "sites/yuelao/**"
+      - "tools/test-seo-geo-pages.ts"
+      - ".github/workflows/seo-geo-audit.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: SEO catalog and market-only routing assertions
+        run: pnpm exec tsx tools/test-seo-geo-pages.ts
+      - name: HKD checkout regression
+        run: pnpm exec tsx tools/test-hkd-checkout.ts
+      - name: Site typecheck and production build
+        run: pnpm --filter ./sites/yuelao check
