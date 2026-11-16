@@ -167,7 +167,7 @@ assert.equal(mixed.kpis.revenue.value, 1600);
 assert.equal(mixed.kpis.refunded, 200);
 assert.deepEqual(mixed.kpis.otherCurrencies, [{ currency: 'USD', orders: 1, revenue: 200, refunded: 99 }]);
 assert.equal(mixed.daily.reduce((sum, day) => sum + day.revenue, 0), 1600);
-assert.equal(mixed.orderList.find(o => o.id === 'us')?.currency, 'USD');
-assert.equal(mixed.orderList.find(o => o.id === 'hk')?.currency, 'HKD');
+assert.equal(mixed.orderList.find(o => o.no === 'US')?.currency, 'USD');
+assert.equal(mixed.orderList.find(o => o.no === 'HK')?.currency, 'HKD');
 
 console.log('PASS: stats aggregate visitors, live orders, funnel, paths and journeys');
