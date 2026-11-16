@@ -43,7 +43,7 @@ const ITEM = {
   name: 'QA item',
   prices: {
     'zh-Hant': { amount: 2800, currency: PACK3.currency },
-    'zh-Hans': { amount: 399, currency: PACK3.currency },
+    'zh-Hans': { amount: 2800, currency: PACK3.currency },
   },
 };
 const itemSite = { ...site, products: [...site.products, ITEM] };
