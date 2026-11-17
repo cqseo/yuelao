@@ -136,6 +136,10 @@ function stepOf(e: EventRow): string | null {
   if (e.name === 'reading_done') return '@reading';
   if (e.name === 'unlock_click') return '@unlock';
   if (e.name === 'deep_read') return '@deep';
+  if (e.name === 'offer_view') return '@offer';
+  if (e.name === 'checkout_login_required') return '@login_gate';
+  if (e.name === 'checkout_session_created') return '@stripe_created';
+  if (e.name === 'checkout_api_failure') return '@checkout_error';
   if (e.name === 'login') return '@login';
   if (e.name === 'checkout_start') return '@checkout';
   return null;
@@ -403,6 +407,7 @@ export function computeStats(input: StatsInput) {
   const liveCur = liveOrders.filter((o) => inRange(Date.parse(o.created_at)));
   const checkoutStats = {
     started: liveCur.length,
+    uniqueAccounts: new Set(liveCur.map((o) => o.user_id)).size,
     paid: liveCur.filter((o) => o.status === 'paid').length,
     failed: liveCur.filter((o) => o.status === 'failed').length,
     // 超過半小時還沒付的算放棄；半小時內的可能還在付款頁
@@ -479,7 +484,13 @@ export function computeStats(input: StatsInput) {
     exits: top(exits, 8),
     flow,
     recent,
-    meta: { eventsTruncated: input.eventsTruncated, trackedSince: input.events[0]?.at ?? null },
+    meta: {
+      eventsTruncated: input.eventsTruncated,
+      trackedSince: input.events[0]?.at ?? null,
+      // If event collection began after this window started, session/visitor
+      // attribution is incomplete. Never display a confident payment conversion.
+      completeWindowTracking: Boolean(input.events.length && events[0] && events[0].t <= start),
+    },
   };
 }
 
