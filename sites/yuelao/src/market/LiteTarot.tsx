@@ -209,6 +209,18 @@ export function LiteTarot() {
     return () => observer.disconnect();
   }, [result]);
 
+  const resetReading = () => {
+    // A change to the question, situation or deck invalidates the previous
+    // deterministic spread and its paid entitlement lookup.
+    setResult(null);
+    setKey('');
+    setBody('');
+    setConsent(false);
+    setMessage('');
+    setAccess('idle');
+    setWaiting(false);
+  };
+
   const draw = () => {
     if (busy || waiting) return;
     const chosen = question.trim() || c.defaultQ;
@@ -324,22 +336,40 @@ export function LiteTarot() {
           <fieldset>
             <legend>{c.question}</legend>
             <textarea aria-label={c.question} rows={2} maxLength={100} placeholder={c.placeholder}
-              value={question} disabled={disabled} onChange={(e) => setQuestion(e.target.value)} />
+              value={question} disabled={disabled} onChange={(e) => {
+                setQuestion(e.target.value);
+                if (result) resetReading();
+              }} />
           </fieldset>
           <fieldset>
             <legend>{c.situation}</legend>
             <div className="lite-market__choices">
               {OPTIONS.map(([id, hant, hans]) => (
                 <button key={id} type="button" aria-pressed={sit === id} disabled={disabled}
-                  onClick={() => setSit(id)}>{zh ? hans : hant}</button>
+                  onClick={() => {
+                    if (id !== sit) {
+                      setSit(id);
+                      resetReading();
+                    }
+                  }}>{zh ? hans : hant}</button>
               ))}
             </div>
           </fieldset>
           <div className="lite-market__choices lite-tarot__decks">
             <button type="button" aria-pressed={deck === 'tarot'} disabled={disabled}
-              onClick={() => setDeck('tarot')}>{c.tarot} · 78</button>
+              onClick={() => {
+                if (deck !== 'tarot') {
+                  setDeck('tarot');
+                  resetReading();
+                }
+              }}>{c.tarot} · 78</button>
             <button type="button" aria-pressed={deck === 'lnm'} disabled={disabled}
-              onClick={() => setDeck('lnm')}>{c.lnm} · 36</button>
+              onClick={() => {
+                if (deck !== 'lnm') {
+                  setDeck('lnm');
+                  resetReading();
+                }
+              }}>{c.lnm} · 36</button>
           </div>
           <button className="lite-market__draw" type="button" disabled={disabled}
             onClick={draw}>{result ? c.redraw : c.draw}</button>
