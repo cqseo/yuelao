@@ -112,6 +112,8 @@ export function LiteTarot() {
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
   const pendingRef = useRef(false);
+  const resultRef = useRef<HTMLElement>(null);
+  const offerRef = useRef<HTMLElement>(null);
   const price = PRODUCT ? formatPrice(priceForLocale(PRODUCT, locale), locale) : '';
 
   useEffect(() => {
@@ -182,8 +184,30 @@ export function LiteTarot() {
   }, [ready, key, locale, revision, waiting]);
 
   useEffect(() => {
-    if (key) track('offer_view', { product: 'spread_1', lite: true });
-  }, [key]);
+    if (!result) return;
+    const frame = requestAnimationFrame(() => {
+      resultRef.current?.scrollIntoView({
+        block: 'start',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [result]);
+
+  useEffect(() => {
+    if (!result) return;
+    const target = offerRef.current;
+    if (!target) return;
+    let recorded = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (recorded || !entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.2)) return;
+      recorded = true;
+      observer.disconnect();
+      track('offer_view', { product: 'spread_1', lite: true });
+    }, { threshold: 0.2 });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [result]);
 
   const draw = () => {
     if (busy || waiting) return;
@@ -321,12 +345,12 @@ export function LiteTarot() {
             onClick={draw}>{result ? c.redraw : c.draw}</button>
 
           {result && reading && (
-            <section className="lite-market__result" aria-live="polite">
+            <section ref={resultRef} className="lite-market__result" aria-live="polite">
               <p className="lite-tarot__question">{result.question}</p>
               <div className="lite-tarot__cards">
                 {reading.cards.map((card) => (
                   <div className="lite-tarot__card" key={card.key}>
-                    <img src={card.image} alt={card.name} loading="lazy" width={180} height={300} />
+                    <img src={card.image} alt={card.name} loading="eager" decoding="async" width={180} height={300} />
                     <strong>{card.position} · {card.name}</strong>
                     <small>{card.tag}</small>
                     <p>{card.meaning}</p>
@@ -338,7 +362,7 @@ export function LiteTarot() {
           )}
 
           {result && reading && (
-            <section className="lite-market__premium" aria-label={c.premium}>
+            <section ref={offerRef} className="lite-market__premium" aria-label={c.premium}>
               <h2>{c.premium}</h2>
               <p>{c.premiumNote}</p>
               {price && <strong className="lite-market__price">{price}</strong>}
