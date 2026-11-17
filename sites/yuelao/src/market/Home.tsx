@@ -24,23 +24,27 @@ export const FAQS = [
 const QUICK_ACTION_COPY = {
   'zh-Hant': {
     ritual: '立即抽籤',
-    ritualHint: '月老靈籤 · 擲筊',
+    ritualHint: '3D 月老殿 · 搖籤擲筊',
+    fastRitual: '快速抽籤 · 無需 3D',
+    fastTarot: '快速抽塔羅 · 無需 3D',
     tarot: '立即抽塔羅',
-    tarotHint: '塔羅／雷諾曼 · 三張牌',
+    tarotHint: '3D 塔羅館 · 三張牌',
   },
   'zh-Hans': {
     ritual: '立即抽签',
-    ritualHint: '月老灵签 · 掷筊',
+    ritualHint: '3D 月老殿 · 摇签掷筊',
+    fastRitual: '快速抽签 · 无需 3D',
+    fastTarot: '快速抽塔罗 · 无需 3D',
     tarot: '立即抽塔罗',
-    tarotHint: '塔罗／雷诺曼 · 三张牌',
+    tarotHint: '3D 塔罗馆 · 三张牌',
   },
 } as const;
 
 const NAV = [
   { to: '/market#enter', label: () => m.home_market_nav_market(), hard: true },
-  // 一般求籤不強制載入 3D；需要沉浸儀式的訪客仍可選擇完整集市。
-  { to: '/market?lite=1#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
-  { to: '/market?lite=tarot#tarot', label: () => m.home_market_room_tarot(), hard: true },
+  // 首頁主導覽直接進入沉浸式 3D 殿堂；輕量模式僅由明確標示的快速入口開啟。
+  { to: '/market#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
+  { to: '/market#tarot', label: () => m.home_market_room_tarot(), hard: true },
   { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true },
   { to: '/tests', label: () => m.home_market_nav_tests() },
 ];
@@ -159,11 +163,11 @@ export function Home() {
             <div className="mh-quick-actions">
               <a
                 className="mh-quick-card mh-quick-card--ritual"
-                href={localizeHref('/market?lite=1#yuelao')}
+                href={localizeHref('/market#yuelao')}
                 data-rybbit-event="home_quick_yuelao"
                 onClick={() => {
-                  track('home_yuelao_click', { destination: 'market_yuelao', mode: 'lite' });
-                  track('home_quick_entry_click', { destination: 'yuelao' });
+                  track('home_yuelao_click', { destination: 'market_yuelao', mode: '3d' });
+                  track('home_quick_entry_click', { destination: 'yuelao', mode: '3d' });
                 }}
               >
                 <strong>{quick.ritual}</strong>
@@ -172,13 +176,29 @@ export function Home() {
               </a>
               <a
                 className="mh-quick-card mh-quick-card--tarot"
-                href={localizeHref('/market?lite=tarot#tarot')}
+                href={localizeHref('/market#tarot')}
                 data-rybbit-event="home_quick_tarot"
-                onClick={() => track('home_quick_entry_click', { destination: 'tarot' })}
+                onClick={() => track('home_quick_entry_click', { destination: 'tarot', mode: '3d' })}
               >
                 <strong>{quick.tarot}</strong>
                 <small>{quick.tarotHint}</small>
                 <span className="mh-quick-arrow" aria-hidden="true">→</span>
+              </a>
+            </div>
+            <div className="mh-fast-actions" aria-label={quick.fastRitual + ' / ' + quick.fastTarot}>
+              <a
+                href={localizeHref('/market?lite=1#yuelao')}
+                data-rybbit-event="home_fast_yuelao"
+                onClick={() => track('home_quick_entry_click', { destination: 'yuelao', mode: 'lite' })}
+              >
+                {quick.fastRitual} <span aria-hidden="true">→</span>
+              </a>
+              <a
+                href={localizeHref('/market?lite=tarot#tarot')}
+                data-rybbit-event="home_fast_tarot"
+                onClick={() => track('home_quick_entry_click', { destination: 'tarot', mode: 'lite' })}
+              >
+                {quick.fastTarot} <span aria-hidden="true">→</span>
               </a>
             </div>
             <div className="mh-hero-aux">

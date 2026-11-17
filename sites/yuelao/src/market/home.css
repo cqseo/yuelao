@@ -270,6 +270,29 @@
   color: #f4d6a3;
   font-size: 1.5rem;
 }
+/* Lightweight option is unmistakably secondary to the immersive 3D hero cards. */
+.mh-fast-actions {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 0.75rem;
+  max-width: 41rem;
+  margin-top: 0.2rem;
+}
+.mh-fast-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0.25rem 0.15rem;
+  color: var(--gold);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+}
+.mh-fast-actions a:hover { color: var(--paper); }
+.mh-fast-actions a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .mh-hero-aux {
   display: flex;
   flex-wrap: wrap;
@@ -323,6 +346,8 @@
     right: 0.5rem;
     font-size: 1.25rem;
   }
+  .mh-fast-actions { gap: 0.5rem; }
+  .mh-fast-actions a { font-size: 0.73rem; letter-spacing: 0; }
   .mh-hero-aux {
     gap: 0 0.85rem;
   }
