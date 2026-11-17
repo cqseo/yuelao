@@ -1,0 +1,40 @@
+/* Yuexia V2.6 exploration: keep UI secondary to the world. */
+.intro{top:19%;max-width:335px;transition:opacity .2s}
+.intro h1{font-size:clamp(42px,4.1vw,62px);letter-spacing:.16em;margin:9px 0 7px}
+.intro p{font-size:12px}.intro .subtitle{font-size:10px;margin-top:14px;max-width:270px;line-height:1.8}
+.cinematic{background:linear-gradient(180deg,rgba(8,12,25,.32),transparent 27%,transparent 75%,rgba(8,12,25,.44)),linear-gradient(90deg,rgba(8,11,19,.22),transparent 42%,transparent 89%,rgba(8,11,19,.16))}
+.room-prompt,.room-exit{
+ position:absolute;z-index:15;left:50%;bottom:123px;transform:translateX(-50%);
+ background:rgba(31,31,41,.87);border:1px solid #c19c6f;color:#f5d6a8;
+ padding:12px 19px;border-radius:999px;box-shadow:0 5px 35px rgba(0,0,0,.35);
+ cursor:pointer;white-space:nowrap;font:12px 'Noto Serif SC',serif;letter-spacing:.09em;
+}
+.room-prompt small{font:10px system-ui,sans-serif;color:#c5ac91;margin-left:8px}
+.room-exit{bottom:118px;left:auto;right:clamp(24px,5vw,78px);transform:none}
+.room-prompt:focus-visible,.room-exit:focus-visible{outline:2px solid #eaca90;outline-offset:3px}
+.room-banner{position:absolute;left:50%;top:80px;transform:translateX(-50%);z-index:18;
+ font-size:13px;letter-spacing:.15em;color:#f0decb;
+ background:rgba(29,25,29,.76);border:1px solid rgba(229,192,144,.28);
+ padding:10px 23px;border-radius:12px;white-space:nowrap;pointer-events:none}
+body:has(.room-banner:not([hidden])) .intro,
+body:has(.room-banner:not([hidden])) .nav,
+body:has(.room-banner:not([hidden])) .keeper-hint,
+body:has(.room-banner:not([hidden])) .keeper-prompt {display:none}
+body:has(.room-banner:not([hidden])) .left-bottom .tip {color:#f8dcad}
+@media(max-width:860px){
+ .intro{top:87px;left:17px;max-width:245px}
+ .intro h1{font-size:34px;letter-spacing:.11em}
+ .intro .subtitle{display:none}
+ .room-prompt{bottom:300px;padding:10px 14px;font-size:11px}
+ .room-exit{bottom:195px;right:15px;font-size:11px;padding:9px 12px}
+ .room-banner{top:69px;font-size:11px;padding:8px 13px}
+ body:has(.room-banner:not([hidden])) .nav {display:none}
+}
+@media(max-width:430px){
+ .intro h1{font-size:30px}
+ .intro p{font-size:9px;max-width:225px}
+ .room-prompt{bottom:296px}
+ .room-exit{bottom:195px}
+}
+
+body:has(.room-banner:not([hidden])) .camera-controls{display:none}

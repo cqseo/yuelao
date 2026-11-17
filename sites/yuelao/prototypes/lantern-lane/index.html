@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#090e20"/>
+  <meta name="robots" content="noindex,nofollow"/>
+  <title>灯火巷 · 月下 3D 世界独立预览</title>
+  <meta name="description" content="月下世界扩展实验：灯火巷 3D 漫游预览。独立测试，未接入正式站。"/>
+</head>
+<body>
+  <main id="app">
+    <canvas id="world" aria-label="灯火巷三维自由漫游场景"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <header class="topbar">
+      <div class="brand"><span class="brand-moon">☾</span><span><strong>月下</strong><small>Y U E X I A</small></span></div>
+      <div class="status"><span class="status-dot"></span><span>独立实验场景</span><span class="status-sep">·</span><span>不影响主站</span></div>
+    </header>
+    <div class="title-panel">
+      <span class="eyebrow">WORLD EXPANSION · PROTOTYPE 01</span>
+      <h1>灯火巷</h1>
+      <p>顺着月光与灯火，走进月下的下一条街。</p>
+      <div class="chapter"><span class="chapter-line"></span>「月下集市」扩建概念预览</div>
+    </div>
+    <nav class="destinations" aria-label="场景导览">
+      <button type="button" class="destination active" data-spot="gate"><span class="spot-index">01</span>迎月牌坊</button>
+      <button type="button" class="destination" data-spot="market"><span class="spot-index">02</span>灯火市集</button>
+      <button type="button" class="destination" data-spot="garden"><span class="spot-index">03</span>竹影小径</button>
+      <button type="button" class="destination" data-spot="altar"><span class="spot-index">04</span>月下祈愿</button>
+    </nav>
+    <div class="compass" aria-hidden="true"><span>N</span><span class="compass-line"></span><span>月下</span></div>
+    <div class="bottom-left">
+      <div class="tip" id="tip"><span>◈</span> <span id="tip-copy">拖动视角，自由探索；也可以点击地点快速前往。</span></div>
+      <div class="hint-desktop">W A S D 行走　·　鼠标拖动转向　·　← → 转向　·　Shift 加速</div>
+      <div class="hint-mobile">左侧摇杆移动　·　右侧滑动转向　·　上方可快速传送</div>
+    </div>
+    <div class="bottom-right">
+      <div id="load" aria-live="polite">正在点亮月下灯火… <strong id="loadCount">0 / 16</strong></div>
+      <button type="button" id="quality" aria-pressed="false" aria-label="切换省电模式">省电模式 <span>关</span></button>
+    </div>
+    <div id="joystick" aria-label="移动摇杆"><div id="stick"></div></div>
+    <div id="crosshair" aria-hidden="true"></div>
+    <div class="preview-notice">PREVIEW ONLY · 使用 CC0 开源素材重组 · 非最终美术效果</div>
+    <div class="fallback" id="fallback" hidden><h2>无法启动 3D 预览</h2><p>此设备或浏览器暂不支持 WebGL。请用最新版 Chrome、Edge 或 Safari 访问。</p></div>
+  </main>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

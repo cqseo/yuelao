@@ -1,0 +1,58 @@
+{
+  "name": "Yuexia_Moonlit_Wanderer",
+  "seed": 20261117,
+  "gender": 0.08,
+  "age": 0.56,
+  "muscle": 0.38,
+  "weight": 0.39,
+  "height": 0.62,
+  "proportions": 0.82,
+  "african": 0.05,
+  "asian": 0.88,
+  "caucasian": 0.07,
+  "breastSize": 0.4,
+  "breastFirmness": 0.68,
+  "modifiers": {},
+  "skin": "auto",
+  "skinTint": "#f7ebe0",
+  "eyes": "brown",
+  "eyebrows": "eyebrow010",
+  "eyelashes": "eyelashes02",
+  "hair": "braid01",
+  "hairTint": "#1b1720",
+  "hairColor": "#1b1720",
+  "facialHair": "none",
+  "beardColor": "#201918",
+  "tattoos": [],
+  "tattooInk": "#201a22",
+  "earrings": "none",
+  "earringMetal": "gold",
+  "outfit": "none",
+  "top": "yuexia_hanfu",
+  "bottom": "none",
+  "underwear": true,
+  "accessories": [
+    "waist_sash"
+  ],
+  "garmentStyles": {
+    "waist_sash": {
+      "pattern": "solid",
+      "color": "#b6a176",
+      "color2": "#465d71"
+    },
+    "yuexia_hanfu": {
+      "pattern": "solid",
+      "color": "#40546c",
+      "color2": "#cbb494"
+    }
+  },
+  "shoes": "none",
+  "hat": "none",
+  "outfitTint": "#e1d3c6",
+  "detail": "medium",
+  "rig": "game",
+  "faceBones": true,
+  "restPose": "A",
+  "animations": true,
+  "weapon": "none"
+}

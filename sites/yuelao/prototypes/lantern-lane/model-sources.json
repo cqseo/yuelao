@@ -1,0 +1,178 @@
+[
+  {
+    "id": "arch",
+    "filename": "ArchBanner.glb",
+    "source": "lunar-year",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/lunar-year/ArchBanner.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 779956,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/ArchBanner.glb"
+  },
+  {
+    "id": "roof",
+    "filename": "RoomRoof.glb",
+    "source": "lunar-year",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/lunar-year/RoomRoof.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 799616,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/RoomRoof.glb"
+  },
+  {
+    "id": "wall",
+    "filename": "RoomWall01.glb",
+    "source": "lunar-year",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/lunar-year/RoomWall01.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 723108,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/RoomWall01.glb"
+  },
+  {
+    "id": "column",
+    "filename": "Column.glb",
+    "source": "lunar-year",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/lunar-year/Column.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 1149660,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/Column.glb"
+  },
+  {
+    "id": "lamp1",
+    "filename": "Lamp01.glb",
+    "source": "lunar-year",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/lunar-year/Lamp01.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 475620,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/Lamp01.glb"
+  },
+  {
+    "id": "lamp2",
+    "filename": "Lamp02.glb",
+    "source": "lunar-year",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/lunar-year/Lamp02.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 475672,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/Lamp02.glb"
+  },
+  {
+    "id": "outerlamp",
+    "filename": "OutterLamp.glb",
+    "source": "lunar-year",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/lunar-year/OutterLamp.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 791028,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/OutterLamp.glb"
+  },
+  {
+    "id": "altar",
+    "filename": "MainAltar.glb",
+    "source": "lunar-year",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/lunar-year/MainAltar.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 1574396,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/MainAltar.glb"
+  },
+  {
+    "id": "booth",
+    "filename": "Booth_Food01.glb",
+    "source": "medieval-fair",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/medieval-fair/Booth_Food01.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 3979912,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/medieval-fair/Booth_Food01.glb"
+  },
+  {
+    "id": "cart",
+    "filename": "Cart.glb",
+    "source": "medieval-fair",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/medieval-fair/Cart.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 935564,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/medieval-fair/Cart.glb"
+  },
+  {
+    "id": "platform",
+    "filename": "WoodPlatform.glb",
+    "source": "medieval-fair",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/medieval-fair/WoodPlatform.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 1728920,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/medieval-fair/WoodPlatform.glb"
+  },
+  {
+    "id": "sign",
+    "filename": "SignPost.glb",
+    "source": "medieval-fair",
+    "repo": "ToxSam/cc0-models-Polygonal-Mind",
+    "path": "projects/medieval-fair/SignPost.glb",
+    "ref": "56db2d4088512531a070d0bf3eb9d284d077528d",
+    "size": 1739728,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/medieval-fair/SignPost.glb"
+  },
+  {
+    "id": "tree",
+    "filename": "tree-oak.glb",
+    "source": "nature-kit",
+    "repo": "Hidencod/tge-assets",
+    "path": "packs/nature-kit/tree-oak.glb",
+    "ref": "3ddcc695adbba9fb918cf31b7c139b3f95b76910",
+    "size": 14644,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/Hidencod/tge-assets/3ddcc695adbba9fb918cf31b7c139b3f95b76910/packs/nature-kit/tree-oak.glb"
+  },
+  {
+    "id": "bamboo",
+    "filename": "crops-bamboostageb.glb",
+    "source": "nature-kit",
+    "repo": "Hidencod/tge-assets",
+    "path": "packs/nature-kit/crops-bamboostageb.glb",
+    "ref": "3ddcc695adbba9fb918cf31b7c139b3f95b76910",
+    "size": 40144,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/Hidencod/tge-assets/3ddcc695adbba9fb918cf31b7c139b3f95b76910/packs/nature-kit/crops-bamboostageb.glb"
+  },
+  {
+    "id": "rock",
+    "filename": "rock-largea.glb",
+    "source": "nature-kit",
+    "repo": "Hidencod/tge-assets",
+    "path": "packs/nature-kit/rock-largea.glb",
+    "ref": "3ddcc695adbba9fb918cf31b7c139b3f95b76910",
+    "size": 7552,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/Hidencod/tge-assets/3ddcc695adbba9fb918cf31b7c139b3f95b76910/packs/nature-kit/rock-largea.glb"
+  },
+  {
+    "id": "bridge",
+    "filename": "bridge-wood.glb",
+    "source": "nature-kit",
+    "repo": "Hidencod/tge-assets",
+    "path": "packs/nature-kit/bridge-wood.glb",
+    "ref": "3ddcc695adbba9fb918cf31b7c139b3f95b76910",
+    "size": 15692,
+    "license": "CC0-1.0",
+    "url": "https://raw.githubusercontent.com/Hidencod/tge-assets/3ddcc695adbba9fb918cf31b7c139b3f95b76910/packs/nature-kit/bridge-wood.glb"
+  }
+]

@@ -1,0 +1,60 @@
+/* V2.4 third-person controls: clear, small, and accessible on desktop/mobile. */
+.camera-controls{
+  position:absolute;left:clamp(24px,5vw,78px);bottom:135px;z-index:10;
+  display:flex;align-items:center;gap:7px;
+  padding:7px 9px 7px 12px;
+  background:rgba(15,20,33,.72);
+  border:1px solid rgba(225,189,142,.31);
+  backdrop-filter:blur(12px);border-radius:14px;
+  color:#f4dab7;box-shadow:0 8px 20px rgba(0,0,0,.16);
+}
+.camera-controls .view-label{font:10px system-ui,sans-serif;letter-spacing:.07em;margin-right:3px}
+.camera-controls button{
+  appearance:none;border:1px solid rgba(224,189,150,.34);
+  background:rgba(91,67,70,.31);color:#f5dbc0;
+  border-radius:7px;min-width:30px;min-height:28px;
+  cursor:pointer;font:14px system-ui,sans-serif;
+}
+.camera-controls button:last-child{font-size:10px;padding:0 9px}
+.camera-controls button:focus-visible{outline:2px solid #f4c98d;outline-offset:2px}
+#mapMode{
+  border:0;background:transparent;color:#edc792;
+  font:9px system-ui,sans-serif;cursor:pointer;padding:3px 1px;
+  white-space:nowrap;
+}
+.map-actions{display:flex;align-items:center;gap:7px}
+#mapMode:focus-visible{outline:2px solid #f0cb93;outline-offset:2px}
+#worldMap{touch-action:none}
+@media(max-width:860px){
+  .camera-controls{
+    left:auto;right:16px;bottom:179px;
+    border-radius:10px;padding:5px 7px;
+    gap:4px;background:rgba(15,20,33,.82);
+  }
+  .camera-controls .view-label{font-size:9px;margin-right:1px}
+  .camera-controls button{min-height:28px;min-width:26px}
+  .camera-controls button:last-child{font-size:9px;padding:0 6px}
+  #mapMode{font-size:8px}
+  .map-actions{gap:3px}
+}
+@media(max-width:430px){
+  .camera-controls{right:14px;bottom:195px}
+  .camera-controls .view-label{display:none}
+  .map-panel .map-topline>span small{display:none}
+}
+
+@media(max-width:430px){
+ .map-panel .map-topline>span{font-size:8px;letter-spacing:0}
+ #mapMode{font-size:7px;letter-spacing:0}
+ .map-actions{gap:2px}
+}
+@media(max-width:860px) and (max-height:600px) and (orientation:landscape){
+ .nav{bottom:72px;left:195px;right:155px}
+ .camera-controls{bottom:22px;right:14px}
+ .right-bottom{bottom:80px}
+ .left-bottom{bottom:10px;max-width:260px}
+ .left-bottom .controls{display:none}
+ .joystick{bottom:72px}
+ .keeper-prompt{bottom:109px}
+ .keeper-hint{bottom:155px}
+}

@@ -1,0 +1,82 @@
+{
+  "ArchBanner.glb": {
+    "bytes": 779956,
+    "sha256": "b51e2aacce0014655cb9c6b6c10d53cb41a6a11b910d378d9c83113aab151187",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/ArchBanner.glb"
+  },
+  "RoomRoof.glb": {
+    "bytes": 799616,
+    "sha256": "02e3b7676aaefc82c2c318647aedea31d83e845e5c966c040b864118bf1834c7",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/RoomRoof.glb"
+  },
+  "RoomWall01.glb": {
+    "bytes": 723108,
+    "sha256": "7007a03ecefb7eafa9fa365e01c3928c258bef020d10d24914782cbb459e46cb",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/RoomWall01.glb"
+  },
+  "Column.glb": {
+    "bytes": 1149660,
+    "sha256": "1a3f75f96f4d7eb35b322210eaa4cc953b04663fb7ce1a8e92770e53a2c60865",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/Column.glb"
+  },
+  "Lamp01.glb": {
+    "bytes": 475620,
+    "sha256": "289340f16d545bf2ec550eeb1cc6c27a1177f1e92f44d0c161576e15b086a89b",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/Lamp01.glb"
+  },
+  "Lamp02.glb": {
+    "bytes": 475672,
+    "sha256": "11f7480a1ae67d6810ad2594972311effd6cea0738ab1f83217348ae84621d62",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/Lamp02.glb"
+  },
+  "OutterLamp.glb": {
+    "bytes": 791028,
+    "sha256": "f165973aa6257ff8febbeb9c1ec96fa5704c60918410d49b73cf8bdf7804d7ad",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/OutterLamp.glb"
+  },
+  "MainAltar.glb": {
+    "bytes": 1574396,
+    "sha256": "d7ff0041eeb17380aec080e8ab52a075cba4578119ac65d7a58c353ad178da12",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/lunar-year/MainAltar.glb"
+  },
+  "Booth_Food01.glb": {
+    "bytes": 3979912,
+    "sha256": "acbaf7f0dfb0a0d1b9b9c280deffc0c46539f09d232c9f6bc635527030cca814",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/medieval-fair/Booth_Food01.glb"
+  },
+  "Cart.glb": {
+    "bytes": 935564,
+    "sha256": "cb48070abb0689307030cef9e593e4522a34972547caa058a83238df475d078b",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/medieval-fair/Cart.glb"
+  },
+  "WoodPlatform.glb": {
+    "bytes": 1728920,
+    "sha256": "18e1962c6909e6d5389333f5f786416a4ffcdd21b37db8a1a5e264b6ed7dd691",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/medieval-fair/WoodPlatform.glb"
+  },
+  "SignPost.glb": {
+    "bytes": 1739728,
+    "sha256": "4c42d4de672e60530edcd9c6384f4c569ff7049fa995da7839753de236a50681",
+    "source": "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/56db2d4088512531a070d0bf3eb9d284d077528d/projects/medieval-fair/SignPost.glb"
+  },
+  "tree-oak.glb": {
+    "bytes": 14644,
+    "sha256": "d7fd8773674928c50c11b66d12c636d49bdcc15a8b1c7fbb98e6f63a3439a3f3",
+    "source": "https://raw.githubusercontent.com/Hidencod/tge-assets/3ddcc695adbba9fb918cf31b7c139b3f95b76910/packs/nature-kit/tree-oak.glb"
+  },
+  "crops-bamboostageb.glb": {
+    "bytes": 40144,
+    "sha256": "238c4cbeedf747dea96d579cf63301d35bb8709310f0405596c8f988dcc366e6",
+    "source": "https://raw.githubusercontent.com/Hidencod/tge-assets/3ddcc695adbba9fb918cf31b7c139b3f95b76910/packs/nature-kit/crops-bamboostageb.glb"
+  },
+  "rock-largea.glb": {
+    "bytes": 7552,
+    "sha256": "6dd15390fd96501dcd1454765a17ba61dbbd8d47705dfe5149c8dd92b353ce25",
+    "source": "https://raw.githubusercontent.com/Hidencod/tge-assets/3ddcc695adbba9fb918cf31b7c139b3f95b76910/packs/nature-kit/rock-largea.glb"
+  },
+  "bridge-wood.glb": {
+    "bytes": 15692,
+    "sha256": "3da4c208b0f72b7f2ba42db521b62ec4b0278050c75256a6982c40d21aab5701",
+    "source": "https://raw.githubusercontent.com/Hidencod/tge-assets/3ddcc695adbba9fb918cf31b7c139b3f95b76910/packs/nature-kit/bridge-wood.glb"
+  }
+}

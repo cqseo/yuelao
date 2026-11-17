@@ -1,0 +1,57 @@
+/* Lantern Keeper dialogue layer. No site-wide style changes. */
+[hidden]{display:none!important}
+.keeper-prompt{
+  position:absolute;z-index:8;bottom:113px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:11px;white-space:nowrap;
+  border:1px solid rgba(242,198,137,.75);border-radius:99px;
+  padding:12px 19px;background:rgba(32,20,25,.84);
+  backdrop-filter:blur(14px);box-shadow:0 8px 40px rgba(0,0,0,.42),0 0 30px rgba(214,144,81,.11);
+  color:#f9e1ba;cursor:pointer;font-size:13px;letter-spacing:.12em
+}
+.keeper-prompt span{color:#efbb78;font-size:18px}
+.keeper-prompt small{font:10px system-ui,sans-serif;color:#bba9a1;border-left:1px solid rgba(235,194,145,.3);padding-left:11px}
+.keeper-prompt:hover,.keeper-prompt:focus-visible{background:rgba(83,45,44,.94);outline:2px solid rgba(250,214,159,.68);outline-offset:3px}
+.keeper-hint{position:absolute;bottom:163px;left:50%;transform:translateX(-50%);font:11px 'Noto Serif SC',serif;color:#f6d5a4;text-shadow:0 2px 12px black;white-space:nowrap;z-index:8}
+.keeper-dialog{
+  position:absolute;z-index:30;left:50%;bottom:9%;transform:translateX(-50%);
+  width:min(500px,calc(100vw - 38px));padding:26px 30px 21px;
+  border-radius:15px;border:1px solid rgba(218,173,116,.5);
+  background:linear-gradient(155deg,rgba(33,31,44,.98),rgba(22,24,36,.97) 67%,rgba(42,27,35,.97));
+  box-shadow:0 28px 85px rgba(0,0,0,.7),0 1px 28px rgba(237,164,97,.15);
+  backdrop-filter:blur(18px);
+  color:#f1e7db;max-height:min(72vh,570px);overflow-y:auto
+}
+.keeper-top{display:flex;gap:14px;align-items:center;position:relative}
+.keeper-portrait{display:grid;place-items:center;width:55px;height:55px;flex:none;border:1px solid rgba(232,186,125,.46);border-radius:50%;color:#f0c98e;font:36px Georgia,serif;background:radial-gradient(circle at 50% 50%,rgba(210,152,104,.21),rgba(49,41,60,.75))}
+.keeper-name{flex:1}
+.keeper-name small{font:9px Georgia,serif;letter-spacing:.19em;color:#c4a581}
+.keeper-name h2{font-size:23px;font-weight:500;margin:5px 0 0;letter-spacing:.15em}
+.keeper-name em{font-size:12px;font-style:normal;color:#d3b7a0}
+#keeperClose{width:32px;height:32px;border:1px solid rgba(234,209,177,.29);border-radius:50%;color:#e9d0b7;background:rgba(255,255,255,.05);cursor:pointer;font-size:21px;line-height:1;align-self:flex-start}
+#keeperClose:focus-visible,.keeper-choices button:focus-visible{outline:2px solid #f2c797;outline-offset:3px}
+.keeper-line{height:1px;background:linear-gradient(90deg,rgba(234,191,130,.65),rgba(234,191,130,0));margin:20px 0 14px}
+.keeper-chapter{color:#dcb884;font:10px system-ui,sans-serif;letter-spacing:.18em;margin:0 0 12px}
+.keeper-text{font-size:15px;line-height:2;letter-spacing:.035em;margin:0 0 18px;min-height:79px}
+.keeper-choices{display:grid;gap:9px}
+.keeper-choices button{
+ padding:12px 15px;text-align:left;border-radius:7px;
+ background:rgba(181,137,101,.09);border:1px solid rgba(204,175,131,.27);
+ color:#f3e3cd;font-size:13px;line-height:1.5;cursor:pointer;
+ transition:background .16s,border-color .16s
+}
+.keeper-choices button:hover{background:rgba(193,125,83,.24);border-color:rgba(232,180,112,.65)}
+.keeper-choices button:before{content:'✧';margin-right:12px;color:#dcad70}
+.keeper-progress{margin-top:17px;color:#ac9f98;font:10px system-ui,sans-serif;letter-spacing:.12em}
+@media(max-width:860px){
+ .keeper-prompt{bottom:155px;padding:10px 15px;font-size:12px}
+ .keeper-hint{bottom:201px;font-size:10px}
+ .keeper-dialog{bottom:8%;max-height:78vh;padding:20px 20px 16px}
+ .keeper-name h2{font-size:20px}
+ .keeper-portrait{width:47px;height:47px}
+ .keeper-text{font-size:13px;line-height:1.85}
+ .keeper-choices button{padding:11px 12px;font-size:12px}
+}
+@media(max-width:420px){
+ .keeper-prompt{bottom:158px}
+ .keeper-dialog{bottom:6%;width:calc(100vw - 26px)}
+}

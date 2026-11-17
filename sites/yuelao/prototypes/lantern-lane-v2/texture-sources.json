@@ -1,0 +1,65 @@
+[
+  {
+    "name": "grey_roof_tiles_diff.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_roof_tiles/grey_roof_tiles_diff_1k.jpg",
+    "expectedMd5": "9a0d2c1ca66e79972c7c35cefa238cf7",
+    "actualMd5": "9a0d2c1ca66e79972c7c35cefa238cf7",
+    "bytes": 596156
+  },
+  {
+    "name": "grey_roof_tiles_normal.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_roof_tiles/grey_roof_tiles_nor_gl_1k.jpg",
+    "expectedMd5": "95003919cdb2fcb2f499594bdf0ee827",
+    "actualMd5": "95003919cdb2fcb2f499594bdf0ee827",
+    "bytes": 522186
+  },
+  {
+    "name": "grey_roof_tiles_rough.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_roof_tiles/grey_roof_tiles_rough_1k.jpg",
+    "expectedMd5": "19961a96ab55dfe97dd76981c59ccb1a",
+    "actualMd5": "19961a96ab55dfe97dd76981c59ccb1a",
+    "bytes": 260780
+  },
+  {
+    "name": "grey_stone_path_diff.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_stone_path/grey_stone_path_diff_1k.jpg",
+    "expectedMd5": "587730d9d8cee8d49819cee606cfeff0",
+    "actualMd5": "587730d9d8cee8d49819cee606cfeff0",
+    "bytes": 839527
+  },
+  {
+    "name": "grey_stone_path_normal.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_stone_path/grey_stone_path_nor_gl_1k.jpg",
+    "expectedMd5": "8a25acc911e56867569b5f473857e187",
+    "actualMd5": "8a25acc911e56867569b5f473857e187",
+    "bytes": 914614
+  },
+  {
+    "name": "grey_stone_path_rough.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grey_stone_path/grey_stone_path_rough_1k.jpg",
+    "expectedMd5": "11781eb8a841729b219f55943f484090",
+    "actualMd5": "11781eb8a841729b219f55943f484090",
+    "bytes": 648416
+  },
+  {
+    "name": "wood_floor_worn_diff.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_worn/wood_floor_worn_diff_1k.jpg",
+    "expectedMd5": "160b2c683907f592dee214a23d8dfa1e",
+    "actualMd5": "160b2c683907f592dee214a23d8dfa1e",
+    "bytes": 629271
+  },
+  {
+    "name": "wood_floor_worn_normal.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_worn/wood_floor_worn_nor_gl_1k.jpg",
+    "expectedMd5": "b273afec89ec38d3b8e9f9790635f3eb",
+    "actualMd5": "b273afec89ec38d3b8e9f9790635f3eb",
+    "bytes": 636603
+  },
+  {
+    "name": "wood_floor_worn_rough.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_floor_worn/wood_floor_worn_rough_1k.jpg",
+    "expectedMd5": "cca134929e27d4de4637226e7135f89b",
+    "actualMd5": "cca134929e27d4de4637226e7135f89b",
+    "bytes": 290570
+  }
+]
