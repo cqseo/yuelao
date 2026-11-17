@@ -14,6 +14,8 @@ const lite = readFileSync('sites/yuelao/src/market/LiteMarket.tsx', 'utf8');
 const billing = readFileSync('sites/yuelao/src/market/lite-billing.ts', 'utf8');
 const market = readFileSync('sites/yuelao/src/market/Market.tsx', 'utf8');
 assert.ok(lite.includes('liteCheckout(result.id, situation)'), 'Buy the drawn stick/category');
+assert.ok(lite.includes('scrollIntoView'), 'after drawing, the result must be visible');
+assert.ok(lite.includes('IntersectionObserver'), 'premium impression requires viewport exposure');
 assert.ok(lite.includes("response.state === 'owned'"), 'Handle already owned without charging');
 assert.ok(lite.includes("payment === 'ready'"), 'Show purchased full text');
 assert.ok(lite.includes("payment === 'pending'"), 'Pending Stripe webhook must block a duplicate charge');
