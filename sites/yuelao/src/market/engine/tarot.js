@@ -663,6 +663,7 @@ export function createTarot(ui) {
       },
       true,
     );
+    ui.emit?.('offer_view', { product: 'spread_1', source: 'tarot' });
     refreshDeep();
   }
 

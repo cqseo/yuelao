@@ -1,6 +1,8 @@
 import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
 import { useEffect, useRef, useState } from 'react';
 import { LiteMarket } from './LiteMarket';
+import { LiteTarot } from './LiteTarot';
+import { hasLiteTarotPending } from './lite-tarot-pending';
 import { hasLitePending } from './lite-pending';
 import { track } from '~/lib/track';
 import { COMPANION_STARTERS, type CompanionTheme, guidedReply } from '~/site/companion';
@@ -22,6 +24,7 @@ export function Market() {
   const root = useRef<HTMLDivElement>(null);
   const stopRef = useRef<(() => void) | undefined>(undefined);
   const [lite, setLite] = useState(false);
+  const [liteTarot, setLiteTarot] = useState(false);
 
   // 手機頂欄選單：點選單外面就收起來
   useEffect(() => {
@@ -40,8 +43,16 @@ export function Market() {
   useEffect(() => {
     const el = root.current;
     if (!el) return;
+    // Fast tarot and returning paid tarot should avoid booting the WebGL world.
+    const liteMode = new URLSearchParams(window.location.search).get('lite');
+    if (hasLiteTarotPending() || liteMode === 'tarot') {
+      track('market_lite_manual', { source: 'fast_tarot' });
+      setLiteTarot(true);
+      setLite(true);
+      return;
+    }
     // Bookmarkable same-route fallback for low-end devices and deterministic QA.
-    if (new URLSearchParams(window.location.search).get('lite') === '1' || hasLitePending()) {
+    if (liteMode === '1' || hasLitePending()) {
       track('market_lite_manual', { source: 'url' });
       setLite(true);
       return;
@@ -117,18 +128,29 @@ export function Market() {
             }),
           }),
         );
-        if (res.status === 401) return { state: 'login' as const };
+        if (res.status === 401) {
+          track('checkout_login_required', { product: productId });
+          return { state: 'login' as const };
+        }
         if (res.status === 409) return { state: 'owned' as const };
-        if (res.status === 429) return { state: 'busy' as const };
+        if (res.status === 429) {
+          track('checkout_api_failure', { product: productId, status: 429 });
+          return { state: 'busy' as const };
+        }
         if (res.status === 201) {
           const data = (await res.json()) as { checkoutUrl?: string };
-          // 只跳去 Stripe 的結帳網域
-          if (data.checkoutUrl && new URL(data.checkoutUrl).host === 'checkout.stripe.com')
+          // 只跳去 Stripe 的結帳網域；只有拿到有效網址才算建單成功。
+          if (data.checkoutUrl && new URL(data.checkoutUrl).host === 'checkout.stripe.com') {
+            track('checkout_session_created', { product: productId });
             return { state: 'redirect' as const, url: data.checkoutUrl };
+          }
+          track('checkout_api_failure', { product: productId, status: 201 });
           return { state: 'error' as const };
         }
+        track('checkout_api_failure', { product: productId, status: res.status });
         return { state: res.status === 503 ? ('closed' as const) : ('error' as const) };
       } catch {
+        track('checkout_api_failure', { product: productId, status: 0 });
         return { state: 'error' as const };
       }
     };
@@ -463,6 +485,7 @@ export function Market() {
     const activateLite = (reason: 'boot' | 'module') => {
       if (gone) return;
       track('market_3d_failure', { reason });
+      if (window.location.hash === '#tarot') setLiteTarot(true);
       stopRef.current?.();
       stopRef.current = undefined;
       setLite(true);
@@ -491,7 +514,7 @@ export function Market() {
     };
   }, []);
 
-  if (lite) return <LiteMarket />;
+  if (lite) return liteTarot ? <LiteTarot /> : <LiteMarket />;
 
   return (
     <div className="mk" ref={root}>
@@ -582,6 +605,7 @@ export function Market() {
         <p id="boot-text">{tr('正在點燈')}</p>
         <button type="button" className="ghost" onClick={() => {
           track('market_lite_manual');
+          if (window.location.hash === '#tarot') setLiteTarot(true);
           stopRef.current?.();
           stopRef.current = undefined;
           setLite(true);

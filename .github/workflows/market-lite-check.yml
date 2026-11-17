@@ -5,6 +5,7 @@ on:
     paths:
       - "sites/yuelao/**"
       - "tools/test-market-lite.ts"
+      - "tools/test-lite-tarot.ts"
       - "tools/test-performance-funnel.ts"
       - ".github/workflows/market-lite-check.yml"
   workflow_dispatch:
@@ -26,6 +27,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Market lite and tracking tests
         run: pnpm exec tsx tools/test-market-lite.ts
+      - name: Lightweight tarot purchase and resume tests
+        run: pnpm exec tsx tools/test-lite-tarot.ts
       - name: Performance and funnel assertions
         run: pnpm exec tsx tools/test-performance-funnel.ts
       - name: Historical ritual redirects

@@ -4,6 +4,10 @@ const source = (p: string) => readFileSync('sites/yuelao/src/' + p, 'utf8');
 const engine = source('market/engine/main.js');
 const yuelao = source('market/engine/yuelao.js');
 const admin = source('routes/admin.tsx');
+const track = source('lib/track.ts');
+for (const event of ['offer_view', 'checkout_login_required', 'checkout_session_created']) {
+  assert.ok(track.includes("  '" + event + "',"), 'Critical conversion milestone must not be throttled: ' + event);
+}
 assert.ok(engine.includes('const entryRoom = rooms[requested]'), 'Compile only requested room first');
 assert.ok(engine.includes('if (entryRoom) renderer.compile(entryRoom.scene, entryRoom.camera)'));
 assert.ok(!engine.includes('for (const s of Object.values(rooms)) renderer.compile'), 'No blocking compilation of all rooms');

@@ -79,3 +79,37 @@ begin
   end if;
   raise notice 'PASS: anonymous role denied privileged settlement';
 end $$;
+
+-- Regression for 2026-11-17 live checkout expiry: on a throwaway DB only.
+-- Production must accept both modes after the server has verified unpaid Stripe status.
+insert into public.orders(id,user_id,product_id,product_kind,amount,currency,status,locale,pack_uses,checkout_ref)
+values
+  ('00000000-0000-4000-8000-000000000104','00000000-0000-4000-8000-000000000001','pack_3','pack',4800,'HKD','pending','zh-Hant',3,'cs_live_ephemeral_104'),
+  ('00000000-0000-4000-8000-000000000105','00000000-0000-4000-8000-000000000001','pack_3','pack',4800,'HKD','pending','zh-Hant',3,'cs_test_ephemeral_105');
+do $$
+declare state text;
+begin
+  select public.mark_checkout_unpaid('00000000-0000-4000-8000-000000000104'::uuid,
+    'cs_live_ephemeral_104', 'expired') into state;
+  if state <> 'updated' then raise exception 'live expiry not updated: %', state; end if;
+  select status into state from public.orders where id='00000000-0000-4000-8000-000000000104'::uuid;
+  if state <> 'expired' then raise exception 'live order still pending: %', state; end if;
+  select public.mark_checkout_unpaid('00000000-0000-4000-8000-000000000105'::uuid,
+    'cs_test_ephemeral_105', 'failed') into state;
+  if state <> 'updated' then raise exception 'test failure not updated: %', state; end if;
+  select public.mark_checkout_unpaid('00000000-0000-4000-8000-000000000104'::uuid,
+    'cs_live_ephemeral_104', 'expired') into state;
+  if state <> 'already_final' then raise exception 'expiry not idempotent: %', state; end if;
+  begin
+    perform public.mark_checkout_unpaid('00000000-0000-4000-8000-000000000104'::uuid,
+      'cs_live_ephemeral_104', 'paid');
+    raise exception 'bad paid state was allowed';
+  exception when others then
+    if SQLERRM not like '%invalid_checkout_failure%' then raise; end if;
+  end;
+  if has_function_privilege('anon','public.mark_checkout_unpaid(uuid,text,text)','EXECUTE')
+    or has_function_privilege('authenticated','public.mark_checkout_unpaid(uuid,text,text)','EXECUTE') then
+    raise exception 'public can run privileged checkout expiry RPC';
+  end if;
+  raise notice 'PASS: live/test Stripe expiry, idempotence, forbidden paid update, privilege protection';
+end $$;

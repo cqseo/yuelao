@@ -15,7 +15,9 @@ function GoogleLoginComplete() {
       const locale = sessionStorage.getItem('yuelao-google-locale');
       sessionStorage.removeItem('yuelao-google-locale');
       if (locale && ['en', 'ja', 'th', 'ko'].includes(locale)) prefix = `/${locale}`;
-      if (sessionStorage.getItem('market-pending') !== null) target = '/market#yuelao';
+      if (sessionStorage.getItem('market-lite-tarot-pending') !== null) target = '/market?lite=tarot#tarot';
+      else if (sessionStorage.getItem('market-pending') !== null) target = '/market#yuelao';
+      else if (sessionStorage.getItem('market-spread-pending') !== null) target = '/market#tarot';
       else if (sessionStorage.getItem('market-back') !== null) target = '/market';
     } catch {
       // If sessionStorage is blocked, the account page remains a safe fallback.

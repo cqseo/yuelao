@@ -682,6 +682,7 @@ export function createYuelao(ui) {
         else showPick();
       },
     );
+    ui.emit?.('offer_view', { product: 'unlock_1', source: 'yuelao' });
     refreshDeep();
   }
 
