@@ -9,8 +9,10 @@ const yuelao = read('market/engine/yuelao.js');
 const lite = read('market/LiteMarket.tsx');
 
 assert.equal(STICKS.length, 100);
-assert.ok(market.includes('if (lite) return <LiteMarket />;'));
-assert.ok(market.includes("get('lite') === '1'"));
+assert.ok(market.includes('if (lite) return liteTarot ? <LiteTarot /> : <LiteMarket />;'), 'lite tarot and lite sticks stay in the market route');
+assert.ok(market.includes("liteMode === '1'"), 'existing fast stick option remains available');
+assert.ok(market.includes("liteMode === 'tarot'"), '3D-free tarot route is supported');
+assert.ok(market.includes("hasLiteTarotPending()"), 'pending fast tarot purchase must restore correctly');
 assert.ok(market.includes("onBootFailure: () => activateLite('boot')"));
 assert.ok(market.includes("catch(() => activateLite('module'))"));
 assert.ok(engine.includes('opts.onBootFailure?.()'));
