@@ -15,9 +15,11 @@ function BillingReturn() {
   // 從集市的月老殿發起的付款：回程帶回月老殿（那支籤暫存在 sessionStorage）。
   const [pending, setPending] = useState(false);
   const [market, setMarket] = useState(false);
+  const [tarot, setTarot] = useState(false);
   useEffect(() => {
     try {
       setPending(sessionStorage.getItem('market-pending') !== null);
+      setTarot(sessionStorage.getItem('market-lite-tarot-pending') !== null);
       setMarket(sessionStorage.getItem('market-back') !== null);
     } catch {}
   }, []);
@@ -36,7 +38,9 @@ function BillingReturn() {
           ? '如果付款已经成功但内容没有解锁，请保留支付平台的收据，稍后在账户中查看交易记录。'
           : tr('如果付款已經成功但內容沒有解鎖，請保留支付平台的收據，稍後在帳戶中查看交易紀錄。')}
       </p>
-      {pending ? (
+      {tarot ? (
+        <p><a href={localizeHref('/market?lite=tarot#tarot')}>{zh ? '回到刚才的三张牌' : tr('回到剛才的三張牌')}</a></p>
+      ) : pending ? (
         <p>
           <a href={localizeHref('/market#yuelao')}>
             {zh ? '回到月老殿，接着刚才那支签' : tr('回到月老殿，接著剛才那支籤')}
