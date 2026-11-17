@@ -29,6 +29,10 @@ assert.ok(lite.includes('checkout_session_created'), 'track successful checkout 
 assert.ok(lite.includes('scrollIntoView'), 'draw should reveal the result on mobile');
 assert.ok(lite.includes('loading="eager"'), 'the three cards are primary content, not deferred thumbnails');
 assert.ok(lite.includes('IntersectionObserver'), 'count premium views only after the actual offer is visible');
+assert.ok(lite.includes('const resetReading = () =>'), 'changing deck, situation or question must invalidate old spread');
+assert.ok(lite.includes('if (result) resetReading()'), 'question change must not preserve stale paid context');
+assert.ok(lite.includes('if (deck !=='), 'deck switch must invalidate old spread');
+assert.ok(lite.includes('if (id !== sit)'), 'situation switch must invalidate old spread');
 assert.ok(!lite.includes('amount: 1800'), 'price is server-authoritative');
 
 const values = new Map<string, string>();
