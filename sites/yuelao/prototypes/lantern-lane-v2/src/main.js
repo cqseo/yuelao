@@ -4,6 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { BuildingGenerator } from './BuildingGenerator.js';
 import './style.css';
+import { addStreetDetails } from './details.js';
 
 // Isolated moonlit architecture test. BuildingGenerator © zhulin025, MIT 2026.
 // Poly Haven 1K PBR textures: CC0. Full provenance recorded in README.md.
@@ -15,7 +16,7 @@ try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'hig
 catch(e){document.querySelector('#fallback').hidden=false;throw e;}
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.68;
+renderer.toneMappingExposure=1.36;
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,innerWidth<800?1:1.45));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
@@ -24,8 +25,8 @@ scene.fog=new THREE.FogExp2('#1f3045',.012);
 const camera=new THREE.PerspectiveCamera(64,1,.1,220);
 camera.rotation.order='YXZ';camera.position.set(.1,1.9,19);
 let yaw=-.035,pitch=-.04;
-const bg=new THREE.HemisphereLight(0xcbdaf3,0x3e3036,2.35);scene.add(bg);
-const moonlight=new THREE.DirectionalLight(0xc7d8ff,2.85);moonlight.position.set(-22,35,-35);moonlight.castShadow=true;moonlight.shadow.mapSize.set(2048,2048);
+const bg=new THREE.HemisphereLight(0xcbdaf3,0x3e3036,1.78);scene.add(bg);
+const moonlight=new THREE.DirectionalLight(0xc7d8ff,2.5);moonlight.position.set(-22,35,-35);moonlight.castShadow=true;moonlight.shadow.mapSize.set(2048,2048);
 moonlight.shadow.camera.left=-40;moonlight.shadow.camera.right=40;moonlight.shadow.camera.top=35;moonlight.shadow.camera.bottom=-35;moonlight.shadow.camera.near=2;moonlight.shadow.camera.far=110;moonlight.shadow.bias=-.0006;scene.add(moonlight);
 const warmBase=new THREE.DirectionalLight(0xe49b71,.9);warmBase.position.set(15,9,10);scene.add(warmBase);
 function emissive(rgb,intensity=1){return new THREE.MeshBasicMaterial({color:rgb,toneMapped:false})}
@@ -136,6 +137,12 @@ const water=new THREE.Mesh(new THREE.PlaneGeometry(12,17),new THREE.MeshPhysical
 water.rotation.x=-Math.PI/2;water.position.set(15,-.14,-19);scene.add(water);
 const shore=new THREE.Mesh(new THREE.BoxGeometry(.32,.45,18),darkStone);shore.position.set(9.4,.03,-19);scene.add(shore);
 for(const z of [-11,-16,-21,-26]){const deco=new THREE.Mesh(new THREE.BoxGeometry(3,.12,.2),bronze);deco.position.set(12,.2,z);scene.add(deco)}
+const detailing=new URLSearchParams(location.search).has('noDetail') ? {shopCount:0,floweringTrees:0,wetPatches:0,tick(){}} : addStreetDetails(scene,{low:innerWidth<850});
+state.architecture={
+  shopfronts:detailing.shopCount,
+  floweringTrees:detailing.floweringTrees,
+  wetStonePatches:detailing.wetPatches,
+};
 const particles=[],pPositions=new Float32Array(100*3);
 for(let i=0;i<100;i++){const x=(rand()-.5)*45,y=1+rand()*9,z=-40+rand()*75;particles.push(y);pPositions.set([x,y,z],i*3)}
 const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pPositions,3));
@@ -195,6 +202,7 @@ function loop(){
  }
  camera.position.x=Math.min(6,Math.max(-6,camera.position.x));camera.position.z=Math.min(28,Math.max(-34,camera.position.z));camera.position.y=1.9;
  camera.rotation.set(pitch,yaw,0);
+ detailing.tick(t);
  swingLanterns.forEach(({root,offset,initialY})=>{root.rotation.z=Math.sin(t*.8+offset)*.018;root.position.y=initialY+Math.sin(t*.7+offset)*.015});
  if(fireflies.visible){const a=geo.attributes.position;for(let i=0;i<particles.length;i++)a.array[i*3+1]=particles[i]+Math.sin(t*.6+i)*.18;a.needsUpdate=true}
  if(composer)composer.render();else renderer.render(scene,camera);
