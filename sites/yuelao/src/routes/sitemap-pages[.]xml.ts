@@ -13,6 +13,8 @@ export const PAGES = [
   '/signs',
   '/about',
   '/methodology',
+  '/jiaobei',
+  '/questions',
   '/tests',
   '/daily',
   ...TESTS.map((t) => `/tests/${t.slug}`),
