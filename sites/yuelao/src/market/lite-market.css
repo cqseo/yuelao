@@ -78,3 +78,26 @@
   white-space:pre-wrap;
   overflow-wrap:anywhere;
 }
+
+
+/* No-WebGL three-card reading; keep cards readable without a side-scroll. */
+.lite-tarot__decks { margin-top: 1rem; }
+.lite-tarot__decks button { flex: 1 1 8rem; }
+.lite-tarot__question { font-size:.95rem; margin:0 0 1rem; color:#643b34; overflow-wrap:anywhere; }
+.lite-tarot__cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem; align-items:start; }
+.lite-tarot__card { min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:.3rem; }
+.lite-tarot__card img { display:block; width:100%; max-height:250px; height:auto; object-fit:contain; border-radius:3px; }
+.lite-tarot__card strong { font-size:.9rem; line-height:1.55; color:#6f2a24; }
+.lite-tarot__card small { color:#705b4f; font-size:.75rem; }
+.lite-tarot__card p { margin:.15rem 0; font-size:.84rem; line-height:1.7; }
+.lite-tarot__summary { margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(110,69,45,.3); }
+@media(max-width:560px) {
+  .lite-tarot__cards { grid-template-columns:1fr; gap:1rem; }
+  .lite-tarot__card {
+    display:grid; grid-template-columns:6rem minmax(0,1fr);
+    column-gap:.85rem; grid-template-rows:auto auto 1fr;
+    border-top:1px solid rgba(96,60,40,.2); padding-top:.9rem;
+  }
+  .lite-tarot__card img { grid-row:1/4; max-height:11rem; }
+  .lite-tarot__card p { grid-column:2; }
+}
