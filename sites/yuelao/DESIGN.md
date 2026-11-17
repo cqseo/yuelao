@@ -498,3 +498,11 @@
 - 手机默认降低像素比与粒子开销；首次加载改用独立页面；禁止把全部 GLB 注入首页首屏。
 - 独立预览页面采用 noindex / nofollow 及 robots 禁抓取，不应加入主站 sitemap。
 - 本分支只能以 Draft PR 等待站长审核；除非站长再次明确批准合并，不得合并 main、部署正式 yuelao Worker 或改现有体验。
+
+
+## 灯火巷 V2 — 宋式建筑与 PBR 美术验证（2026-11-17）
+
+- V1 低多边形西式摊位方案已判定不合格，保留为技术历史但不得作为正式美术方向。
+- 独立开发原型 prototypes/lantern-lane-v2：基于 2026 年 MIT 宋式 BuildingGenerator（© zhulin025），采用 Poly Haven CC0 青瓦、青石、旧木 1K PBR 纹理。源出处与 MD5 记录在 texture-sources.json。
+- 技术目标：先验证一段可以走的街景与中式建筑体量、暖灯、月光、PBR 纹理；不能将原型视为 InPeace 级最终质量。
+- 该目录只以独立静态构建部署 Cloudflare Pages，不改正式 Worker/路由，不进 Sitemap；未来必须重做美术与性能专项验收，并征得站长明确批准后方可整合或合并 main。
