@@ -156,6 +156,7 @@ export function computeStats(input: StatsInput) {
   const events = input.events.map((e) => ({ ...e, t: Date.parse(e.at) }));
   const cur = events.filter((e) => inRange(e.t));
   const prev = events.filter((e) => inPrev(e.t));
+  const earliestEventTime = events.reduce((minimum, e) => Math.min(minimum, e.t), Infinity);
 
   const liveOrders = input.orders.filter(isLive);
   const paid = liveOrders.filter((o) => o.status === 'paid' && o.paid_at);
@@ -486,10 +487,10 @@ export function computeStats(input: StatsInput) {
     recent,
     meta: {
       eventsTruncated: input.eventsTruncated,
-      trackedSince: input.events[0]?.at ?? null,
+      trackedSince: Number.isFinite(earliestEventTime) ? new Date(earliestEventTime).toISOString() : null,
       // If event collection began after this window started, session/visitor
       // attribution is incomplete. Never display a confident payment conversion.
-      completeWindowTracking: Boolean(input.events.length && events[0] && events[0].t <= start),
+      completeWindowTracking: Number.isFinite(earliestEventTime) && earliestEventTime <= start,
     },
   };
 }
