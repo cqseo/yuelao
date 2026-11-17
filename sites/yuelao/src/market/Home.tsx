@@ -40,7 +40,7 @@ const NAV = [
   { to: '/market#enter', label: () => m.home_market_nav_market(), hard: true },
   // 一般求籤不強制載入 3D；需要沉浸儀式的訪客仍可選擇完整集市。
   { to: '/market?lite=1#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
-  { to: '/market#tarot', label: () => m.home_market_room_tarot(), hard: true },
+  { to: '/market?lite=tarot#tarot', label: () => m.home_market_room_tarot(), hard: true },
   { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true },
   { to: '/tests', label: () => m.home_market_nav_tests() },
 ];
@@ -172,7 +172,7 @@ export function Home() {
               </a>
               <a
                 className="mh-quick-card mh-quick-card--tarot"
-                href={localizeHref('/market#tarot')}
+                href={localizeHref('/market?lite=tarot#tarot')}
                 data-rybbit-event="home_quick_tarot"
                 onClick={() => track('home_quick_entry_click', { destination: 'tarot' })}
               >
