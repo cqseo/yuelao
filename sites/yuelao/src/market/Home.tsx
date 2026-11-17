@@ -21,10 +21,26 @@ export const FAQS = [
   { q: () => m.home_faq_q6(), a: () => m.home_faq_a6() },
 ];
 
+const QUICK_ACTION_COPY = {
+  'zh-Hant': {
+    ritual: '立即抽籤',
+    ritualHint: '月老靈籤 · 擲筊',
+    tarot: '立即抽塔羅',
+    tarotHint: '塔羅／雷諾曼 · 三張牌',
+  },
+  'zh-Hans': {
+    ritual: '立即抽签',
+    ritualHint: '月老灵签 · 掷筊',
+    tarot: '立即抽塔罗',
+    tarotHint: '塔罗／雷诺曼 · 三张牌',
+  },
+} as const;
+
 const NAV = [
   { to: '/market#enter', label: () => m.home_market_nav_market(), hard: true },
   // 求籤只在 3D 月老殿裡。首頁與導覽可透過 #yuelao 直接開殿。
   { to: '/market#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
+  { to: '/market#tarot', label: () => m.home_market_room_tarot(), hard: true },
   { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true },
   { to: '/tests', label: () => m.home_market_nav_tests() },
 ];
@@ -93,6 +109,7 @@ const WAYS = [
 
 export function Home() {
   const navigate = useNavigate();
+  const quick = getLocale() === 'zh-Hans' ? QUICK_ACTION_COPY['zh-Hans'] : QUICK_ACTION_COPY['zh-Hant'];
   const [no, setNo] = useState('');
   const [bad, setBad] = useState(false);
 
@@ -139,29 +156,42 @@ export function Home() {
             <p className="mh-eyebrow">{m.home_market_title()}</p>
             <h1 id="mh-title">{m.home_title()}</h1>
             <p className="mh-title-seo">{m.home_seo_subtitle()}</p>
-            <p className="mh-lead">{m.home_market_lead()}</p>
-            <div className="mh-actions">
+            <div className="mh-quick-actions">
               <a
-                className="mh-enter"
+                className="mh-quick-card mh-quick-card--ritual"
                 href={localizeHref('/market#yuelao')}
-                data-rybbit-event="home_market_yuelao_direct"
-                onClick={() => track('home_yuelao_click', { destination: 'market_yuelao' })}
+                data-rybbit-event="home_quick_yuelao"
+                onClick={() => track('home_quick_entry_click', { destination: 'yuelao' })}
               >
-                {m.home_market_plain()}
+                <strong>{quick.ritual}</strong>
+                <small>{quick.ritualHint}</small>
+                <span className="mh-quick-arrow" aria-hidden="true">→</span>
               </a>
               <a
-                className="mh-plain"
+                className="mh-quick-card mh-quick-card--tarot"
+                href={localizeHref('/market#tarot')}
+                data-rybbit-event="home_quick_tarot"
+                onClick={() => track('home_quick_entry_click', { destination: 'tarot' })}
+              >
+                <strong>{quick.tarot}</strong>
+                <small>{quick.tarotHint}</small>
+                <span className="mh-quick-arrow" aria-hidden="true">→</span>
+              </a>
+            </div>
+            <div className="mh-hero-aux">
+              <a
                 href={localizeHref('/market#enter')}
                 data-rybbit-event="home_market_enter"
                 onClick={() => track('home_market_enter_click', { destination: 'market' })}
               >
-                {m.home_market_enter()}
+                {m.home_market_enter()} <span aria-hidden="true">→</span>
               </a>
+              <Link to={localizeHref('/signs')}>
+                {indexCopy().name} <span aria-hidden="true">→</span>
+              </Link>
             </div>
+            <p className="mh-lead">{m.home_market_lead()}</p>
             <p className="mh-note">{m.home_market_note()}</p>
-            <Link className="mh-signs-shortcut" to={localizeHref('/signs')}>
-              {indexCopy().name} <span aria-hidden="true">→</span>
-            </Link>
           </div>
         </section>
 
