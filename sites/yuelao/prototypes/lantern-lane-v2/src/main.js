@@ -5,6 +5,9 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { BuildingGenerator } from './BuildingGenerator.js';
 import './style.css';
 import { addStreetDetails } from './details.js';
+import { createKeeper } from './keeper.js';
+import { addWaterShimmer } from './water.js';
+import './keeper.css';
 
 // Isolated moonlit architecture test. BuildingGenerator © zhulin025, MIT 2026.
 // Poly Haven 1K PBR textures: CC0. Full provenance recorded in README.md.
@@ -135,6 +138,7 @@ function wishingTree(x,z){
 wishingTree(15,-31);
 const water=new THREE.Mesh(new THREE.PlaneGeometry(12,17),new THREE.MeshPhysicalMaterial({color:0x315674,metalness:.72,roughness:.24,transparent:true,opacity:.93,clearcoat:.85,clearcoatRoughness:.16}));
 water.rotation.x=-Math.PI/2;water.position.set(15,-.14,-19);scene.add(water);
+const waterShimmer=addWaterShimmer(scene);
 const shore=new THREE.Mesh(new THREE.BoxGeometry(.32,.45,18),darkStone);shore.position.set(9.4,.03,-19);scene.add(shore);
 for(const z of [-11,-16,-21,-26]){const deco=new THREE.Mesh(new THREE.BoxGeometry(3,.12,.2),bronze);deco.position.set(12,.2,z);scene.add(deco)}
 const detailing=new URLSearchParams(location.search).has('noDetail') ? {shopCount:0,floweringTrees:0,wetPatches:0,tick(){}} : addStreetDetails(scene,{low:innerWidth<850});
@@ -143,6 +147,9 @@ state.architecture={
   floweringTrees:detailing.floweringTrees,
   wetStonePatches:detailing.wetPatches,
 };
+const keeper=createKeeper(scene,camera);
+state.keeper=keeper.state;
+state.effects={waterShimmer:true,lanternLightCulling:true};
 const particles=[],pPositions=new Float32Array(100*3);
 for(let i=0;i<100;i++){const x=(rand()-.5)*45,y=1+rand()*9,z=-40+rand()*75;particles.push(y);pPositions.set([x,y,z],i*3)}
 const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pPositions,3));
@@ -161,6 +168,7 @@ const places={
  market:[.3,2,-.05,-.03,'灯火 · 青瓦、红墙与石板路上的温暖光影'],
  pond:[4,-18,-.28,-.025,'水岸 · 临水听月，风轻轻穿过廊檐'],
  temple:[.2,-30,-.04,-.03,'祈愿 · 走到灯火尽头，听见心里的回答'],
+ keeper:[-3.6,-6.0,-.06,-.035,'守灯人 · 靠近阿灯，按 E 或点击交谈'],
 };
 document.querySelectorAll('[data-spot]').forEach(button=>button.addEventListener('click',()=>{
  const id=button.dataset.spot,p=places[id];state.location=id;target={x:p[0],z:p[1],yaw:p[2],pitch:p[3]};
@@ -180,7 +188,7 @@ function joyOff(){joystick.x=joystick.z=0;joyId=null;nub.style.transform='transl
 stickZone.addEventListener('pointerup',joyOff);stickZone.addEventListener('pointercancel',joyOff);
 let low=innerWidth<850;
 const button=document.querySelector('#toggleQuality');
-function setLow(v){low=v;renderer.setPixelRatio(Math.min(devicePixelRatio||1,v?1:1.55));renderer.shadowMap.enabled=!v;fireflies.visible=!v;if(v){composer?.dispose();composer=null} else if(!composer){composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.4,.6,.88))}resize();button.querySelector('b').textContent=v?'开':'关'}
+function setLow(v){low=v;waterShimmer.setLow(v);renderer.setPixelRatio(Math.min(devicePixelRatio||1,v?1:1.55));renderer.shadowMap.enabled=!v;fireflies.visible=!v;if(v){composer?.dispose();composer=null} else if(!composer){composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.4,.6,.88))}resize();button.querySelector('b').textContent=v?'开':'关'}
 button.addEventListener('click',()=>setLow(!low));
 setLow(low);
 let frames=0;
@@ -188,8 +196,8 @@ function loop(){
  const delta=Math.min(.045,clock.getDelta()),t=clock.elapsedTime;
  const speed=delta*(keys.has('ShiftLeft')?7.4:4.25);
  if(keys.has('ArrowLeft'))yaw+=delta*1.55;if(keys.has('ArrowRight'))yaw-=delta*1.55;
- const f=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)+joystick.z;
- const s=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0)+joystick.x;
+ const f=keeper.state.talking?0:(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)+joystick.z;
+ const s=keeper.state.talking?0:(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0)+joystick.x;
  if(Math.abs(f)+Math.abs(s)>.03){
   target=null;const n=Math.max(1,Math.hypot(f,s));
   camera.position.x+=(-Math.sin(yaw)*f+Math.cos(yaw)*s)/n*speed;
@@ -203,8 +211,22 @@ function loop(){
  camera.position.x=Math.min(6,Math.max(-6,camera.position.x));camera.position.z=Math.min(28,Math.max(-34,camera.position.z));camera.position.y=1.9;
  camera.rotation.set(pitch,yaw,0);
  detailing.tick(t);
+ waterShimmer.update(t);
+ keeper.update(t);
  swingLanterns.forEach(({root,offset,initialY})=>{root.rotation.z=Math.sin(t*.8+offset)*.018;root.position.y=initialY+Math.sin(t*.7+offset)*.015});
  if(fireflies.visible){const a=geo.attributes.position;for(let i=0;i<particles.length;i++)a.array[i*3+1]=particles[i]+Math.sin(t*.6+i)*.18;a.needsUpdate=true}
+ // Keep a small active pool of warm lights around the visitor to avoid 26 full-scene point lights.
+ if(frames%14===0){
+   const active=new Set(lanternLights
+     .map((light,i)=>({i,dist:light.position.distanceToSquared(camera.position)}))
+     .sort((a,b)=>a.dist-b.dist)
+     .slice(0,low?5:8).map(x=>x.i));
+   lanternLights.forEach((light,i)=>{light.visible=active.has(i)});
+ }
+ lanternLights.forEach((lamp,i)=>{
+   if(lamp.visible)lamp.intensity=(low?4.3:6.6)*(1+.07*Math.sin(t*2.2+i*1.31));
+ });
+ state.activeLanternLights=lanternLights.filter(x=>x.visible).length;
  if(composer)composer.render();else renderer.render(scene,camera);
  state.renderedFrames=++frames;
  requestAnimationFrame(loop);

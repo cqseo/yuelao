@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="zh-Hant"><head>
+<html lang="zh-CN"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0a111e">
-<title>月下 · 灯火巷 V2｜月夜视觉试验</title>
+<title>月下 · 灯火巷 V2.2｜守灯人互动预览</title>
 <meta name="description" content="月下世界灯火巷第二版互动预览：宋式建筑与真实 PBR 材质测试，未接入正式站。">
 </head><body><div id="app">
 <canvas id="canvas" aria-label="灯火巷宋代古建三维漫游"></canvas>
 <div class="cinematic" aria-hidden="true"></div>
 <header>
 <div class="logo"><span class="crescent">☽</span><span class="logotype">月下<small>Y U E X I A</small></span></div>
-<div class="meta"><span class="live"></span> 建筑与光影实验 <span class="sep">/</span> V 2.0</div>
+<div class="meta"><span class="live"></span> 建筑与光影实验 <span class="sep">/</span> V 2.2</div>
 </header>
 <section class="intro">
 <div class="topline"><span>Y U E X I A</span><i></i><span>EXPLORATION STUDY</span></div>
@@ -21,8 +21,21 @@
 <button data-spot="market"><span>02</span>古街 · 灯火</button>
 <button data-spot="pond"><span>03</span>水岸 · 听月</button>
 <button data-spot="temple"><span>04</span>月老 · 祈愿</button>
+<button data-spot="keeper"><span>05</span>守灯人 · 阿灯</button>
 </aside>
 <div class="left-bottom"><div class="tip" id="tip">沿着灯火走进月下的下一条街。</div><div class="controls desktop">W A S D 移动　·　拖动改变视角　·　Shift 加速</div><div class="controls touch">左侧摇杆移动　·　右侧滑动视角</div></div>
+<button type="button" id="keeperPrompt" class="keeper-prompt" hidden aria-label="与守灯人阿灯交谈">
+<span aria-hidden="true">✦</span> 与阿灯交谈 <small>按 E</small>
+</button>
+<div id="keeperHint" class="keeper-hint" hidden>守灯人 · 阿灯 正在等候旅人</div>
+<section id="keeperDialog" class="keeper-dialog" role="dialog" aria-modal="true" aria-labelledby="keeperTitle" aria-describedby="keeperText" hidden>
+<div class="keeper-top"><div class="keeper-portrait" aria-hidden="true">☽</div><div class="keeper-name"><small>MOONLIT STORIES · 01</small><h2 id="keeperTitle">阿灯 <em>· 守灯人</em></h2></div><button id="keeperClose" type="button" aria-label="关闭对话">×</button></div>
+<div class="keeper-line" aria-hidden="true"></div>
+<p id="keeperChapter" class="keeper-chapter">相遇</p>
+<p id="keeperText" class="keeper-text" aria-live="polite"></p>
+<div id="keeperChoices" class="keeper-choices" aria-label="对话选项"></div>
+<div id="keeperProgress" class="keeper-progress">月下故事 · 第一章</div>
+</section>
 <div class="right-bottom"><span id="loadText">正在铺开石板路…</span><button id="toggleQuality" aria-label="切换流畅模式">流畅模式 <b>自动</b></button></div>
 <div class="joystick" id="joystick"><div class="nub" id="nub"></div></div>
 <footer>DESIGN STUDY 02 <span>•</span> EXPERIMENTAL 3D <span>•</span> NOT THE LIVE SITE</footer>
