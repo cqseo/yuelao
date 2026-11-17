@@ -315,6 +315,28 @@ await assert.rejects(() =>
 );
 console.log('PASS: live mode accepts live events and rejects test events');
 
+// Regression: production cs_live_* expiry must reach the same privileged,
+ // server-side-verified RPC as test-mode expirations; no entitlements are granted.
+const liveSession = { object: 'checkout.session', id: 'cs_live_qa_expired' };
+liveProvider.fetchCheckout = async () => ({
+  orderId: fact.orderId,
+  subscription: null,
+  payment: null,
+  status: 'expired',
+  paymentStatus: 'unpaid',
+});
+dbCalls.length = 0;
+const liveExpired = await settleStripeWebhook({
+  site, provider: liveProvider, supabase: db,
+  request: signedWebhook('checkout.session.expired', liveSession, 'evt_live_expired', true),
+});
+assert.equal(liveExpired.status, 200);
+assert.deepEqual(dbCalls.map((c) => c.name), ['mark_checkout_unpaid']);
+assert.equal(dbCalls[0]?.args.p_checkout_ref, 'cs_live_qa_expired');
+assert.equal(dbCalls[0]?.args.p_state, 'expired');
+dbCalls.length = 0;
+
+
 // Checkout: WeChat Pay needs payment_method_options.wechat_pay.client = 'web' for one-time
 // payments, and must not be sent for subscriptions (Checkout doesn't support it there).
 {

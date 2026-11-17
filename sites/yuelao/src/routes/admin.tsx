@@ -107,14 +107,23 @@ const PAGE_LABELS: Record<string, string> = {
   '@unlock': '点解锁',
   '@deep': '看付费解读',
   '@login': '登录成功',
-  '@checkout': '发起结账',
+  '@checkout': '点击结账',
+  '@offer': '看到付费介绍',
+  '@login_gate': '结账要求登录',
+  '@stripe_created': '已创建 Stripe 会话',
+  '@checkout_error': '结账接口错误',
   '@paid': '付款成功',
   '@exit': '离开',
   '@other': '其他',
 };
 
 const EVENT_LABELS: Record<string, string> = {
-  checkout_start: '发起结账',
+  checkout_start: '点击结账按钮',
+  offer_view: '看到付费介绍',
+  checkout_login_required: '支付前需登录',
+  checkout_session_created: 'Stripe 会话创建成功',
+  checkout_api_failure: '结账请求失败',
+  home_quick_entry_click: '首页快捷入口点击',
   reading_done: '看到签文／牌面结果',
   ritual_begin: '开始求签',
   quick_question_click: '选择快捷问题',
@@ -355,7 +364,10 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
   const { kpis } = stats;
   const cur = kpis.currency;
   const otherCurrencyNote = kpis.otherCurrencies.map((x) => `${money(x.revenue, x.currency)}（已退 ${money(x.refunded, x.currency)}，${num(x.orders)} 单）`).join('；');
-  const conv = pct(kpis.payers.value, kpis.visitors.value);
+  const matchedPayers = stats.funnel.find((f) => f.key === 'paid')?.count ?? 0;
+  const conv = stats.meta.completeWindowTracking && !stats.meta.eventsTruncated
+    ? pct(matchedPayers, kpis.visitors.value)
+    : '—';
   const [allJourneys, setAllJourneys] = useState(false);
   const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 15);
   const needsTracking = !['sales', 'ops', 'users', 'wishes'].includes(section);
@@ -370,6 +382,11 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
       )}
       {stats.tracking && stats.meta.eventsTruncated && (
         <div className="admin-note">访问记录太多，只统计了最早的 6 万条。</div>
+      )}
+      {stats.tracking && !stats.meta.completeWindowTracking && needsTracking && (
+        <div className="admin-note">
+          本期访客行为数据没有覆盖完整选定区间，付费转化率暂不显示；历史订单可能早于埋点启用。订单与访客不可直接相除。
+        </div>
       )}
 
       {section === 'overview' && (
@@ -391,9 +408,11 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
               foot={[kpis.refunded ? `港币退款 ${money(kpis.refunded, cur)}` : '', otherCurrencyNote ? `其他币种另计：${otherCurrencyNote}` : ''].filter(Boolean).join('；') || undefined}
             />
             <Kpi
-              label="付费转化"
+              label="访客归因付费率（参考）"
               value={conv}
-              foot={`${num(kpis.payers.value)} 人付费 / ${num(kpis.visitors.value)} 访客`}
+              foot={stats.meta.completeWindowTracking
+                ? `${num(matchedPayers)} 个可关联付费访客 / ${num(kpis.visitors.value)} 访客；可能有跨设备漏计`
+                : '本期埋点覆盖不足；不能用付款账户数直接除以访客数'}
             />
             <Kpi
               label="登录访客"
@@ -401,9 +420,9 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
               foot={`占访客 ${pct(kpis.loggedIn, kpis.visitors.value)}`}
             />
             <Kpi
-              label="结账完成率"
+              label="Stripe 会话支付率"
               value={pct(stats.checkout.paid, stats.checkout.started)}
-              foot={`${num(stats.checkout.paid)} 付款 / ${num(stats.checkout.started)} 次进付款页`}
+              foot={`${num(stats.checkout.paid)} 个已付 / ${num(stats.checkout.started)} 个会话，来自 ${num(stats.checkout.uniqueAccounts)} 个账户；包含重复建单`}
             />
           </section>
           {ops?.wishesPending ? (
@@ -540,18 +559,17 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
             <Kpi label="付费人数" value={num(kpis.payers.value)} delta={<Delta {...kpis.payers} />} />
             <Kpi label="已退款" value={money(kpis.refunded, cur)} />
             <Kpi
-              label="进付款页"
+              label="Stripe 结账会话"
               value={num(stats.checkout.started)}
-              foot={`完成 ${pct(stats.checkout.paid, stats.checkout.started)}`}
+              foot={`${num(stats.checkout.uniqueAccounts)} 个账户创建；同一账户可能多次尝试`}
             />
             <Kpi
-              label="没付就走"
+              label="超时未付款（待核实）"
               value={num(stats.checkout.abandoned)}
-              foot={
-                stats.checkout.failed
-                  ? `另有 ${num(stats.checkout.failed)} 次建单失败`
-                  : '进了付款页超过半小时没付'
-              }
+              foot={stats.checkout.failed
+                ? `另有 ${num(stats.checkout.failed)} 个失败订单；超时不等于 Stripe 已回传过期`
+                : '后台待支付超过 30 分钟；以 Stripe 真实状态为准'}
+            
             />
           </section>
           <section className="admin-card">

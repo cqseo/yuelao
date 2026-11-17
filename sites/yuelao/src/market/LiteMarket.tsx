@@ -14,14 +14,14 @@ const WORDS: Record<string, {
 }> = {
   'zh-Hant': {
     title: '月老殿 · 輕量模式',
-    intro: '這台裝置未能啟動 3D。你仍可在集市裡免費求籤，或改用支援 3D 的裝置享受完整儀式。',
+    intro: '不必載入 3D，即可直接免費求籤、閱讀判詞；想體驗完整儀式，也可以隨時進入 3D 月下集市。',
     question: '心裡想問什麼？（可留空）', choices: ['曖昧／問他', '單身／脫單', '想復合'],
     draw: '免費求一支籤', again: '再求一支', reading: '閱讀完整免費判詞', retry: '重試 3D 集市', home: '返回首頁',
     label: '你現在的情況', notes: '數位籤詩是文化體驗與自我整理，不保證感情結果。輕量模式不使用 3D 動畫。',
   },
   'zh-Hans': {
     title: '月老殿 · 轻量模式',
-    intro: '这台设备未能启动 3D。你仍可以在集市里免费求签，或使用支持 3D 的设备体验完整仪式。',
+    intro: '无需加载 3D，即可直接免费求签、查看判词；想体验完整仪式，也可以随时进入 3D 月下集市。',
     question: '你想问什么？（可留空）', choices: ['暧昧／问他', '单身／脱单', '想复合'],
     draw: '免费求一支签', again: '再求一支', reading: '查看完整免费判词', retry: '重试 3D 集市', home: '返回首页',
     label: '你目前的情况', notes: '数字签诗仅供文化体验与自我整理，不保证感情结果。轻量模式不使用 3D 动画。',
@@ -49,7 +49,7 @@ const PAY: Record<string, {
   cancelled: string; failed: string; login: string; storage: string; pack: string;
 }> = {
   'zh-Hant': {
-    title: '付費完整解籤', note: '單次港幣 HKD 付款。已解鎖同一支籤與情境時，不再重複收費。',
+    title: '付費完整解籤', note: '完整解籤會結合你的問題，提供原典提示、現況分析、可以採取的行動等七段個人化解讀。單次港幣 HKD 付款；同一支籤與情境不重複收費。',
     consent: '我已閱讀條款和隱私說明，同意將自願輸入的問題提供給第三方自動化解讀服務，用於生成個人化解籤。',
     buy: '解鎖完整解籤', generate: '請月老寫我的完整解籤', view: '在帳戶查看完整解籤',
     checking: '正在核對有沒有已購權益…', generating: '正在寫完整解籤，請勿重複付款…',
@@ -60,7 +60,7 @@ const PAY: Record<string, {
     pack: '已有問事包？去帳戶兌換',
   },
   'zh-Hans': {
-    title: '付费完整解签', note: '单次港币 HKD 付款。已解锁同一支签与情境不会重复收费。',
+    title: '付费完整解签', note: '完整解签结合你的问题，包含原典提示、现况分析、可采取的行动等七段个性化解读。单次港币 HKD 付款；同一支签与情境不会重复收费。',
     consent: '我已阅读条款和隐私说明，同意将自愿输入的问题提供给第三方自动化解读服务，用于生成个性化解签。',
     buy: '解锁完整解签', generate: '请月老写我的完整解签', view: '在账户查看完整解签',
     checking: '正在核对已购权益…', generating: '正在生成完整解签，请勿重复付款…',
@@ -189,12 +189,14 @@ export function LiteMarket() {
     try {
       const response = await liteCheckout(result.id, situation);
       if (response.state === 'login') {
+        track('checkout_login_required', { product: 'unlock_1', lite: true });
         if (!saveLitePending(result.id, situation, question, 'login')) {
           setMessage(payC.storage);
           return;
         }
         window.location.assign(localizeHref('/login'));
       } else if (response.state === 'redirect') {
+        track('checkout_session_created', { product: 'unlock_1', lite: true });
         if (!saveLitePending(result.id, situation, question, 'pay')) {
           setMessage(payC.storage);
           return;
@@ -204,10 +206,12 @@ export function LiteMarket() {
         setPayment('checking');
         setRefresh((n) => n + 1);
       } else {
-        setMessage(response.state === 'closed' ? payC.failed : payC.failed);
+        track('checkout_api_failure', { product: 'unlock_1', lite: true, reason: response.state });
+        setMessage(payC.failed);
         setPayment('error');
       }
     } catch {
+      track('checkout_api_failure', { product: 'unlock_1', lite: true, reason: 'network' });
       setMessage(payC.failed);
       setPayment('error');
     } finally {
@@ -251,6 +255,10 @@ export function LiteMarket() {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (result) track('offer_view', { product: 'unlock_1', lite: true });
+  }, [result?.id, situation]);
 
   const readingHref = result ? localizeHref(liteReadingUrl(result.id, situation)) : '';
   const checking = payment === 'checking' || payment === 'generating';
