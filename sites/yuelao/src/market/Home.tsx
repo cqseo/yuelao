@@ -180,6 +180,14 @@ export function Home() {
           <a className="mh-section-link" href={localizeHref('/market#yuelao')}>
             {m.home_market_plain()} <span aria-hidden="true">→</span>
           </a>
+          <div className="mh-signs-links">
+            <Link to={localizeHref('/jiaobei')}>
+              {m.home_how_step_4_title()} <span aria-hidden="true">→</span>
+            </Link>
+            <Link to={localizeHref('/questions')}>
+              {m.home_pick_heading()} <span aria-hidden="true">→</span>
+            </Link>
+          </div>
         </section>
 
         <section className="mh-sec mh-topic-section" aria-labelledby="mh-topics-heading">
