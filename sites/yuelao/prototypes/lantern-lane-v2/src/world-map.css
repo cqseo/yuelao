@@ -1,0 +1,46 @@
+/* V2.3 world orientation and expanded navigation; isolated preview only. */
+.map-panel{
+  position:absolute;z-index:7;top:85px;right:clamp(24px,5vw,78px);
+  width:208px;overflow:hidden;
+  border:1px solid rgba(222,183,130,.37);border-radius:10px;
+  background:linear-gradient(145deg,rgba(21,29,43,.88),rgba(21,28,38,.72));
+  box-shadow:0 15px 50px rgba(0,0,0,.30);
+  backdrop-filter:blur(14px);
+}
+.map-topline{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:0 12px;padding:11px 0 8px;border-bottom:1px solid rgba(220,186,145,.20);
+  color:#ecd9bd;font:10px Georgia,serif;letter-spacing:.16em
+}
+.map-topline small{font-size:9px;color:#bdac97;letter-spacing:0;margin-left:3px}
+#mapToggle{background:transparent;border:0;color:#d7b389;cursor:pointer;
+font:10px system-ui,sans-serif;letter-spacing:.08em;padding:4px 0 4px 5px}
+#mapToggle:focus-visible{outline:2px solid #e5bd82;outline-offset:4px}
+#worldMap{display:block;width:200px;height:176px;margin:0 4px;pointer-events:none}
+.map-caption{font:9px 'Noto Serif SC',serif;letter-spacing:.09em;
+text-align:center;color:#c2ae95;margin:2px 2px 11px}
+.map-panel.map-collapsed #worldMap,.map-panel.map-collapsed .map-caption{display:none}
+.nav{z-index:8;top:335px;max-height:calc(100vh - 505px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#8a6b4e transparent;gap:2px}
+.nav button{padding:10px 5px;min-height:41px}
+@media(max-height:750px) and (min-width:861px){
+ .map-panel{top:72px}
+ #worldMap{width:200px;height:136px;object-fit:fill}
+ .map-caption{margin-bottom:5px}
+ .nav{top:273px;max-height:calc(100vh - 430px)}
+}
+@media(max-width:860px){
+ .map-panel{top:86px;right:14px;width:154px;max-width:45vw}
+ .map-topline{margin:0 10px;padding:8px 0 5px;letter-spacing:.08em;font-size:9px}
+ #mapToggle{font-size:9px}
+ #worldMap{width:146px;height:127px;margin:0 4px}
+ .map-caption{font-size:8px;margin:3px 0 7px}
+ .nav{top:auto;bottom:244px;max-height:none;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:8px}
+ .nav button{padding:9px 11px;min-height:34px;white-space:nowrap}
+}
+@media(max-width:430px){
+ .map-panel{top:75px;right:12px;width:134px}
+ #worldMap{width:126px;height:112px;margin:0 4px}
+ .map-caption{font-size:7px}
+ .nav{bottom:238px}
+}
+@media(prefers-reduced-motion:reduce){.map-panel,.nav button{transition:none}}

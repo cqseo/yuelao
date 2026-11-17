@@ -7,6 +7,9 @@ import './style.css';
 import { addStreetDetails } from './details.js';
 import { createKeeper } from './keeper.js';
 import { addWaterShimmer } from './water.js';
+import { createExpandedDistricts } from './world-expansion.js';
+import { createMinimap } from './world-map.js';
+import './world-map.css';
 import './keeper.css';
 
 // Isolated moonlit architecture test. BuildingGenerator © zhulin025, MIT 2026.
@@ -24,8 +27,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,innerWidth<800?1:1.45));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#213a57');
-scene.fog=new THREE.FogExp2('#1f3045',.012);
-const camera=new THREE.PerspectiveCamera(64,1,.1,220);
+scene.fog=new THREE.FogExp2('#1f3045',.008);
+const camera=new THREE.PerspectiveCamera(67,1,.1,330);
 camera.rotation.order='YXZ';camera.position.set(.1,1.9,19);
 let yaw=-.035,pitch=-.04;
 const bg=new THREE.HemisphereLight(0xcbdaf3,0x3e3036,1.78);scene.add(bg);
@@ -75,7 +78,7 @@ const bronze=new THREE.MeshStandardMaterial({color:0xbca078,metalness:.64,roughn
 const wood=new THREE.MeshStandardMaterial({...woodMaps,color:0x9c7760,roughness:.75});
 const silk=new THREE.MeshPhysicalMaterial({color:0x9c3035,roughness:.62,metalness:.08,side:THREE.DoubleSide});
 const lightMat=new THREE.MeshBasicMaterial({color:0xffd49d,toneMapped:false});
-const stoneGround=new THREE.Mesh(new THREE.PlaneGeometry(140,150),new THREE.MeshStandardMaterial({color:0x4c5961,roughness:1}));
+const stoneGround=new THREE.Mesh(new THREE.PlaneGeometry(280,290),new THREE.MeshStandardMaterial({color:0x4c5961,roughness:1}));
 stoneGround.rotation.x=-Math.PI/2;stoneGround.position.set(0,-.24,-12);stoneGround.receiveShadow=true;scene.add(stoneGround);
 const pavement=new THREE.Mesh(new THREE.PlaneGeometry(11.3,68),sidewalkMat);
 pavement.rotation.x=-Math.PI/2;pavement.position.set(0,.015,-7.5);pavement.receiveShadow=true;scene.add(pavement);
@@ -141,6 +144,9 @@ water.rotation.x=-Math.PI/2;water.position.set(15,-.14,-19);scene.add(water);
 const waterShimmer=addWaterShimmer(scene);
 const shore=new THREE.Mesh(new THREE.BoxGeometry(.32,.45,18),darkStone);shore.position.set(9.4,.03,-19);scene.add(shore);
 for(const z of [-11,-16,-21,-26]){const deco=new THREE.Mesh(new THREE.BoxGeometry(3,.12,.2),bronze);deco.position.set(12,.2,z);scene.add(deco)}
+const expansion=createExpandedDistricts(scene,{makeBuilding,pathMaterial:sidewalkMat,lanternLights,low:innerWidth<850});
+state.world=expansion.stats;
+state.explorationBounds=expansion.extent;
 const detailing=new URLSearchParams(location.search).has('noDetail') ? {shopCount:0,floweringTrees:0,wetPatches:0,tick(){}} : addStreetDetails(scene,{low:innerWidth<850});
 state.architecture={
   shopfronts:detailing.shopCount,
@@ -166,10 +172,14 @@ const clock=new THREE.Clock(),keys=new Set(),joystick={x:0,z:0};let dragId=null,
 const places={
  gate:[.1,19,-.03,-.02,'巷口 · 回望月光下的迎月牌坊'],
  market:[.3,2,-.05,-.03,'灯火 · 青瓦、红墙与石板路上的温暖光影'],
- pond:[4,-18,-.28,-.025,'水岸 · 临水听月，风轻轻穿过廊檐'],
+ pond:[32,-21,-.47,-.025,'星愿湖 · 沿着东侧湖岸看灯舟与月色'],
  temple:[.2,-30,-.04,-.03,'祈愿 · 走到灯火尽头，听见心里的回答'],
  keeper:[-3.6,-6.0,-.06,-.035,'守灯人 · 靠近阿灯，按 E 或点击交谈'],
+ north:[0,53,-.03,-.025,'望月台 · 从迎月牌坊向北探索'],
+ grove:[-33,-21,-.36,-.02,'竹影庭 · 沿西侧环路走入竹林'],
+ station:[0,-74,-.02,-.025,'旧梦驿 · 从两侧回廊穿过月老殿后方'],
 };
+const minimap=createMinimap({camera,extent:expansion.extent});
 document.querySelectorAll('[data-spot]').forEach(button=>button.addEventListener('click',()=>{
  const id=button.dataset.spot,p=places[id];state.location=id;
  camera.position.x=p[0];camera.position.z=p[1];
@@ -209,10 +219,13 @@ function loop(){
      }
    }
  }
- const speed=delta*(keys.has('ShiftLeft')?7.4:4.25);
+ // Preserve real walking speed when WebGL falls below 20 FPS.
+ const movementDelta=Math.min(.14,rawDelta);
+ const speed=movementDelta*(keys.has('ShiftLeft')||keys.has('ShiftRight')?8.0:5.25);
  if(keys.has('ArrowLeft'))yaw+=delta*1.55;if(keys.has('ArrowRight'))yaw-=delta*1.55;
  const f=keeper.state.talking?0:(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)+joystick.z;
  const s=keeper.state.talking?0:(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0)+joystick.x;
+ const previousX=camera.position.x,previousZ=camera.position.z;
  if(Math.abs(f)+Math.abs(s)>.03){
   target=null;const n=Math.max(1,Math.hypot(f,s));
   camera.position.x+=(-Math.sin(yaw)*f+Math.cos(yaw)*s)/n*speed;
@@ -223,9 +236,17 @@ function loop(){
   yaw+=(target.yaw-yaw)*ease;pitch+=(target.pitch-pitch)*ease;
   if(Math.hypot(target.x-camera.position.x,target.z-camera.position.z)<.15)target=null;
  }
- camera.position.x=Math.min(6,Math.max(-6,camera.position.x));camera.position.z=Math.min(28,Math.max(-34,camera.position.z));camera.position.y=1.9;
+ camera.position.x=Math.min(expansion.extent.maxX,Math.max(expansion.extent.minX,camera.position.x));
+ camera.position.z=Math.min(expansion.extent.maxZ,Math.max(expansion.extent.minZ,camera.position.z));
+ if(!expansion.canWalk(camera.position.x,camera.position.z)){
+   camera.position.x=previousX;camera.position.z=previousZ;
+ }
+ camera.position.y=1.9;
+ state.player={x:+camera.position.x.toFixed(2),z:+camera.position.z.toFixed(2),facing:+yaw.toFixed(2)};
  camera.rotation.set(pitch,yaw,0);
  detailing.tick(t);
+ expansion.update(t);
+ minimap.update(t);
  waterShimmer.update(t);
  keeper.update(t);
  swingLanterns.forEach(({root,offset,initialY})=>{root.rotation.z=Math.sin(t*.8+offset)*.018;root.position.y=initialY+Math.sin(t*.7+offset)*.015});
