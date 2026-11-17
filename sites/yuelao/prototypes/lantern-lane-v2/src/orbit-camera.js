@@ -9,18 +9,18 @@ export function createFollowCamera(camera,player,{mobile=false}={}) {
   const state={yaw:-.03,pitch:.35,zoom:mobile?5.4:6.0,desiredZoom:mobile?5.4:6.0,clipped:false,mode:'third-person'};
   const target=new THREE.Vector3(),desired=new THREE.Vector3();
   const ray=new THREE.Ray(),tmpNear=new THREE.Vector3();
-  // x,z are building centers; w,d are ground-world bounding rectangles, height is approximate.
+  // Boxes reflect the actual rebuilt V2.6 geometry; no stale V2.1 collision proxies.
   const buildings=[
-    [-10,-.5,6.5,8.7,7.6],[10,-1.5,6.5,8.7,8.7],
-    [-10,-14.5,6.5,8.7,9],[10,-14,6.5,8.7,7.6],
-    [-10,-26.5,6.5,8.7,7.6],[10,-26,6.5,8.7,7.6],
-    [0,-39,15,10,11],[0,25.3,13,3.5,6],
-    [-17,56,7.8,10.5,7],[43,-52,8.1,11.3,7],
-    [-46,-43,7.7,10.8,7],[0,-88,13.3,8.8,9],[18,57,6.1,8.4,7],
+    [-13,-5,7.8,8.4,6], [13,6,7.8,8.4,6],
+    [-13,-21,7.8,8.4,6],[13,-22,7.8,8.4,6],
+    [-13,8,7.8,8.4,6],[0,-43.5,14,10,7],
+    [-16,55,7.3,9.5,6],[-45,-23,7.3,9.5,6],
+    [44,-55,7.3,9.3,6],[0,-88.5,11,6.7,6],
   ];
   const blockers=buildings.map(([x,z,w,d,h])=>new THREE.Box3(
-    new THREE.Vector3(x-w/2,-.2,z-d/2),new THREE.Vector3(x+w/2,h,z+d/2)
+    new THREE.Vector3(x-w/2,-.1,z-d/2),new THREE.Vector3(x+w/2,h,z+d/2)
   ));
+  let indoor=false;
   const actual=new THREE.Vector3();
   let initial=true;
 
@@ -50,7 +50,7 @@ export function createFollowCamera(camera,player,{mobile=false}={}) {
     const length=lookRay.length();
     ray.set(target,lookRay.normalize());
     let nearest=length;
-    for(const obstacle of blockers) {
+    for(const obstacle of (indoor?[]:blockers)) {
       const hit=ray.intersectBox(obstacle,tmpNear);
       if(hit) {
         const d=target.distanceTo(hit);
@@ -71,5 +71,6 @@ export function createFollowCamera(camera,player,{mobile=false}={}) {
     actual.copy(camera.position);
   }
   function snap(){update(1/60,{snap:true})}
-  return {state,update,setOrientation,rotate,zoom,snap, get heading(){return state.yaw}};
+  function setIndoor(active) {indoor=!!active;state.zoom=active?2.85:6;state.desiredZoom=state.zoom;}
+  return {state,update,setOrientation,rotate,zoom,snap,setIndoor,get heading(){return state.yaw}};
 }

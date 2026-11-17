@@ -5,7 +5,7 @@ import {existsSync,readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 
 const root=fileURLToPath(new URL('.',import.meta.url));
-const expected='e488dccc0ee120afe0b133271d257131e24e94df3b80e21eab9790cbdfdd29f8';
+const expected='4535335f0898a431ccd4c0deba8d4d625ec23a7598ea8fd9b18ad30ec911810a';
 const avatarPath=resolve(root,'public/models/yuexia-ara-wanderer.glb');
 const parts=Array.from({length:8},(_,i)=>resolve(root,'model-source',`part-${String(i).padStart(2,'0')}.bin`));
 

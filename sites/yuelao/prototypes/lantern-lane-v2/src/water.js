@@ -41,8 +41,8 @@ export function addWaterShimmer(scene) {
       }
     `,
   });
-  const wave=new THREE.Mesh(new THREE.PlaneGeometry(12,17),material);
-  wave.rotation.x=-Math.PI/2;wave.position.set(15,-.128,-19);wave.renderOrder=2;
+  const wave=new THREE.Mesh(new THREE.PlaneGeometry(15,15),material);
+  wave.rotation.x=-Math.PI/2;wave.position.set(50,-.082,-21);wave.renderOrder=2;
   scene.add(wave);
   return {
     update(t){uniforms.uTime.value=t},

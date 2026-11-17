@@ -99,12 +99,12 @@ export function createMinimap({player,getYaw,extent,layout}) {
     ctx.restore();
 
     // Drawn directly from expansion.mapLayout AND the original central road geometry.
-    const allRoads=[{x:0,z:-7.5,w:11.3,d:68},...layout.roads];
+    const allRoads=layout.roads;
     for(const road of allRoads)rect(p,road,'rgba(143,126,107,.84)');
     for(const plaza of layout.plazas||[])disk(p,plaza.x,plaza.z,plaza.r,scale,'#857366');
 
-    disk(p,50,-21,13.8,scale,'rgba(60,127,155,.8)');
-    disk(p,15,-19,4.1,scale,'rgba(64,119,139,.75)');
+    disk(p,layout.lake.x,layout.lake.z,layout.lake.r,scale,'rgba(60,127,155,.8)');
+    
     disk(p,-44,-21,8.5,scale,'rgba(61,99,79,.48)');
 
     const m=ctx.measureText('月下'); // force font ready; safe if custom fonts missing

@@ -73,7 +73,7 @@ export async function createAraTraveler(scene,{onStatus=()=>{},low=false}={}) {
   animations.get('idle')?.play();
   if(!animations.has('idle')&&animations.has('walk')){current='walk';animations.get('walk').play();}
   let heading=0;
-  const turnSpeed=10;
+  const turnSpeed=6.8;
   function tick(t,dt,dx=0,dz=0,moving=false){
     const distance=Math.hypot(dx,dz);
     if(moving&&distance>1e-5){
@@ -83,12 +83,12 @@ export async function createAraTraveler(scene,{onStatus=()=>{},low=false}={}) {
       root.rotation.y=heading;
     }
     const speed=distance/Math.max(.001,dt);
-    const next=moving?(speed>6.2&&animations.has('run')?'run':'walk'):'idle';
+    const next=moving?(speed>3.65&&animations.has('run')?'run':'walk'):'idle';
     if(next!==current&&animations.has(next)){
       const prev=animations.get(current),now=animations.get(next);
-      now.reset().setEffectiveWeight(1).setEffectiveTimeScale(1);
+      now.reset().setEffectiveWeight(1).setEffectiveTimeScale(next==='run'?0.92:next==='walk'?0.88:1);
       now.play();
-      if(prev)now.crossFadeFrom(prev,.25,true);
+      if(prev)now.crossFadeFrom(prev,.32,true);
       current=next;
     }
     mixer.update(dt);

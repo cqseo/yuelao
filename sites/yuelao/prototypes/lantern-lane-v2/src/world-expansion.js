@@ -1,230 +1,261 @@
 import * as THREE from 'three';
 
 /**
- * Lantern Lane V2.3 — connected district extension, isolated prototype.
- * Existing original lane & all story logic stay untouched.
- * Coordinates are arbitrary world units, NOT surveyed real-world metres.
+ * Yuexia V2.6 rebuild. One authored coordinate system for visuals, roads,
+ * accessible waypoints, collision, portal positions and the minimap.
+ * NORTH = +Z, EAST = +X. All world dimensions are Three.js units.
  */
-export function createExpandedDistricts(scene,{
-  makeBuilding, pathMaterial, lanternLights, low=false
-}) {
-  const extent={minX:-66,maxX:66,minZ:-93,maxZ:73};
-  const locations={
-    north: {x:0,z:53, label:'望月台'},
-    grove: {x:-33,z:-21,label:'竹影庭'},
-    lake: {x:32,z:-22,label:'星愿湖'},
-    station: {x:0,z:-74,label:'旧梦驿'},
+export function createExpandedDistricts(scene,{pathMaterial,lanternLights,low=false}) {
+  const extent={minX:-63,maxX:63,minZ:-95,maxZ:70};
+  const roads=[],plazas=[],obstacles=[],houses=[];
+  const nav={
+    gate:{x:0,z:13.5},market:{x:0,z:1},pond:{x:31,z:-21},
+    temple:{x:0,z:-31},keeper:{x:-3.6,z:-7.8},
+    north:{x:0,z:53},grove:{x:-31,z:-21},station:{x:0,z:-74},
   };
-  const mats={
-    walkway:pathMaterial,
-    stone:new THREE.MeshStandardMaterial({color:0x5c6070,roughness:.92}),
-    stoneEdge:new THREE.MeshStandardMaterial({color:0x373c48,roughness:.86}),
-    gilt:new THREE.MeshStandardMaterial({color:0xa98a62,metalness:.43,roughness:.54}),
-    timber:new THREE.MeshStandardMaterial({color:0x48333a,roughness:.88}),
-    roof:new THREE.MeshStandardMaterial({color:0x454954,roughness:.88}),
-    pale:new THREE.MeshStandardMaterial({color:0xc4b2a1,roughness:.95}),
-    lantern:new THREE.MeshStandardMaterial({color:0xf9b071,emissive:0xe6884e,emissiveIntensity:.8,roughness:.8}),
-    paper:new THREE.MeshStandardMaterial({color:0x9c4245,emissive:0x3d171b,emissiveIntensity:.22,roughness:.83,side:THREE.DoubleSide}),
-    water:new THREE.MeshPhysicalMaterial({color:0x244860,metalness:.52,roughness:.21,clearcoat:.8,clearcoatRoughness:.17,transparent:true,opacity:.95}),
-    leaf:new THREE.MeshStandardMaterial({color:0x536d60,roughness:1}),
-    bamboo:new THREE.MeshStandardMaterial({color:0x506a56,roughness:.94}),
-    blush:new THREE.MeshStandardMaterial({color:0xbb8592,roughness:.93}),
+  const materials={
+    stone:pathMaterial,
+    stoneBorder:new THREE.MeshStandardMaterial({color:0x62605f,roughness:.94}),
+    gravel:new THREE.MeshStandardMaterial({color:0x303c45,roughness:1}),
+    plaster:new THREE.MeshStandardMaterial({color:0xb0a99e,roughness:.98}),
+    paper:new THREE.MeshStandardMaterial({color:0xe0c6a1,emissive:0x6f462b,emissiveIntensity:.23,roughness:.95}),
+    timber:new THREE.MeshStandardMaterial({color:0x583b3d,roughness:.82}),
+    red:new THREE.MeshStandardMaterial({color:0x80433d,roughness:.8}),
+    roof:new THREE.MeshStandardMaterial({color:0x444d61,roughness:.87,metalness:.04,side:THREE.DoubleSide}),
+    roofTrim:new THREE.MeshStandardMaterial({color:0x6f7b86,roughness:.73}),
+    bronze:new THREE.MeshStandardMaterial({color:0xc5a37b,metalness:.34,roughness:.6}),
+    lantern:new THREE.MeshStandardMaterial({color:0xf8ad70,emissive:0xf38f45,emissiveIntensity:1.05,roughness:.6}),
+    lake:new THREE.MeshStandardMaterial({color:0x30566b,metalness:.34,roughness:.3,transparent:true,opacity:.94,side:THREE.DoubleSide}),
+    foliage:new THREE.MeshStandardMaterial({color:0x345d54,roughness:1}),
+    blossom:new THREE.MeshStandardMaterial({color:0xc898a1,roughness:1}),
+    rock:new THREE.MeshStandardMaterial({color:0x68757a,roughness:.97}),
   };
-  let rng=48129;const rnd=()=>((rng=(rng*1664525+1013904223)>>>0)/4294967296);
-  const dynamic=[],landmarkLabels=[],lampCountBefore=lanternLights.length;
-  const mapRoads=[],mapPlazas=[];
-  function geoBox(w,h,d,x,y,z,mat,parent=scene){
-    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
-    m.position.set(x,y,z);m.receiveShadow=true;parent.add(m);return m;
+  let seed=425113;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+  const worldGroup=new THREE.Group();worldGroup.name='Yuexia_Orderly_District';scene.add(worldGroup);
+  function block(parent,w,h,d,mat,x,y,z){
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+    mesh.position.set(x,y,z);mesh.receiveShadow=true;parent.add(mesh);return mesh;
   }
-  function geoPlane(w,d,x,z,mat=mats.walkway,y=.032){
-    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);
-    m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;scene.add(m);return m;
+  function plane(w,d,x,z,material=materials.stone,y=.025){
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,d),material);
+    mesh.rotation.x=-Math.PI/2;mesh.position.set(x,y,z);
+    mesh.receiveShadow=true;worldGroup.add(mesh);return mesh;
   }
-  function pathRect(x,z,w,d){
-    mapRoads.push({x,z,w,d});
-    geoPlane(w,d,x,z);
-    // Subtle stone seams to make secondary roads actually read as routes.
-    if(w<d){for(const side of [-1,1])geoBox(.18,.1,d,x+side*(w/2+.06),.045,z,mats.stoneEdge)}
-    else{for(const side of [-1,1])geoBox(w,.1,.18,x,.045,z+side*(d/2+.06),mats.stoneEdge)}
-  }
-  function disk(x,z,r,mat=mats.walkway){
-    mapPlazas.push({x,z,r});
-    const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.12,48),mat);
-    m.position.set(x,.04,z);m.receiveShadow=true;scene.add(m);return m;
-  }
-  // A real connected network: north gate → east/west promenade → southern plaza.
-  // Branches form a loop around the existing Yue Lao Temple; no isolated islands.
-  pathRect(0,46,11.5,43);
-  pathRect(0,18,71,10);
-  pathRect(-33,-23.5,9.6,83);
-  pathRect(33,-23.5,9.6,83);
-  pathRect(0,-55,71,9.6);
-  pathRect(0,-70,11.2,34);
-  disk(0,54,12.5);disk(-33,-20,12);disk(33,-20,11.4);disk(0,-73,13.5);
-  for(const [x,z,w,d] of [[-14,55,19,7],[14,55,19,7],[-46,-20,17,7],[46,-20,17,7],[0,-85,12,9]]){
-    geoPlane(w,d,x,z);
-  }
-  // Plaza mosaic: low-poly emblem rings (single mesh per circle, negligible cost).
-  for(const [x,z,r] of [[0,54,7.3],[-33,-20,6.4],[33,-20,6.5],[0,-73,8.2]]){
-    const ring=new THREE.Mesh(new THREE.RingGeometry(r-.20,r,64),mats.gilt);
-    ring.rotation.x=-Math.PI/2;ring.position.set(x,.116,z);scene.add(ring);
-  }
-  // Outside the old lane, distinct Song-style anchors. Performance: 3/5 on mobile/desktop.
-  const specs=[
-    ['north-teahouse',[-17,0,56],'pavilion',10.5,7.8,1,Math.PI/2],
-    ['east-gallery',[43,0,-52],'pavilion',11.3,8.1,1,-Math.PI/2],
-    ['west-library',[-46,0,-43],'xieshan',10.8,7.7,1,Math.PI/2],
-    ['south-station',[0,0,-88],'xieshan',13.3,8.8,1,0],
-    ['north-archive',[18,0,57],'xieshan',8.4,6.1,1,-Math.PI/2],
-  ];
-  for(const [i,record] of specs.entries()){
-    if(low && (i===2 || i===4))continue;
-    const [name,pos,type,width,depth,stories,rotation]=record;
-    makeBuilding(name,pos,type,width,depth,stories,rotation);
-  }
-
-  // The Moon Lake is an actual scenic destination with walkable shore path.
-  const lakeCenter={x:50,z:-21,r:13.8};
-  const water=new THREE.Mesh(new THREE.CircleGeometry(lakeCenter.r,72),mats.water);
-  water.rotation.x=-Math.PI/2;water.position.set(lakeCenter.x,-.1,lakeCenter.z);scene.add(water);
-  const outerRim=new THREE.Mesh(new THREE.TorusGeometry(14.15,.35,7,72),mats.stone);
-  outerRim.rotation.x=-Math.PI/2;outerRim.position.set(lakeCenter.x,.045,lakeCenter.z);scene.add(outerRim);
-  for(const i of [-1,1]){
-    // Side promenades lead to the north/south shores.
-    geoPlane(3.8,8.6,50,-21+i*20,mats.walkway,.04);
-  }
-  const starRing=new THREE.Mesh(new THREE.RingGeometry(1.9,2.05,40),mats.gilt);
-  starRing.rotation.x=-Math.PI/2;starRing.position.set(50,-.045,-21);scene.add(starRing);
-  // Floating lanterns as delicate objects, no physically costly screen-wide bloom.
-  const floaters=[];
-  for(let i=0;i<(low?7:15);i++){
-    const a=rnd()*Math.PI*2,rad=2.7+rnd()*10.2,x=50+Math.cos(a)*rad,z=-21+Math.sin(a)*rad;
-    const g=new THREE.Group();g.position.set(x,.03,z);scene.add(g);
-    const cup=new THREE.Mesh(new THREE.CylinderGeometry(.23,.34,.13,8),mats.paper);g.add(cup);
-    const core=new THREE.Mesh(new THREE.SphereGeometry(.16,8,8),mats.lantern);
-    core.position.y=.13;g.add(core);floaters.push({group:g,phase:rnd()*6.3,y:.03});
-  }
-  // Render a small wooden bridge at the far eastern bank.
-  geoBox(4.4,.29,6,37.2,.25,-27.2,mats.timber);
-  for(const x of [35.25,39.15]){
-    for(const z of [-29.7,-27.2,-24.7])geoBox(.11,1.15,.12,x,.7,z,mats.timber);
-    geoBox(.15,.12,6.2,x,1.3,-27.2,mats.gilt);
-  }
-
-  // Western bamboo grove: two InstancedMesh types, not hundreds of unique meshes.
-  const bambooCount=low?55:115;
-  const stalks=new THREE.InstancedMesh(new THREE.CylinderGeometry(.047,.068,1,7),mats.bamboo,bambooCount);
-  const leaves=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.48,0),mats.leaf,bambooCount);
-  const dummy=new THREE.Object3D();
-  for(let i=0;i<bambooCount;i++){
-    let x=-59+rnd()*22,z=-51+rnd()*72;
-    if(Math.abs(x+33)<7.3) x=-50-rnd()*8;
-    const h=2.5+rnd()*3.8;
-    dummy.position.set(x,h/2,z);dummy.scale.set(1,h,1);dummy.rotation.set(0,rnd()*6.28,0);dummy.updateMatrix();stalks.setMatrixAt(i,dummy.matrix);
-    dummy.position.set(x,h-.15,z);dummy.scale.set(1.2+rnd()*.85,.65+rnd()*.5,1.1+rnd());dummy.updateMatrix();leaves.setMatrixAt(i,dummy.matrix);
-  }
-  stalks.instanceMatrix.needsUpdate=true;leaves.instanceMatrix.needsUpdate=true;
-  scene.add(stalks,leaves);
-
-  // Distant garden trees as instancing (visual enclosure without blocking walking).
-  const treeCount=low?42:94,treeGeo=new THREE.ConeGeometry(1.6,3.7,7);
-  const treeMat=new THREE.MeshStandardMaterial({color:0x435666,roughness:.99});
-  const grove=new THREE.InstancedMesh(treeGeo,treeMat,treeCount);
-  for(let i=0;i<treeCount;i++){
-    let x,z;
-    if(i%3===0){x=(rnd()-.5)*146;z=74+rnd()*9}
-    else if(i%3===1){x=(rnd()-.5)*146;z=-91-rnd()*14}
-    else{x=rnd()>.5?70+rnd()*9:-70-rnd()*9;z=-92+rnd()*174}
-    const h=3.5+rnd()*6;
-    dummy.position.set(x,h/2-.24,z);dummy.scale.set(.8+rnd()*.9,h/3.7,.8+rnd()*.9);dummy.rotation.y=rnd()*6.28;dummy.updateMatrix();
-    grove.setMatrixAt(i,dummy.matrix);
-  }
-  grove.instanceMatrix.needsUpdate=true;scene.add(grove);
-
-  // Structural lamps add landmarks + follow the player by the existing light-pool manager.
-  function poleLamp(x,z,y=3.5,point=false){
-    geoBox(.10,y,.10,x,y/2,z,mats.timber);
-    const c=new THREE.Mesh(new THREE.CylinderGeometry(.28,.3,.52,10),mats.paper);
-    c.position.set(x,y+.16,z);scene.add(c);
-    const lamp=new THREE.Mesh(new THREE.SphereGeometry(.19,10,8),mats.lantern);
-    lamp.position.set(x,y+.18,z);scene.add(lamp);
-    const cap=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.05,10),mats.gilt);
-    cap.position.set(x,y+.49,z);scene.add(cap);
-    if(point){
-      const light=new THREE.PointLight(0xffb87a,low?4.4:5.8,12,2);
-      light.position.set(x,y,z);scene.add(light);
-      lanternLights.push(light);
+  function route(x,z,w,d){
+    roads.push({x,z,w,d});
+    plane(w,d,x,z);
+    // Few border strokes make each route visibly distinct from surrounding land.
+    const alongZ=d>w;
+    for(const side of [-1,1]){
+      const edge=alongZ?block(worldGroup,.16,.07,d,materials.stoneBorder,x+side*(w*.5+.04),.02,z)
+      :block(worldGroup,w,.07,.16,materials.stoneBorder,x,.02,z+side*(d*.5+.04));
+      edge.receiveShadow=true;
     }
   }
-  for(const z of [13,0,-13,-27,-40,-55]){
-    poleLamp(-37.4,z,3.2,z===13||z===-27);
-    poleLamp(37.4,z,3.2,z===13||z===-27);
+  function plaza(x,z,r){
+    plazas.push({x,z,r});
+    const pad=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.08,48),materials.stone);
+    pad.position.set(x,.01,z);pad.receiveShadow=true;worldGroup.add(pad);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(r-.17,r-.05,48),materials.bronze);
+    ring.rotation.x=-Math.PI/2;ring.position.set(x,.083,z);worldGroup.add(ring);
   }
-  for(const x of [-26,-12,12,26]){
-    poleLamp(x,19,3.2,x===-26||x===26);
-    poleLamp(x,-55,3.2,x===-12||x===12);
-  }
-  for(const x of [-6,6]){
-    poleLamp(x,57,3.8,x===-6);
-    poleLamp(x,-72,3.7,x===6);
-  }
-  // Flowered arbor arches and timber fences at scenic plazas.
-  function pergola(x,z,rot=0){
-    const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);
-    for(const a of [-3.2,3.2])for(const b of [-2.6,2.6]){
-      geoBox(.26,3.2,.26,a,1.6,b,mats.timber,g);
-      const foot=new THREE.Mesh(new THREE.CylinderGeometry(.30,.34,.30,9),mats.stone);
-      foot.position.set(a,.14,b);g.add(foot);
-    }
-    for(const b of [-2.7,0,2.7])geoBox(7.3,.17,.22,0,3.28,b,mats.timber,g);
-    for(const a of [-2.4,-.8,.8,2.4])geoBox(.12,.13,6,a,3.43,0,mats.gilt,g);
-    for(const [a,b] of [[-2.8,-2.15],[2.8,-2.15],[-2.8,2.15],[2.8,2.15]]){
-      const blossom=new THREE.Mesh(new THREE.IcosahedronGeometry(.62,1),mats.blush);
-      blossom.position.set(a,3.8,b);g.add(blossom);
-    }
-  }
-  pergola(-33,-20,0);pergola(33,-20,Math.PI/2);pergola(0,-73,0);
+  // Main spine + two flank lanes + cross streets; all physically connected.
+  route(0,-4,11.2,68);                 // lamp lane, -38 to +30, stops before Yue Lao hall
+  route(0,46,10,37);                  // +27.5 to +64.5
+  route(0,-73,10,36);                 // -91 to -55
+  route(0,19,66,8.5);                // northern crossroads
+  route(0,-29,66,8.5);               // branch around Yue Lao hall
+  route(-31,-19,8.8,85);             // western walk
+  route(31,-19,8.8,85);              // eastern walk
+  route(0,-56,66,8.5);               // behind the hall
+  plaza(0,53,9.5);
+  plaza(-31,-21,9.5);
+  plaza(31,-21,9.5);
+  plaza(0,-74,9.5);
+  // Use a small cobbled path to the tea house door. This is an intentional entrance.
+  route(-7.2,-5,4.3,4.0);
 
-  // Five soft direction markers help visitors follow new paths without teleporting.
-  const plaques=[
-    ['竹影庭',-33,-10],['星愿湖',33,-10],['望月台',0,48],['旧梦驿',0,-64]
-  ];
-  const signMaterials=new Map();
-  function signMat(label){
-    if(signMaterials.has(label))return signMaterials.get(label);
-    const c=document.createElement('canvas');c.width=256;c.height=92;const g=c.getContext('2d');
-    g.fillStyle='#47343c';g.fillRect(0,0,256,92);
-    g.strokeStyle='#caa26f';g.lineWidth=4;g.strokeRect(5,5,246,82);
-    g.fillStyle='#efdbb5';g.textAlign='center';g.textBaseline='middle';
-    g.font='600 42px "Noto Serif SC",serif';g.fillText(label,128,49);
-    const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
-    const m=new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide});
-    signMaterials.set(label,m);return m;
-  }
-  for(const [label,x,z] of plaques){
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2.8,1),signMat(label));
-    mesh.position.set(x,2.6,z);mesh.rotation.y=(x<0)?Math.PI/2:(x>0)?-Math.PI/2:0;scene.add(mesh);
-    const beam=new THREE.Mesh(new THREE.CylinderGeometry(.055,.075,2.2,8),mats.timber);
-    beam.position.set(x,1.1,z);scene.add(beam);landmarkLabels.push(label);
+  // Main hall is off the central spine's southern end, so you cannot walk through it.
+  // The road flows around by both side lanes, which connect to the south.
+  function plaque(text,w=2.8){
+    const c=document.createElement('canvas');c.width=512;c.height=160;
+    const g=c.getContext('2d');g.fillStyle='#49323b';g.fillRect(0,0,512,160);
+    g.strokeStyle='#bf936c';g.lineWidth=9;g.strokeRect(10,10,492,140);
+    g.textAlign='center';g.textBaseline='middle';g.fillStyle='#f3d4a1';
+    g.font='600 83px "Noto Serif SC","Songti SC",serif';g.fillText(text,256,82);
+    const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;
+    return new THREE.Mesh(new THREE.PlaneGeometry(w,.82),new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide}));
   }
 
-  // The lake is not a walkable surface. Other districts remain freely traversable.
-  function canWalk(x,z){
-    if(x<extent.minX||x>extent.maxX||z<extent.minZ||z>extent.maxZ)return false;
-    const dx=x-lakeCenter.x,dz=z-lakeCenter.z;
-    return dx*dx+dz*dz > Math.pow(lakeCenter.r+1.0,2);
-  }
-  return {
-    extent, locations, lakeCenter, canWalk,
-    mapLayout:{roads:mapRoads,plazas:mapPlazas,lake:lakeCenter},
-    stats:{ districts:4, additionalBuildings:low?3:5, bamboo:bambooCount, trees:treeCount, newLightCandidates:lanternLights.length-lampCountBefore, paths:6, lanternBoats:floaters.length },
-    update(t){
-      for(let i=0;i<floaters.length;i++){
-        const f=floaters[i];
-        f.group.position.y=f.y+Math.sin(t*.72+f.phase)*.045;
-        f.group.rotation.y=Math.sin(t*.3+f.phase)*.14;
+  /**
+   * A house has actual coherent walls + proportionate pitched roof.
+   * Local front = +Z; local X horizontal, rotate to face the pedestrian route.
+   * The tea house leaves a functional, visually open doorway.
+   */
+  function house({id,x,z,w=8.2,d=7,h=3.75,rot=0,sign='',door=false}) {
+    const g=new THREE.Group();g.name='Building_'+id;
+    g.position.set(x,0,z);g.rotation.y=rot;worldGroup.add(g);
+    const wall=(a,b,c,px,py,pz,mat=materials.plaster)=>block(g,a,b,c,mat,px,py,pz);
+    const halfW=w/2,halfD=d/2;
+    const floor=block(g,w,.16,d,materials.gravel,0,.06,0);floor.receiveShadow=true;
+    for(const sx of [-1,1])wall(.26,h,d,sx*(halfW-.13),h*.5,0,materials.plaster);
+    wall(w,h,.26,0,h*.5,-halfD+.13);
+    // Front has a real opening, with lintel across the door.
+    if(door){
+      const gap=2.25;
+      for(const side of [-1,1]){
+        wall((w-gap)/2,h,.25,side*((w+gap)/4),h*.5,halfD-.12);
+      }
+      wall(gap,h-2.65,.25,0,2.65+(h-2.65)*.5,halfD-.12);
+      wall(gap+.36,.19,.4,0,2.77,halfD,materials.timber);
+    }else{
+      wall(w,h,.25,0,h*.5,halfD-.12);
+      wall(1.55,2.42,.16,0,1.35,halfD+.03,materials.red);
+    }
+    for(const side of [-1,1]){
+      wall(.22,h+.18,.32,side*(halfW-.22),h*.5+.10,halfD+.07,materials.timber);
+      for(let y=0;y<1;y++){
+        const wx=side*halfW*.61;
+        wall(1.48,1.43,.08,wx,1.92,halfD+.055,materials.paper);
+        wall(.075,1.53,.16,wx,1.92,halfD+.12,materials.timber);
+        wall(1.6,.075,.15,wx,1.92,halfD+.13,materials.timber);
+        wall(1.62,.085,.15,wx,2.48,halfD+.13,materials.timber);
+        wall(1.62,.085,.15,wx,1.36,halfD+.13,materials.timber);
       }
     }
+    for(const sx of [-1,1])for(const sz of [-1,1]){
+      wall(.23,h+.27,.25,sx*(halfW-.12),h*.5,sz*(halfD-.15),materials.timber);
+    }
+    // Two roof planes, each rises toward center. No giant cones/oversized roof.
+    const overhang=.62,run=halfW+overhang,rise=1.55;
+    const slopeWidth=Math.hypot(run,rise),roofD=d+overhang*2;
+    for(const side of [-1,1]){
+      const r=new THREE.Mesh(new THREE.BoxGeometry(slopeWidth,.16,roofD),materials.roof);
+      r.position.set(side*run/2,h+rise/2,0);
+      r.rotation.z=side*Math.atan2(rise,run);
+      r.receiveShadow=true;g.add(r);
+      block(g,.19,.18,roofD,materials.roofTrim,side*(halfW+overhang*.83),h+.17,0);
+    }
+    block(g,.21,.22,roofD,materials.roofTrim,0,h+rise,0);
+    // Horizontal eaves align with front.
+    wall(w+1.2,.13,.18,0,h-.12,halfD+.52,materials.timber);
+    if(sign){
+      const board=plaque(sign,Math.min(w-1.5,3));
+      board.position.set(0,h-.38,halfD+.65);g.add(board);
+    }
+    if(door){
+      // Light glows from inside at correct doorway, real access is handled by interior module.
+      const light=new THREE.PointLight(0xffbd81,1.6,8,2);
+      light.position.set(0,2.4,halfD-1.0);g.add(light);
+    }
+    const aabbRadius=.42;
+    // OBB in world space for collision. Rotate (x,z) around building center.
+    const front=(Math.sin(rot)*halfD + x);
+    const frontZ=(Math.cos(rot)*halfD + z);
+    houses.push({id,x,z,w,d,h,rot,door,frontX:front,frontZ});
+    return g;
+  }
+  // Five small shops deliberately align parallel to the street; no overlapping roofs.
+  house({id:'tea',x:-13,z:-5,w:8.4,d:7.8,h:3.75,rot:Math.PI/2,sign:'听月茶馆',door:true});
+  house({id:'silk',x:13,z:6,w:8.4,d:7.8,h:3.8,rot:-Math.PI/2,sign:'红笺铺'});
+  house({id:'book',x:-13,z:-21,w:8.4,d:7.8,h:3.7,rot:Math.PI/2,sign:'藏书阁'});
+  house({id:'fate',x:13,z:-22,w:8.4,d:7.8,h:3.75,rot:-Math.PI/2,sign:'姻缘堂'});
+  house({id:'flower',x:-13,z:8,w:8.4,d:7.8,h:3.7,rot:Math.PI/2,sign:'花间集'});
+  // The hall is set further south, with a paved approach at z -31.
+  house({id:'temple',x:0,z:-43.5,w:14,d:10,h:5,rot:0,sign:'月老殿'});
+  // Destination architecture, kept away from walking lanes.
+  house({id:'north',x:-16,z:55,w:9.5,d:7.3,h:3.85,rot:Math.PI/2,sign:'听雪亭'});
+  house({id:'west',x:-45,z:-23,w:9.5,d:7.3,h:3.85,rot:Math.PI/2,sign:'竹书馆'});
+  house({id:'east',x:44,z:-55,w:9.3,d:7.3,h:3.85,rot:-Math.PI/2,sign:'东廊'});
+  house({id:'south',x:0,z:-88.5,w:11,d:6.7,h:3.85,rot:0,sign:'旧梦驿'});
+  // Gate: columns and horizontal portal; no giant building roof in player's face.
+  for(const side of [-1,1]){
+    block(worldGroup,.45,4.2,.45,materials.timber,side*5.4,2.1,27);
+    block(worldGroup,.81,.22,.81,materials.bronze,side*5.4,4.2,27);
+  }
+  block(worldGroup,11.6,.38,.7,materials.timber,0,4.55,27);
+  const gateSign=plaque('月下灯火',4.6);
+  gateSign.position.set(0,3.93,27.43);worldGroup.add(gateSign);
+  // Two rows of classic lanterns, no dozens of strong overlapping lights.
+  function lanternPost(x,z,lit=false) {
+    block(worldGroup,.14,3.6,.14,materials.timber,x,1.8,z);
+    const shell=new THREE.Mesh(new THREE.SphereGeometry(.29,12,10),materials.lantern);
+    shell.scale.set(.9,1.2,.9);shell.position.set(x,3.47,z);worldGroup.add(shell);
+    block(worldGroup,.42,.07,.42,materials.bronze,x,3.83,z);
+    if(lit){
+      const bulb=new THREE.PointLight(0xffac77,3.2,10,2);
+      bulb.position.set(x,3.55,z);worldGroup.add(bulb);lanternLights.push(bulb);
+    }
+  }
+  for(const z of [-28,-17,-5,6,19]){
+    for(const side of [-1,1])lanternPost(side*5.9,z,(z===-17||z===6));
+  }
+  for(const [x,z] of [[-31,19],[31,19],[-31,-29],[31,-29],[-31,-55],[31,-55],[0,53],[0,-74]]){
+    lanternPost(x,z,false);
+  }
+  const lake={x:50,z:-21,r:12.1};
+  const lakeShape=new THREE.Mesh(new THREE.CircleGeometry(lake.r,64),materials.lake);
+  lakeShape.rotation.x=-Math.PI/2;lakeShape.position.set(lake.x,-.095,lake.z);
+  worldGroup.add(lakeShape);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(lake.r+.15,.22,7,64),materials.rock);
+  rim.rotation.x=-Math.PI/2;rim.position.set(lake.x,.055,lake.z);worldGroup.add(rim);
+  // Benches/flowers near, not on, roads.
+  function tree(x,z,type='evergreen'){
+    const g=new THREE.Group();g.position.set(x,0,z);worldGroup.add(g);
+    block(g,.26,3.6,.26,materials.timber,0,1.8,0);
+    const mat=type==='blossom'?materials.blossom:materials.foliage;
+    for(let i=0;i<(low?7:12);i++){
+      const a=rand()*Math.PI*2,r=rand()*1.7;
+      const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(.75+rand()*.45,1),mat);
+      crown.position.set(Math.cos(a)*r,3+rand()*2.15,Math.sin(a)*r);g.add(crown);
+    }
+    obstacles.push({type:'circle',x,z,r:1.5});
+  }
+  for(const [x,z,type] of [[-20,20,'blossom'],[21,20,'evergreen'],[-43,-7,'evergreen'],
+    [-43,-37,'blossom'],[43,-7,'blossom'],[43,-40,'evergreen'],[-17,59,'evergreen'],[17,58,'blossom']]){
+    tree(x,z,type);
+  }
+  // The main stars still sit in the sky; keep the skyline clean without cone mountains.
+  const floaters=[];
+  for(let i=0;i<(low?5:9);i++){
+    const a=rand()*Math.PI*2,r=3+rand()*8;
+    const g=new THREE.Group();g.position.set(lake.x+Math.cos(a)*r,.03,lake.z+Math.sin(a)*r);
+    const shell=new THREE.Mesh(new THREE.CylinderGeometry(.21,.28,.17,10),materials.red);g.add(shell);
+    const core=new THREE.Mesh(new THREE.SphereGeometry(.13,8,8),materials.lantern);
+    core.position.y=.16;g.add(core);worldGroup.add(g);
+    floaters.push({g,y:.03,phase:rand()*6.28});
+  }
+  // Footpath rules: player cannot leave the stones, enter closed buildings or walk across lake.
+  const playerRadius=.42;
+  function inRoad(x,z){
+    return roads.some(r=>Math.abs(x-r.x)<=r.w/2-playerRadius*.62&&Math.abs(z-r.z)<=r.d/2-playerRadius*.62)||
+      plazas.some(p=>Math.hypot(x-p.x,z-p.z)<=p.r-playerRadius*.35);
+  }
+  function inHouse(x,z,house){
+    const dx=x-house.x,dz=z-house.z,s=Math.sin(house.rot),c=Math.cos(house.rot);
+    const localX=dx*c-dz*s,localZ=dx*s+dz*c;
+    return Math.abs(localX)<=house.w/2+playerRadius&&Math.abs(localZ)<=house.d/2+playerRadius;
+  }
+  function canWalk(x,z){
+    if(x<extent.minX||x>extent.maxX||z<extent.minZ||z>extent.maxZ)return false;
+    if(Math.hypot(x-lake.x,z-lake.z)<lake.r+playerRadius)return false;
+    if(!inRoad(x,z))return false;
+    for(const house of houses)if(inHouse(x,z,house))return false;
+    for(const o of obstacles)if(Math.hypot(x-o.x,z-o.z)<o.r+playerRadius)return false;
+    return true;
+  }
+  const door={x:-7.6,z:-5,insideX:0,insideZ:-130};
+  return {
+    extent,nav,houses,door,lake,
+    canWalk,
+    isNearTea:(x,z)=>Math.hypot(x-door.x,z-door.z)<2.6,
+    mapLayout:{roads,plazas,lake},
+    stats:{districts:4,buildings:houses.length,roads:roads.length,plazas:plazas.length,trees:8,collisions:true,walkableSurface:'roads and plazas',hasPortal:true},
+    update(t){
+      for(const f of floaters){
+        f.g.position.y=f.y+.045*Math.sin(t*.75+f.phase);
+        f.g.rotation.y=Math.sin(t*.34+f.phase)*.1;
+      }
+    },
   };
 }
