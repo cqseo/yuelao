@@ -26,6 +26,9 @@ assert.ok(lite.includes("'/api/billing/checkout'"), 'reuse existing checkout');
 assert.ok(lite.includes("'/api/account/spread/generate'"), 'generation requires verified unlock');
 assert.ok(lite.includes("access === 'unlocked'"), 'never charge for owned readings');
 assert.ok(lite.includes('checkout_session_created'), 'track successful checkout creation');
+assert.ok(lite.includes('scrollIntoView'), 'draw should reveal the result on mobile');
+assert.ok(lite.includes('loading="eager"'), 'the three cards are primary content, not deferred thumbnails');
+assert.ok(lite.includes('IntersectionObserver'), 'count premium views only after the actual offer is visible');
 assert.ok(!lite.includes('amount: 1800'), 'price is server-authoritative');
 
 const values = new Map<string, string>();
