@@ -11,7 +11,7 @@ import site from '../../site.config';
 export const Route = createFileRoute('/')({
   head: () => {
     const head = pageHead(site, {
-      title: m.home_meta_title({ name: tr(site.name) }),
+      title: m.home_meta_title({ name: ['zh-Hant', 'zh-Hans', 'ja'].includes(getLocale()) ? '月下' : 'YUEXIA' }),
       description: m.home_meta_description(),
       // Canonical 是單棵樹（P7：繁/簡同路徑切換，網址不帶語言）。
       path: localizeHref('/', { locale: getLocale() }),
