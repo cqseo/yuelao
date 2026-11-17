@@ -14,7 +14,7 @@
 .lite-market__choices button { min-height:44px; padding:.55rem .8rem; border:1px solid #766a52; border-radius:5px; background:transparent; color:#efe5cf; cursor:pointer; font:inherit; }
 .lite-market__choices button[aria-pressed="true"] { background:#6b251e; border-color:#dcbb7c; }
 .lite-market__draw { display:block; width:100%; min-height:52px; margin:1.2rem 0; border:1px solid #e9c594; border-radius:5px; background:#aa3229; color:#fff5e9; font:inherit; font-weight:700; cursor:pointer; }
-.lite-market__result { margin-top:1.3rem; padding:1.25rem; color:#2a1d14; background:#efe5cf; border-radius:5px; }
+.lite-market__result { scroll-margin-top:12px; margin-top:1.3rem; padding:1.25rem; color:#2a1d14; background:#efe5cf; border-radius:5px; }
 .lite-market__result h2 { color:#892b20; font-size:1.2rem; }
 .lite-market__result a { color:#7c2922; text-decoration:underline; }
 .lite-market__poem { white-space:pre-line; font-size:1.15rem; }
