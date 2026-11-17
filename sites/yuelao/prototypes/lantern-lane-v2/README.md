@@ -94,3 +94,31 @@
 3. 将视角转向东（+X），查看地图默认视角朝上；切换「北朝上」后望月台（+Z）应在上方、旧梦驿（-Z）在下方。
 4. 使用画质切换、镜头拉近/拉远、重置镜头；去守灯人处交谈、关闭并再次行走。
 5. 检查 390px 竖屏和约 800×550 横屏：地图、导航、摇杆、镜头控件不挡住场景核心区。
+
+## V2.5 — Ara 3D Gen 真实骨骼人物（2026-11-17）
+
+第三人称的旧几何人偶被真正的、带皮肤/头发/骨骼的 GLB 人形替换。为了让角色与宋式月夜古街统一，使用额外的**月下原创 Hanfu-inspired（古风交领长袍）程序化裁衣源码**，仍然基于 Ara 的 MakeHuman 人体和骨骼绑定，不是加载普通现代人衣服、不是把三角锥当裙摆。
+
+- 生成器：GitHub https://github.com/TuriaArt/3d-gen-TU ，PIN `3d78dcad462feeeb64db7fe667a7c34105a10a45`（MIT；版权见上游 LICENSE）。
+- 人体、皮肤、发型等：MakeHuman 官方 CC0 核心数据，官方许可 https://www.makehumancommunity.org/about/license.html ，来源官方站点备用镜像 https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/makehuman_system_assets_cc0.zip 。首次 setup 原始服务器返回 HTTP 509；备用地址返回 HTTP 200，ZIP 经校验解压。
+- 服装：保存 `ara-hanfu.patch`，对上游 `src/core/garments/catalog.ts` 增加 `yuexia_hanfu`，以人体 shell、穿过膝下到足踝的网格裙、加宽骨骼袖子、交叉领口及金边为主。称为**Hanfu-inspired 试验性服饰**，尚需专门美术复核衣物历史准确性与自然衣摆。
+- 人物参数：`ara-traveler.params.json`；生成工具：`generate_ara_character.sh`；GLB 编排优化：`trim_ara_glb.py`。
+- 真实 GLB：`public/models/yuexia-ara-wanderer.glb`，5,653,012 字节，SHA-256 `e488dccc0ee120afe0b133271d257131e24e94df3b80e21eab9790cbdfdd29f8`。
+- GLB 运行规模：41,722 三角形、17 带骨骼网格、3 动作 `Idle/Walk/Run`；原始导出包括 48 动作，压缩文件去掉本预览未使用的 45 组动作，但保留人体网格与贴图，压缩约 37.2%。
+- 主场景加载器：`src/ara-traveler.js`，Three.js GLTFLoader + AnimationMixer，脚步由原本第三人称玩家坐标驱动；不同动作交叉过渡 0.25 秒。若加载失败明确降级到旧人偶，并在 `window.__YUEXIA_V2__.avatar` 记录失败状态，避免伪称已加载新模型。
+- 画面遮挡：对于 SkinnedMesh 禁用动态骨骼错误的 frustum 剔除、放到建筑批量渲染后绘制，但保留 `depthTest`、`depthWrite`，解决真实 GLB 被背景隐去的问题；无悬浮黄绿调试球。
+- 单独检视 `/avatar`：真实人体材质、旋转、`Idle/Walk/Run` 切换。可在独立预览 https://yuexia-lantern-lane-v2.pages.dev/avatar 查看。
+- 正式世界未动：用户已允许选择 Ara 方案用于**独立预览**，但未授权合并 `main`。所有改动保留于 Draft PR #106，绝不更改 `yuexia.app` 正式站。
+
+### 独立重新生成模型
+```bash
+cd sites/yuelao/prototypes/lantern-lane-v2
+bash generate_ara_character.sh
+```
+依赖 Node.js 20+、npm、git、curl、unzip、Python3。第一次下载 MakeHuman CC0 数据约 280 MB。源码和数据来自上述官方来源，生成后核对 SHA；修改裁衣/参数会有不同文件哈希。
+
+### 验收记录
+- 模型实际从 Cloudflare Pages 加载：41,722 三角面、17 个 SkinnedMesh、3 个骨骼动画，加载状态 `loaded`，未回退旧人偶。
+- 独立 `/avatar` 角色检视页 200 / 真实模型和动作已渲染；场景正常显示古风服装、人物阴影及正确深度，不会覆盖全部建筑。
+- 390px 手机实际摇杆拖动，玩家 x 由 0.10 到 3.30，阿灯对话与关闭均正常；9/9 Poly Haven 纹理加载，0 JS 异常或网络失败，页面无横向溢出。
+- 当前人物仍是原型：表情、头发柔性、布料物理模拟、服装考据、实机帧率及设备热量尚未作为最终美术验收，不应当作电影级商业人物品质。

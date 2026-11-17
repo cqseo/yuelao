@@ -9,7 +9,7 @@ import { createKeeper } from './keeper.js';
 import { addWaterShimmer } from './water.js';
 import { createExpandedDistricts } from './world-expansion.js';
 import { createMinimap } from './world-map.js';
-import { createTraveler } from './traveler.js';
+import { createAraTraveler } from './ara-traveler.js';
 import { createFollowCamera } from './orbit-camera.js';
 import './world-map.css';
 import './keeper.css';
@@ -155,14 +155,16 @@ state.architecture={
   floweringTrees:detailing.floweringTrees,
   wetStonePatches:detailing.wetPatches,
 };
-const traveler=createTraveler(scene);
+const traveler=await createAraTraveler(scene,{low:innerWidth<850,onStatus:(data)=>{state.avatar=data}});
 traveler.position.set(.1,0,13.5);
 traveler.setHeading(-.03);
 const cameraRig=createFollowCamera(camera,traveler,{mobile:innerWidth<850});
 cameraRig.setOrientation(-.03,.35);
 cameraRig.snap();
+
 const keeper=createKeeper(scene,traveler);
 state.viewMode='third-person';
+state.avatarType=state.avatar?.status==='loaded'?'Ara rigged traveler':'legacy fallback';
 state.worldAxes={north:'+Z',south:'-Z',east:'+X',west:'-X'};
 state.keeper=keeper.state;
 state.effects={waterShimmer:true,lanternLightCulling:true};
@@ -340,6 +342,7 @@ function loop(){
     actualDz=traveler.position.z-beforeZ;
   }
   traveler.tick(t,step,actualDx,actualDz,Math.hypot(actualDx,actualDz)>.00001);
+  if(traveler.currentAction)state.avatarAction=traveler.currentAction;
   // Camera is independent from player animation: steady look-at without head-bob.
   cameraRig.update(step);
   detailing.tick(t);
@@ -383,5 +386,5 @@ function loop(){
   requestAnimationFrame(loop);
 }
 state.ready=true;
-document.querySelector('#loadText').textContent=state.textureFailures.length?'材质备用模式 · 已准备漫游':'第三人称世界 · 地图方位已同步';
+document.querySelector('#loadText').textContent=state.avatar?.status==='loaded'?'Ara 真人骨骼模型 · 已就绪':state.avatar?.status==='fallback'?'人物模型载入失败 · 已使用旧占位':'正在加载古风旅人…';
 loop();

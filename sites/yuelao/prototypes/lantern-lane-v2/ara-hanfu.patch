@@ -1,0 +1,65 @@
+diff --git a/src/core/garments/catalog.ts b/src/core/garments/catalog.ts
+index edd861d..d4b2dd6 100644
+--- a/src/core/garments/catalog.ts
++++ b/src/core/garments/catalog.ts
+@@ -243,6 +243,60 @@ function uniformShirt(g: GCtx, st: GarmentStyle, long: boolean): GPart[] {
+ 
+ 
+ export const GARMENTS: GarmentDef[] = [
++  // Yuexia-specific Hanfu-inspired layered ceremonial traveler robes.
++  // Derivative code remains MIT-licensed; geometry is skinned to Ara skeleton.
++  {
++    id: 'yuexia_hanfu', label: 'Yuexia Hanfu-inspired traveler robe', slot: 'top',
++    patterns: ['solid', 'asooke'], color: '#344963', color2: '#d7c39d',
++    build: (g, st) => {
++      const b=g.body;
++      const fabric=cloth(g,'Yuexia cloud-blue Hanfu robe',st,{doubleSided:true});
++      const offwhite:Material={name:'Yuexia ivory-cross-collar',color:'#d8d1bc',roughness:.83,metalness:0,doubleSided:true,alpha:'opaque'};
++      const golden:Material={name:'Yuexia woven-gold edging',color:'#c5a977',roughness:.65,metalness:.28,doubleSided:true,alpha:'opaque'};
++      const parts:GPart[] = [];
++      const upper=shellPart(g,{
++        covers:(v)=> (isUpper(v)&&v.tt>.15) ||
++           v.region===REGION.upperarm ||
++           (v.region===REGION.lowerarm&&v.t<.96),
++        offset:(v)=>(v.region===REGION.upperarm||v.region===REGION.lowerarm?cm(2.7):cm(1.8)),
++        tile:.28,relax:6,
++      },fabric);
++      parts.push(...upper);
++      const ankle=b.axis(REGION.lowerleg,1)[1][1];
++      const robeTop=torsoY(b,.56);
++      const robeEnd=ankle+cm(1.4);
++      const outer=skirt(b,robeTop,robeEnd,cm(3.0),.17,undefined,64,{uRepeats:1.4,tileV:.35});
++      if(outer)parts.push({mesh:outer,material:fabric,smooth:true});
++      const hemTop=robeEnd+cm(5.2);
++      const hem=skirt(b,hemTop,robeEnd,cm(3.1)+.17*(robeTop-hemTop),.17,undefined,64,{uRepeats:1.3});
++      if(hem)parts.push({mesh:hem,material:golden,smooth:true});
++      // Wide sleeves are tied to the actual elbow and wrist skeletons.
++      for(const side of [-1,1]){
++        const a=limbRing(b,REGION.lowerarm,side,.37,cm(2.8),28);
++        const z=limbRing(b,REGION.lowerarm,side,.91,cm(10.6),28);
++        if(a.ring&&z.ring){
++          const sleeve=loftRings([a.ring,z.ring],{closedAround:true,tileU:.22,tileV:.27});
++          parts.push({mesh:sleeve,material:fabric,smooth:true});
++        }
++        const cuff0=limbRing(b,REGION.lowerarm,side,.90,cm(10.4),28);
++        const cuff1=limbRing(b,REGION.lowerarm,side,.98,cm(10.8),28);
++        if(cuff0.ring&&cuff1.ring)
++          parts.push({mesh:loftRings([cuff0.ring,cuff1.ring],{closedAround:true,tileU:.2}),material:golden,smooth:true});
++      }
++      // Crossing lapel trim: carved paths follow upper torso and stay in front.
++      for(const side of [-1,1]){
++        const frontZ=b.L.torsoZ+cm(18);
++        const collar:Vec3[]=[
++          [side*b.L.shoulderX*.22,b.L.neckY-cm(1.0),frontZ-cm(7)],
++          [side*b.L.shoulderX*.48,torsoY(b,.78),frontZ],
++          [side*b.L.shoulderX*.18,torsoY(b,.57),frontZ+cm(1.5)],
++          [-side*b.L.shoulderX*.28,torsoY(b,.37),frontZ+cm(1.8)]
++        ];
++        parts.push({mesh:cord(collar,cm(1.9),false,7),material:offwhite});
++      }
++      return parts;
++    },
++  },
+   // ---------------- Tops
+   {
+     id: 'tank_top', label: 'Tank top', slot: 'top', patterns: ['solid', 'khaki', 'camo', 'tattered'], color: '#3f6b5a', color2: '#2a2a2a',
