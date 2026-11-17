@@ -110,6 +110,8 @@ export function LiteMarket() {
   const [busy, setBusy] = useState(false);
   const [refresh, setRefresh] = useState(0);
   const inFlight = useRef(false);
+  const resultRef = useRef<HTMLElement>(null);
+  const offerRef = useRef<HTMLElement>(null);
   const price = litePrice();
 
   useEffect(() => {
@@ -257,8 +259,30 @@ export function LiteMarket() {
   }
 
   useEffect(() => {
-    if (result) track('offer_view', { product: 'unlock_1', lite: true });
-  }, [result?.id, situation]);
+    if (!result) return;
+    const frame = requestAnimationFrame(() => {
+      resultRef.current?.scrollIntoView({
+        block: 'start',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [result]);
+
+  useEffect(() => {
+    if (!result) return;
+    const target = offerRef.current;
+    if (!target) return;
+    let recorded = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (recorded || !entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.2)) return;
+      recorded = true;
+      observer.disconnect();
+      track('offer_view', { product: 'unlock_1', lite: true });
+    }, { threshold: 0.2 });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [result]);
 
   const readingHref = result ? localizeHref(liteReadingUrl(result.id, situation)) : '';
   const checking = payment === 'checking' || payment === 'generating';
@@ -309,7 +333,7 @@ export function LiteMarket() {
             onClick={draw}
           >{result ? c.again : c.draw}</button>
           {result && (
-            <section className="lite-market__result" aria-live="polite">
+            <section ref={resultRef} className="lite-market__result" aria-live="polite">
               <h2>{result.no} · {result.grade}</h2>
               <p className="lite-market__poem">{result.poem}</p>
               <p>{result.verdict[situation]}</p>
@@ -317,7 +341,7 @@ export function LiteMarket() {
             </section>
           )}
           {result && (
-            <section className="lite-market__premium" aria-label={payC.title}>
+            <section ref={offerRef} className="lite-market__premium" aria-label={payC.title}>
               <h2>{payC.title}</h2>
               <strong className="lite-market__price">{price}</strong>
               <p>{payC.note}</p>
