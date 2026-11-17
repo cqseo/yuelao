@@ -62,11 +62,25 @@ const STEPS = [
   { title: () => m.home_market_how_3(), desc: () => m.home_market_how_3_desc() },
 ];
 
+// Text-first explanations are present in SSR HTML; the 3D ritual still starts at /market#yuelao.
+const RITUAL_STEPS = [
+  { title: () => m.home_how_step_1_title(), desc: () => m.home_how_step_1_desc() },
+  { title: () => m.home_how_step_2_title(), desc: () => m.home_how_step_2_desc() },
+  { title: () => m.home_how_step_3_title(), desc: () => m.home_how_step_3_desc() },
+  { title: () => m.home_how_step_4_title(), desc: () => m.home_how_step_4_desc() },
+];
+
+const TOPICS = [
+  { id: 'single', title: () => m.home_category_single(), desc: () => m.home_category_single_desc() },
+  { id: 'him', title: () => m.home_category_him(), desc: () => m.home_category_him_desc() },
+  { id: 'reunion', title: () => m.home_category_reunion(), desc: () => m.home_category_reunion_desc() },
+];
+
 const INDEX_COPY: Record<string, { name: string; desc: string }> = {
-  'zh-Hant': { name: '百籤總覽', desc: '從第一籤到第一百籤，查原文、吉凶與解說。' },
-  'zh-Hans': { name: '百签总览', desc: '从第一签到第一百签，查看签诗、吉凶与解说。' },
-  en: { name: 'All 100 oracle sticks', desc: 'Browse each verse, grade and relationship interpretation.' },
-  ja: { name: '全100首のおみくじ', desc: '原文と吉凶・恋愛の解説を読む。' },
+  'zh-Hant': { name: '查看月老靈籤100首', desc: '依籤號查原文、吉凶及感情情境解讀。' },
+  'zh-Hans': { name: '查看月老灵签100首', desc: '按签号查原文、吉凶及感情情境解读。' },
+  en: { name: 'Browse all 100 Yue Lao sticks', desc: 'Read the verses, grades and relationship interpretations.' },
+  ja: { name: '月老おみくじ全100首を見る', desc: '番号から詩の原文・吉凶・恋愛解説を確認。' },
 };
 const indexCopy = () => INDEX_COPY[getLocale()] ?? INDEX_COPY.en!;
 
@@ -122,22 +136,80 @@ export function Home() {
         <section className="mh-hero" aria-labelledby="mh-title">
           <img className="mh-hero-img" src="/market/plaza.jpg" alt="" fetchPriority="high" />
           <div className="mh-hero-copy">
-            <h1 id="mh-title">{m.home_market_title()}<span className="mh-title-seo">{m.home_title()}</span></h1>
+            <p className="mh-eyebrow">{m.home_market_title()}</p>
+            <h1 id="mh-title">{m.home_title()}</h1>
+            <p className="mh-title-seo">{m.home_seo_subtitle()}</p>
             <p className="mh-lead">{m.home_market_lead()}</p>
             <div className="mh-actions">
               <a
                 className="mh-enter"
+                href={localizeHref('/market#yuelao')}
+                data-rybbit-event="home_market_yuelao_direct"
+                onClick={() => track('home_yuelao_click', { destination: 'market_yuelao' })}
+              >
+                {m.home_market_plain()}
+              </a>
+              <a
+                className="mh-plain"
                 href={localizeHref('/market#enter')}
                 data-rybbit-event="home_market_enter"
                 onClick={() => track('home_market_enter_click', { destination: 'market' })}
               >
                 {m.home_market_enter()}
               </a>
-              <a className="mh-plain" href={localizeHref('/market#yuelao')} data-rybbit-event="home_market_yuelao_direct" onClick={() => track('home_yuelao_click', { destination: 'market_yuelao' })}>
-                {m.home_market_plain()}
-              </a>
             </div>
             <p className="mh-note">{m.home_market_note()}</p>
+            <Link className="mh-signs-shortcut" to={localizeHref('/signs')}>
+              {indexCopy().name} <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </section>
+
+        <section className="mh-sec mh-ritual" aria-labelledby="mh-ritual-heading">
+          <p className="mh-kicker">{m.home_how_kicker()}</p>
+          <h2 id="mh-ritual-heading">{m.home_how_title()}</h2>
+          <p className="mh-sec-lead">{m.home_how_intro()}</p>
+          <ol className="mh-ritual-steps">
+            {RITUAL_STEPS.map((step) => (
+              <li key={step.title()}>
+                <h3>{step.title()}</h3>
+                <p>{step.desc()}</p>
+              </li>
+            ))}
+          </ol>
+          <a className="mh-section-link" href={localizeHref('/market#yuelao')}>
+            {m.home_market_plain()} <span aria-hidden="true">→</span>
+          </a>
+        </section>
+
+        <section className="mh-sec mh-topic-section" aria-labelledby="mh-topics-heading">
+          <h2 id="mh-topics-heading">{m.home_pick_heading()}</h2>
+          <ul className="mh-topics">
+            {TOPICS.map((topic) => (
+              <li key={topic.id}>
+                <a
+                  href={localizeHref('/market#yuelao')}
+                  onClick={() => track('home_topic_click', { topic: topic.id })}
+                  aria-label={`${topic.title()}：${m.home_market_plain()}`}
+                >
+                  <h3>{topic.title()}</h3>
+                  <p>{topic.desc()}</p>
+                  <span className="mh-topic-action">{m.home_market_way_ritual()} <span aria-hidden="true">→</span></span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="mh-sec mh-signs" aria-labelledby="mh-signs-heading">
+          <p className="mh-kicker">{m.home_sticks_kicker()}</p>
+          <h2 id="mh-signs-heading">{m.home_sticks_title()}</h2>
+          <p>{m.home_sticks_body_1()}</p>
+          <p>{m.home_sticks_body_2()}</p>
+          <div className="mh-signs-links">
+            <Link to={localizeHref('/signs')}>{indexCopy().name} <span aria-hidden="true">→</span></Link>
+            <Link to={localizeHref('/sign/1')}>{m.home_sticks_cta()} <span aria-hidden="true">→</span></Link>
+            <Link to={localizeHref('/methodology')}>{m.home_faq_q6()} <span aria-hidden="true">→</span></Link>
           </div>
         </section>
 
