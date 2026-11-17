@@ -126,7 +126,8 @@ assert.deepEqual(
   'visit, engage, start (historical implied), reading, unlock, checkout, paid',
 );
 assert.equal(stats.kpis.loggedIn, 1);
-assert.deepEqual(stats.checkout, { started: 1, paid: 1, failed: 0, abandoned: 0 });
+assert.deepEqual(stats.checkout, { started: 1, uniqueAccounts: 1, paid: 1, failed: 0, abandoned: 0 });
+assert.equal(stats.meta.completeWindowTracking, true, 'previous-window event proves coverage');
 assert.equal(stats.orderList.length, 2, 'the order list shows live and test orders');
 assert.equal(stats.orderList.filter((o) => o.live).length, 1);
 assert.equal(stats.ops, null);
@@ -187,4 +188,24 @@ assert.deepEqual(newFunnel.funnel.map((s) => s.count), [1, 1, 1, 1, 0, 0, 0]);
 assert.ok(newFunnel.recent.some((s) => s.steps.includes('@ritual_start')));
 assert.ok(newFunnel.recent.some((s) => s.steps.includes('@home_yuelao')));
 
+// A website only instrumented recently must not show order-count / visitor-count as a conversion rate.
+const partialWindow = computeStats({
+  days: 7,
+  now,
+  events: [ev('vX_xxxxxxxx', 'sX_xxxxxxxx', 60, 'page_view', '/')],
+  orders: [
+    { id: 'old-order', user_id: 'user-a', product_id: 'unlock_1', amount: 299, currency: 'USD',
+      status: 'paid', checkout_ref: 'cs_live_old', created_at: t(180), paid_at: t(170) },
+    { id: 'dup-order', user_id: 'user-a', product_id: 'unlock_1', amount: 299, currency: 'USD',
+      status: 'pending', checkout_ref: 'cs_live_2', created_at: t(60), paid_at: null },
+    { id: 'dup-order-2', user_id: 'user-a', product_id: 'unlock_1', amount: 299, currency: 'USD',
+      status: 'pending', checkout_ref: 'cs_live_3', created_at: t(59), paid_at: null },
+  ],
+  refunds: new Map(), profiles: [], totalUsers: 0, eventsTruncated: false,
+});
+assert.equal(partialWindow.meta.completeWindowTracking, false);
+assert.equal(partialWindow.checkout.started, 3);
+assert.equal(partialWindow.checkout.uniqueAccounts, 1, 'three checkouts from one account are not three customers');
+assert.equal(partialWindow.kpis.payers.value, 1);
+assert.equal(partialWindow.funnel.at(-1)?.count, 0, 'an unlinked paying account must not count as a known visitor payer');
 console.log('PASS: stats aggregate visitors, live orders, funnel, paths and journeys');
