@@ -117,18 +117,29 @@ export function Market() {
             }),
           }),
         );
-        if (res.status === 401) return { state: 'login' as const };
+        if (res.status === 401) {
+          track('checkout_login_required', { product: productId });
+          return { state: 'login' as const };
+        }
         if (res.status === 409) return { state: 'owned' as const };
-        if (res.status === 429) return { state: 'busy' as const };
+        if (res.status === 429) {
+          track('checkout_api_failure', { product: productId, status: 429 });
+          return { state: 'busy' as const };
+        }
         if (res.status === 201) {
           const data = (await res.json()) as { checkoutUrl?: string };
-          // 只跳去 Stripe 的結帳網域
-          if (data.checkoutUrl && new URL(data.checkoutUrl).host === 'checkout.stripe.com')
+          // 只跳去 Stripe 的結帳網域；只有拿到有效網址才算建單成功。
+          if (data.checkoutUrl && new URL(data.checkoutUrl).host === 'checkout.stripe.com') {
+            track('checkout_session_created', { product: productId });
             return { state: 'redirect' as const, url: data.checkoutUrl };
+          }
+          track('checkout_api_failure', { product: productId, status: 201 });
           return { state: 'error' as const };
         }
+        track('checkout_api_failure', { product: productId, status: res.status });
         return { state: res.status === 503 ? ('closed' as const) : ('error' as const) };
       } catch {
+        track('checkout_api_failure', { product: productId, status: 0 });
         return { state: 'error' as const };
       }
     };
