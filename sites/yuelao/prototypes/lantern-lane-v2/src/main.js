@@ -9,8 +9,11 @@ import { createKeeper } from './keeper.js';
 import { addWaterShimmer } from './water.js';
 import { createExpandedDistricts } from './world-expansion.js';
 import { createMinimap } from './world-map.js';
+import { createTraveler } from './traveler.js';
+import { createFollowCamera } from './orbit-camera.js';
 import './world-map.css';
 import './keeper.css';
+import './third-person.css';
 
 // Isolated moonlit architecture test. BuildingGenerator © zhulin025, MIT 2026.
 // Poly Haven 1K PBR textures: CC0. Full provenance recorded in README.md.
@@ -28,9 +31,8 @@ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#213a57');
 scene.fog=new THREE.FogExp2('#1f3045',.008);
-const camera=new THREE.PerspectiveCamera(67,1,.1,330);
-camera.rotation.order='YXZ';camera.position.set(.1,1.9,19);
-let yaw=-.035,pitch=-.04;
+const camera=new THREE.PerspectiveCamera(innerWidth<850?60:58,1,.1,330);
+camera.rotation.order='YXZ';
 const bg=new THREE.HemisphereLight(0xcbdaf3,0x3e3036,1.78);scene.add(bg);
 const moonlight=new THREE.DirectionalLight(0xc7d8ff,2.5);moonlight.position.set(-22,35,-35);moonlight.castShadow=true;moonlight.shadow.mapSize.set(2048,2048);
 moonlight.shadow.camera.left=-40;moonlight.shadow.camera.right=40;moonlight.shadow.camera.top=35;moonlight.shadow.camera.bottom=-35;moonlight.shadow.camera.near=2;moonlight.shadow.camera.far=110;moonlight.shadow.bias=-.0006;scene.add(moonlight);
@@ -153,7 +155,15 @@ state.architecture={
   floweringTrees:detailing.floweringTrees,
   wetStonePatches:detailing.wetPatches,
 };
-const keeper=createKeeper(scene,camera);
+const traveler=createTraveler(scene);
+traveler.position.set(.1,0,13.5);
+traveler.setHeading(-.03);
+const cameraRig=createFollowCamera(camera,traveler,{mobile:innerWidth<850});
+cameraRig.setOrientation(-.03,.35);
+cameraRig.snap();
+const keeper=createKeeper(scene,traveler);
+state.viewMode='third-person';
+state.worldAxes={north:'+Z',south:'-Z',east:'+X',west:'-X'};
 state.keeper=keeper.state;
 state.effects={waterShimmer:true,lanternLightCulling:true};
 const particles=[],pPositions=new Float32Array(100*3);
@@ -168,105 +178,210 @@ if(innerWidth>850){
 }
 function resize(){const w=canvas.clientWidth||innerWidth,h=canvas.clientHeight||innerHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);composer?.setSize(w,h);}
 addEventListener('resize',resize,{passive:true});resize();
-const clock=new THREE.Clock(),keys=new Set(),joystick={x:0,z:0};let dragId=null,lastX=0,lastY=0,target=null;
+
+const clock=new THREE.Clock();
+const keys=new Set();
+const joystick={x:0,z:0};
 const places={
- gate:[.1,19,-.03,-.02,'巷口 · 回望月光下的迎月牌坊'],
- market:[.3,2,-.05,-.03,'灯火 · 青瓦、红墙与石板路上的温暖光影'],
- pond:[32,-21,-.47,-.025,'星愿湖 · 沿着东侧湖岸看灯舟与月色'],
- temple:[.2,-30,-.04,-.03,'祈愿 · 走到灯火尽头，听见心里的回答'],
- keeper:[-3.6,-6.0,-.06,-.035,'守灯人 · 靠近阿灯，按 E 或点击交谈'],
- north:[0,53,-.03,-.025,'望月台 · 从迎月牌坊向北探索'],
- grove:[-33,-21,-.36,-.02,'竹影庭 · 沿西侧环路走入竹林'],
- station:[0,-74,-.02,-.025,'旧梦驿 · 从两侧回廊穿过月老殿后方'],
+  gate:[.1,13.5,-.03,'巷口 · 穿过迎月牌坊，沿着灯火向前'],
+  market:[.3,2,-.05,'灯火 · 青瓦、红墙与石板路上的温暖光影'],
+  pond:[32,-21,-.47,'星愿湖 · 沿着东侧湖岸看灯舟与月色'],
+  temple:[.2,-30,-.04,'祈愿 · 走到灯火尽头，听见心里的回答'],
+  keeper:[-3.6,-6,-.06,'守灯人 · 靠近阿灯，按 E 或点击交谈'],
+  north:[0,53,-.03,'望月台 · 从迎月牌坊向北探索'],
+  grove:[-33,-21,-.36,'竹影庭 · 沿西侧环路走入竹林'],
+  station:[0,-74,-.02,'旧梦驿 · 从两侧回廊穿过月老殿后方'],
 };
-const minimap=createMinimap({camera,extent:expansion.extent});
-document.querySelectorAll('[data-spot]').forEach(button=>button.addEventListener('click',()=>{
- const id=button.dataset.spot,p=places[id];state.location=id;
- camera.position.x=p[0];camera.position.z=p[1];
- yaw=p[2];pitch=p[3];target=null;
- state.navigationMode='instant';
- keeper.update(clock.elapsedTime);
- document.querySelector('#tip').textContent=p[4];
- document.querySelectorAll('[data-spot]').forEach(x=>x.classList.toggle('selected',x===button));
+const minimap=createMinimap({
+  player:traveler.group,
+  getYaw:()=>cameraRig.heading,
+  extent:expansion.extent,
+  layout:expansion.mapLayout,
+});
+state.mapMode=minimap.mode;
+const statusNode=document.querySelector('#tip');
+const activeButtons=document.querySelectorAll('[data-spot]');
+function navigateTo(id,button=null) {
+  const p=places[id];if(!p)return;
+  if(keeper.state.talking)keeper.close();
+  traveler.position.set(p[0],0,p[1]);
+  traveler.setHeading(p[2]);
+  state.player={x:p[0],z:p[1],facing:p[2]};
+  cameraRig.setOrientation(p[2],.35);
+  cameraRig.snap();
+  state.location=id;
+  state.navigationMode='instant';
+  keeper.update(clock.elapsedTime);
+  minimap.redraw();
+  if(statusNode)statusNode.textContent=p[3];
+  activeButtons.forEach(el=>el.classList.toggle('selected',el===button));
+}
+activeButtons.forEach(button=>button.addEventListener('click',()=>navigateTo(button.dataset.spot,button)));
+
+// User control is relative to the orbit camera, NOT to the mini map.
+function isTyping(target) {
+  return target instanceof Element && !!target.closest('input,textarea,select,[contenteditable="true"]');
+}
+document.addEventListener('keydown',e=>{
+  if(isTyping(e.target))return;
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();
+  keys.add(e.code);
+});
+document.addEventListener('keyup',e=>keys.delete(e.code));
+window.addEventListener('blur',()=>{keys.clear();moveStop();dragId=null});
+
+let dragId=null,lastX=0,lastY=0;
+canvas.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;
+  dragId=e.pointerId;
+  lastX=e.clientX;lastY=e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove',e=>{
+  if(dragId!==e.pointerId)return;
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;
+  lastX=e.clientX;lastY=e.clientY;
+  // Slow, clamped camera orbit so trackpad and mobile swipe remain comfortable.
+  cameraRig.rotate(dx*.0022,-dy*.00155);
+});
+const endDrag=e=>{if(e.pointerId===dragId)dragId=null;};
+canvas.addEventListener('pointerup',endDrag);
+canvas.addEventListener('pointercancel',endDrag);
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  cameraRig.zoom(Math.sign(e.deltaY)*.5);
+},{passive:false});
+
+const stickZone=document.querySelector('#joystick'),nub=document.querySelector('#nub');
+let joyId=null;
+function joystickUpdate(e){
+  const r=stickZone.getBoundingClientRect();
+  const rad=r.width*.29,dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+  const ratio=Math.max(1,Math.hypot(dx,dy)/rad);
+  joystick.x=dx/rad/ratio;joystick.z=-dy/rad/ratio;
+  nub.style.transform='translate('+joystick.x*rad+'px,'+-joystick.z*rad+'px)';
+}
+function moveStop(){
+  joystick.x=joystick.z=0;joyId=null;
+  if(nub)nub.style.transform='translate(0,0)';
+}
+stickZone.addEventListener('pointerdown',e=>{
+  joyId=e.pointerId;stickZone.setPointerCapture(joyId);joystickUpdate(e);
+});
+stickZone.addEventListener('pointermove',e=>{if(joyId===e.pointerId)joystickUpdate(e)});
+stickZone.addEventListener('pointerup',moveStop);
+stickZone.addEventListener('pointercancel',moveStop);
+document.querySelectorAll('[data-camera-zoom]').forEach(btn=>btn.addEventListener('click',()=>{
+  cameraRig.zoom(btn.dataset.cameraZoom==='in'?-.7:.7);
 }));
-document.addEventListener('keydown',e=>{keys.add(e.code);if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault()});
-document.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>keys.clear());
-canvas.addEventListener('pointerdown',e=>{dragId=e.pointerId;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(dragId);target=null});
-canvas.addEventListener('pointermove',e=>{if(dragId!==e.pointerId)return;yaw-=(e.clientX-lastX)*.003;pitch=Math.max(-.46,Math.min(.44,pitch-(e.clientY-lastY)*.0024));lastX=e.clientX;lastY=e.clientY});
-canvas.addEventListener('pointerup',e=>{if(dragId===e.pointerId)dragId=null});canvas.addEventListener('pointercancel',()=>{dragId=null});
-const stickZone=document.querySelector('#joystick'),nub=document.querySelector('#nub');let joyId=null;
-function joyUpdate(e){const r=stickZone.getBoundingClientRect(),rad=r.width*.29,dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),ratio=Math.max(1,Math.hypot(dx,dy)/rad);joystick.x=dx/rad/ratio;joystick.z=-dy/rad/ratio;nub.style.transform='translate('+joystick.x*rad+'px,'+-joystick.z*rad+'px)'}
-stickZone.addEventListener('pointerdown',e=>{joyId=e.pointerId;stickZone.setPointerCapture(joyId);joyUpdate(e)});
-stickZone.addEventListener('pointermove',e=>{if(joyId===e.pointerId)joyUpdate(e)});
-function joyOff(){joystick.x=joystick.z=0;joyId=null;nub.style.transform='translate(0,0)'}
-stickZone.addEventListener('pointerup',joyOff);stickZone.addEventListener('pointercancel',joyOff);
+document.querySelector('#resetCamera')?.addEventListener('click',()=>{
+  cameraRig.setOrientation(traveler.heading,.35);
+  cameraRig.snap();
+});
+
 let low=innerWidth<850;
 const button=document.querySelector('#toggleQuality');
-function setLow(v){low=v;waterShimmer.setLow(v);renderer.setPixelRatio(Math.min(devicePixelRatio||1,v?1:1.55));renderer.shadowMap.enabled=!v;fireflies.visible=!v;if(v){composer?.dispose();composer=null} else if(!composer){composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.4,.6,.88))}resize();button.querySelector('b').textContent=v?'开':'关'}
+function setLow(v){
+  low=v;waterShimmer.setLow(v);
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,v?1:1.55));
+  renderer.shadowMap.enabled=!v;fireflies.visible=!v;
+  if(v){composer?.dispose();composer=null;}
+  else if(!composer){
+    composer=new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene,camera));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.4,.6,.88));
+  }
+  resize();
+  button.querySelector('b').textContent=v?'开':'关';
+}
 button.addEventListener('click',()=>setLow(!low));
 setLow(low);
+
 let frames=0,perfSamples=0,perfTotal=0,autoEvaluated=false;
+state.positionTracking=true;
 function loop(){
- const rawDelta=clock.getDelta(),delta=Math.min(.045,rawDelta),t=clock.elapsedTime;
- // Automatically fall back to low-cost effects when sustained frame time is slow.
- if(!autoEvaluated && !low && frames>5 && document.visibilityState==='visible'){
-   perfSamples++;perfTotal+=rawDelta;
-   if(perfSamples>=16){
-     autoEvaluated=true;
-     if(perfTotal/perfSamples>.068){
-       setLow(true);state.autoQualityFallback=true;
-       button.querySelector('b').textContent='自动优化';
-     }
-   }
- }
- // Preserve real walking speed when WebGL falls below 20 FPS.
- const movementDelta=Math.min(.14,rawDelta);
- const speed=movementDelta*(keys.has('ShiftLeft')||keys.has('ShiftRight')?8.0:5.25);
- if(keys.has('ArrowLeft'))yaw+=delta*1.55;if(keys.has('ArrowRight'))yaw-=delta*1.55;
- const f=keeper.state.talking?0:(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)+joystick.z;
- const s=keeper.state.talking?0:(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0)+joystick.x;
- const previousX=camera.position.x,previousZ=camera.position.z;
- if(Math.abs(f)+Math.abs(s)>.03){
-  target=null;const n=Math.max(1,Math.hypot(f,s));
-  camera.position.x+=(-Math.sin(yaw)*f+Math.cos(yaw)*s)/n*speed;
-  camera.position.z+=(-Math.cos(yaw)*f-Math.sin(yaw)*s)/n*speed;
- } else if(target){
-  const ease=1-Math.exp(-delta*2);
-  camera.position.x+=(target.x-camera.position.x)*ease;camera.position.z+=(target.z-camera.position.z)*ease;
-  yaw+=(target.yaw-yaw)*ease;pitch+=(target.pitch-pitch)*ease;
-  if(Math.hypot(target.x-camera.position.x,target.z-camera.position.z)<.15)target=null;
- }
- camera.position.x=Math.min(expansion.extent.maxX,Math.max(expansion.extent.minX,camera.position.x));
- camera.position.z=Math.min(expansion.extent.maxZ,Math.max(expansion.extent.minZ,camera.position.z));
- if(!expansion.canWalk(camera.position.x,camera.position.z)){
-   camera.position.x=previousX;camera.position.z=previousZ;
- }
- camera.position.y=1.9;
- state.player={x:+camera.position.x.toFixed(2),z:+camera.position.z.toFixed(2),facing:+yaw.toFixed(2)};
- camera.rotation.set(pitch,yaw,0);
- detailing.tick(t);
- expansion.update(t);
- minimap.update(t);
- waterShimmer.update(t);
- keeper.update(t);
- swingLanterns.forEach(({root,offset,initialY})=>{root.rotation.z=Math.sin(t*.8+offset)*.018;root.position.y=initialY+Math.sin(t*.7+offset)*.015});
- if(fireflies.visible){const a=geo.attributes.position;for(let i=0;i<particles.length;i++)a.array[i*3+1]=particles[i]+Math.sin(t*.6+i)*.18;a.needsUpdate=true}
- // Keep a small active pool of warm lights around the visitor to avoid 26 full-scene point lights.
- if(frames%14===0){
-   const active=new Set(lanternLights
-     .map((light,i)=>({i,dist:light.position.distanceToSquared(camera.position)}))
-     .sort((a,b)=>a.dist-b.dist)
-     .slice(0,low?5:8).map(x=>x.i));
-   lanternLights.forEach((light,i)=>{light.visible=active.has(i)});
- }
- lanternLights.forEach((lamp,i)=>{
-   if(lamp.visible)lamp.intensity=(low?4.3:6.6)*(1+.07*Math.sin(t*2.2+i*1.31));
- });
- state.activeLanternLights=lanternLights.filter(x=>x.visible).length;
- if(composer)composer.render();else renderer.render(scene,camera);
- state.renderedFrames=++frames;
- requestAnimationFrame(loop);
+  const rawDelta=clock.getDelta(),delta=Math.min(.05,rawDelta),t=clock.elapsedTime;
+  if(!autoEvaluated&&!low&&frames>5&&document.visibilityState==='visible'){
+    perfSamples++;perfTotal+=rawDelta;
+    if(perfSamples>=16){
+      autoEvaluated=true;
+      if(perfTotal/perfSamples>.068){
+        setLow(true);state.autoQualityFallback=true;
+        button.querySelector('b').textContent='自动优化';
+      }
+    }
+  }
+  const step=Math.min(.13,rawDelta);
+  // Arrow keys only orbit; WASD / mobile joystick move avatar in camera-forward direction.
+  if(!keeper.state.talking){
+    if(keys.has('ArrowLeft'))cameraRig.rotate(-delta*1.2,0);
+    if(keys.has('ArrowRight'))cameraRig.rotate(delta*1.2,0);
+  }
+  const forward=keeper.state.talking?0:(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)+joystick.z;
+  const strafe=keeper.state.talking?0:(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0)+joystick.x;
+  const speed=(keys.has('ShiftLeft')||keys.has('ShiftRight')?8.0:5.1)*step;
+  let actualDx=0,actualDz=0;
+  if(Math.abs(forward)+Math.abs(strafe)>.04&&!keeper.state.talking){
+    const yaw=cameraRig.heading;
+    const norm=Math.max(1,Math.hypot(forward,strafe));
+    const dx=(-Math.sin(yaw)*forward+Math.cos(yaw)*strafe)/norm*speed;
+    const dz=(-Math.cos(yaw)*forward-Math.sin(yaw)*strafe)/norm*speed;
+    const beforeX=traveler.position.x,beforeZ=traveler.position.z;
+    let nextX=THREE.MathUtils.clamp(beforeX+dx,expansion.extent.minX,expansion.extent.maxX);
+    let nextZ=THREE.MathUtils.clamp(beforeZ+dz,expansion.extent.minZ,expansion.extent.maxZ);
+    if(expansion.canWalk(nextX,nextZ)){
+      traveler.position.set(nextX,0,nextZ);
+    }else if(expansion.canWalk(nextX,beforeZ)){
+      traveler.position.set(nextX,0,beforeZ);
+    }else if(expansion.canWalk(beforeX,nextZ)){
+      traveler.position.set(beforeX,0,nextZ);
+    }
+    actualDx=traveler.position.x-beforeX;
+    actualDz=traveler.position.z-beforeZ;
+  }
+  traveler.tick(t,step,actualDx,actualDz,Math.hypot(actualDx,actualDz)>.00001);
+  // Camera is independent from player animation: steady look-at without head-bob.
+  cameraRig.update(step);
+  detailing.tick(t);
+  expansion.update(t);
+  minimap.update(t);
+  waterShimmer.update(t);
+  keeper.update(t);
+  swingLanterns.forEach(({root,offset,initialY})=>{
+    root.rotation.z=Math.sin(t*.8+offset)*.018;
+    root.position.y=initialY+Math.sin(t*.7+offset)*.015;
+  });
+  if(fireflies.visible){
+    const a=geo.attributes.position;
+    for(let i=0;i<particles.length;i++)a.array[i*3+1]=particles[i]+Math.sin(t*.6+i)*.18;
+    a.needsUpdate=true;
+  }
+  if(frames%14===0){
+    const active=new Set(lanternLights
+      .map((light,i)=>({i,dist:light.position.distanceToSquared(traveler.position)}))
+      .sort((a,b)=>a.dist-b.dist)
+      .slice(0,low?5:8).map(x=>x.i));
+    lanternLights.forEach((light,i)=>{light.visible=active.has(i)});
+  }
+  lanternLights.forEach((lamp,i)=>{
+    if(lamp.visible)lamp.intensity=(low?4.3:6.6)*(1+.07*Math.sin(t*2.2+i*1.31));
+  });
+  state.activeLanternLights=lanternLights.filter(x=>x.visible).length;
+  state.player={
+    x:+traveler.position.x.toFixed(2),z:+traveler.position.z.toFixed(2),
+    facing:+traveler.heading.toFixed(3),
+  };
+  state.camera={
+    yaw:+cameraRig.heading.toFixed(3),
+    pitch:+cameraRig.state.pitch.toFixed(3),
+    distance:+cameraRig.state.zoom.toFixed(2),
+    collision:cameraRig.state.clipped,
+  };
+  state.mapMode=minimap.mode;
+  if(composer)composer.render();else renderer.render(scene,camera);
+  state.renderedFrames=++frames;
+  requestAnimationFrame(loop);
 }
 state.ready=true;
-document.querySelector('#loadText').textContent=state.textureFailures.length?'材质备用模式 · 已准备漫游':'宋式建筑与 PBR 材质加载完成';
+document.querySelector('#loadText').textContent=state.textureFailures.length?'材质备用模式 · 已准备漫游':'第三人称世界 · 地图方位已同步';
 loop();

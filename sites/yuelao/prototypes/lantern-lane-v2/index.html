@@ -2,14 +2,14 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0a111e">
-<title>月下 · 灯火巷 V2.3｜扩建世界预览</title>
+<title>月下 · 灯火巷 V2.4｜第三人称世界地图修正版</title>
 <meta name="description" content="月下世界灯火巷第二版互动预览：宋式建筑与真实 PBR 材质测试，未接入正式站。">
 </head><body><div id="app">
 <canvas id="canvas" aria-label="灯火巷宋代古建三维漫游"></canvas>
 <div class="cinematic" aria-hidden="true"></div>
 <header>
 <div class="logo"><span class="crescent">☽</span><span class="logotype">月下<small>Y U E X I A</small></span></div>
-<div class="meta"><span class="live"></span> 建筑与光影实验 <span class="sep">/</span> V 2.3</div>
+<div class="meta"><span class="live"></span> 建筑与光影实验 <span class="sep">/</span> V 2.4</div>
 </header>
 <section class="intro">
 <div class="topline"><span>Y U E X I A</span><i></i><span>EXPLORATION STUDY</span></div>
@@ -17,9 +17,9 @@
 <div class="subtitle">从一条巷，走进一座有故事的月夜城</div>
 </section>
 <section class="map-panel" id="mapPanel" aria-label="月下世界探索地图">
-<div class="map-topline"><span>WORLD MAP <small>探索版</small></span><button type="button" id="mapToggle" aria-expanded="true" aria-label="展开或收起世界地图"><span>地图</span> ▾</button></div>
+<div class="map-topline"><span>WORLD MAP <small>探索版</small></span><div class="map-actions"><button type="button" id="mapMode" aria-pressed="false" title="切换地图方向">视角朝上</button><button type="button" id="mapToggle" aria-expanded="true" aria-label="展开或收起世界地图"><span>地图</span> ▾</button></div></div>
 <canvas id="worldMap" width="200" height="176" aria-label="灯火巷扩建区域示意图，亮色箭头为玩家位置"></canvas>
-<div class="map-caption">旧梦驿 · 竹影庭 · 星愿湖 · 望月台</div>
+<div id="mapCaption" class="map-caption">前方在上 · 箭头是角色朝向</div>
 </section>
 <aside class="nav" aria-label="场景导览">
 <button data-spot="gate" class="selected"><span>01</span>巷口 · 初见</button>
@@ -31,7 +31,7 @@
 <button data-spot="grove"><span>07</span>竹影庭 · 西区</button>
 <button data-spot="station"><span>08</span>旧梦驿 · 南区</button>
 </aside>
-<div class="left-bottom"><div class="tip" id="tip">沿着灯火走进月下的下一条街。</div><div class="controls desktop">W A S D 移动　·　拖动改变视角　·　Shift 加速</div><div class="controls touch">左侧摇杆移动　·　右侧滑动视角</div></div>
+<div class="left-bottom"><div class="tip" id="tip">沿着灯火走进月下的下一条街。</div><div class="controls desktop">W A S D 角色移动　·　拖动环绕镜头　·　滚轮缩放　·　Shift 快走</div><div class="controls touch">左摇杆移动人物　·　右侧滑动环绕镜头</div></div>
 <button type="button" id="keeperPrompt" class="keeper-prompt" hidden aria-label="与守灯人阿灯交谈">
 <span aria-hidden="true">✦</span> 与阿灯交谈 <small>按 E</small>
 </button>
@@ -44,6 +44,7 @@
 <div id="keeperChoices" class="keeper-choices" aria-label="对话选项"></div>
 <div id="keeperProgress" class="keeper-progress">月下故事 · 第一章</div>
 </section>
+<div class="camera-controls" role="group" aria-label="第三人称镜头控制"><span class="view-label">第三人称 · 跟随</span><button type="button" data-camera-zoom="in" aria-label="镜头拉近">＋</button><button type="button" data-camera-zoom="out" aria-label="镜头拉远">−</button><button type="button" id="resetCamera" aria-label="重置镜头朝向">重置视角</button></div>
 <div class="right-bottom"><span id="loadText">正在铺开石板路…</span><button id="toggleQuality" aria-label="切换流畅模式">流畅模式 <b>自动</b></button></div>
 <div class="joystick" id="joystick"><div class="nub" id="nub"></div></div>
 <footer>DESIGN STUDY 02 <span>•</span> EXPERIMENTAL 3D <span>•</span> NOT THE LIVE SITE</footer>

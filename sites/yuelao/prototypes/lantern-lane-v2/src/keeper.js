@@ -3,7 +3,7 @@ import * as THREE from 'three';
 /** 阿灯 / The Lantern Keeper — original stylized game character and scripted story.
  * Preview-only, no remote services or collection of visitor content.
  */
-export function createKeeper(scene, camera) {
+export function createKeeper(scene, visitor) {
   const state = { nearby: false, talking: false, chapter: 0, completed: false };
   try { state.completed = localStorage.getItem('yuexia-preview-keeper-chapter-1') === 'yes'; } catch {}
   const root = new THREE.Group();
@@ -156,7 +156,7 @@ export function createKeeper(scene, camera) {
       lanternPivot.rotation.z=Math.sin(t*.85)*.07;
       root.rotation.y=.35+Math.sin(t*.42)*.035;
       marker.material.opacity=.38+Math.sin(t*1.3)*.1;
-      const dx=camera.position.x-root.position.x,dz=camera.position.z-root.position.z;
+      const dx=visitor.position.x-root.position.x,dz=visitor.position.z-root.position.z;
       const near=(dx*dx+dz*dz)<43;
       if(near!==state.nearby){
         state.nearby=near;prompt.hidden=!near||state.talking;

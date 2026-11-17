@@ -32,6 +32,7 @@ export function createExpandedDistricts(scene,{
   };
   let rng=48129;const rnd=()=>((rng=(rng*1664525+1013904223)>>>0)/4294967296);
   const dynamic=[],landmarkLabels=[],lampCountBefore=lanternLights.length;
+  const mapRoads=[],mapPlazas=[];
   function geoBox(w,h,d,x,y,z,mat,parent=scene){
     const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
     m.position.set(x,y,z);m.receiveShadow=true;parent.add(m);return m;
@@ -41,12 +42,14 @@ export function createExpandedDistricts(scene,{
     m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;scene.add(m);return m;
   }
   function pathRect(x,z,w,d){
+    mapRoads.push({x,z,w,d});
     geoPlane(w,d,x,z);
     // Subtle stone seams to make secondary roads actually read as routes.
     if(w<d){for(const side of [-1,1])geoBox(.18,.1,d,x+side*(w/2+.06),.045,z,mats.stoneEdge)}
     else{for(const side of [-1,1])geoBox(w,.1,.18,x,.045,z+side*(d/2+.06),mats.stoneEdge)}
   }
   function disk(x,z,r,mat=mats.walkway){
+    mapPlazas.push({x,z,r});
     const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.12,48),mat);
     m.position.set(x,.04,z);m.receiveShadow=true;scene.add(m);return m;
   }
@@ -214,6 +217,7 @@ export function createExpandedDistricts(scene,{
   }
   return {
     extent, locations, lakeCenter, canWalk,
+    mapLayout:{roads:mapRoads,plazas:mapPlazas,lake:lakeCenter},
     stats:{ districts:4, additionalBuildings:low?3:5, bamboo:bambooCount, trees:treeCount, newLightCandidates:lanternLights.length-lampCountBefore, paths:6, lanternBoats:floaters.length },
     update(t){
       for(let i=0;i<floaters.length;i++){
