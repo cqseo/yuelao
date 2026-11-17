@@ -161,7 +161,10 @@ export function Home() {
                 className="mh-quick-card mh-quick-card--ritual"
                 href={localizeHref('/market?lite=1#yuelao')}
                 data-rybbit-event="home_quick_yuelao"
-                onClick={() => track('home_quick_entry_click', { destination: 'yuelao' })}
+                onClick={() => {
+                  track('home_yuelao_click', { destination: 'market_yuelao', mode: 'lite' });
+                  track('home_quick_entry_click', { destination: 'yuelao' });
+                }}
               >
                 <strong>{quick.ritual}</strong>
                 <small>{quick.ritualHint}</small>
