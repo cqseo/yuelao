@@ -1,6 +1,8 @@
 import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
 import { useEffect, useRef, useState } from 'react';
 import { LiteMarket } from './LiteMarket';
+import { LiteTarot } from './LiteTarot';
+import { hasLiteTarotPending } from './lite-tarot-pending';
 import { hasLitePending } from './lite-pending';
 import { track } from '~/lib/track';
 import { COMPANION_STARTERS, type CompanionTheme, guidedReply } from '~/site/companion';
@@ -22,6 +24,7 @@ export function Market() {
   const root = useRef<HTMLDivElement>(null);
   const stopRef = useRef<(() => void) | undefined>(undefined);
   const [lite, setLite] = useState(false);
+  const [liteTarot, setLiteTarot] = useState(false);
 
   // 手機頂欄選單：點選單外面就收起來
   useEffect(() => {
@@ -40,8 +43,16 @@ export function Market() {
   useEffect(() => {
     const el = root.current;
     if (!el) return;
+    // Fast tarot and returning paid tarot should avoid booting the WebGL world.
+    const liteMode = new URLSearchParams(window.location.search).get('lite');
+    if (hasLiteTarotPending() || liteMode === 'tarot') {
+      track('market_lite_manual', { source: 'fast_tarot' });
+      setLiteTarot(true);
+      setLite(true);
+      return;
+    }
     // Bookmarkable same-route fallback for low-end devices and deterministic QA.
-    if (new URLSearchParams(window.location.search).get('lite') === '1' || hasLitePending()) {
+    if (liteMode === '1' || hasLitePending()) {
       track('market_lite_manual', { source: 'url' });
       setLite(true);
       return;
@@ -463,6 +474,7 @@ export function Market() {
     const activateLite = (reason: 'boot' | 'module') => {
       if (gone) return;
       track('market_3d_failure', { reason });
+      if (window.location.hash === '#tarot') setLiteTarot(true);
       stopRef.current?.();
       stopRef.current = undefined;
       setLite(true);
@@ -491,7 +503,7 @@ export function Market() {
     };
   }, []);
 
-  if (lite) return <LiteMarket />;
+  if (lite) return liteTarot ? <LiteTarot /> : <LiteMarket />;
 
   return (
     <div className="mk" ref={root}>
@@ -582,6 +594,7 @@ export function Market() {
         <p id="boot-text">{tr('正在點燈')}</p>
         <button type="button" className="ghost" onClick={() => {
           track('market_lite_manual');
+          if (window.location.hash === '#tarot') setLiteTarot(true);
           stopRef.current?.();
           stopRef.current = undefined;
           setLite(true);
