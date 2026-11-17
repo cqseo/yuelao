@@ -179,7 +179,9 @@ function Login() {
         // 從集市的月老殿過來登入的，登入後回月老殿（固定路徑，不接受外部傳入的網址）。
         let next = localizeHref('/account');
         try {
-          if (sessionStorage.getItem('market-pending') !== null) next = localizeHref('/market#yuelao');
+          if (sessionStorage.getItem('market-lite-tarot-pending') !== null) next = localizeHref('/market?lite=tarot#tarot');
+          else if (sessionStorage.getItem('market-pending') !== null) next = localizeHref('/market#yuelao');
+          else if (sessionStorage.getItem('market-spread-pending') !== null) next = localizeHref('/market#tarot');
           else if (sessionStorage.getItem('market-back') !== null) next = localizeHref('/market');
         } catch {}
         window.location.assign(next);
