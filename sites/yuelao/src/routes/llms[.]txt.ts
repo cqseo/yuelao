@@ -21,6 +21,8 @@ const CONTENT = {
     { title: '百籤總覽', path: '/signs', description: '月老靈籤100首的可索引文字索引，連結各支籤詩及解讀。' },
     { title: '關於月下', path: '/about', description: '月下的 3D 虛擬集市、免費求籤流程及文化體驗定位。' },
     { title: '籤文來源及方法', path: '/methodology', description: '籤詩參考來源、免費固定判詞和可選 AI 解讀的分別與限制。' },
+    { title: '擲筊結果指南', path: '/jiaobei', description: '聖筊、笑筊、陰筊的文化含義、公開來源與數位月老求籤流程。' },
+    { title: '月老提問指南', path: '/questions', description: '單身、曖昧、交往、婚姻與復合的具體提問範例，附免費求籤入口。' },
     { title: '每日心箋', path: '/daily', description: '免費每日反思提示及簽到。' },
     { title: '情感測驗', path: '/tests', description: '免費的關係自我整理測驗。' },
     {
