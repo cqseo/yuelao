@@ -171,7 +171,11 @@ const places={
  keeper:[-3.6,-6.0,-.06,-.035,'守灯人 · 靠近阿灯，按 E 或点击交谈'],
 };
 document.querySelectorAll('[data-spot]').forEach(button=>button.addEventListener('click',()=>{
- const id=button.dataset.spot,p=places[id];state.location=id;target={x:p[0],z:p[1],yaw:p[2],pitch:p[3]};
+ const id=button.dataset.spot,p=places[id];state.location=id;
+ camera.position.x=p[0];camera.position.z=p[1];
+ yaw=p[2];pitch=p[3];target=null;
+ state.navigationMode='instant';
+ keeper.update(clock.elapsedTime);
  document.querySelector('#tip').textContent=p[4];
  document.querySelectorAll('[data-spot]').forEach(x=>x.classList.toggle('selected',x===button));
 }));
@@ -191,9 +195,20 @@ const button=document.querySelector('#toggleQuality');
 function setLow(v){low=v;waterShimmer.setLow(v);renderer.setPixelRatio(Math.min(devicePixelRatio||1,v?1:1.55));renderer.shadowMap.enabled=!v;fireflies.visible=!v;if(v){composer?.dispose();composer=null} else if(!composer){composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.4,.6,.88))}resize();button.querySelector('b').textContent=v?'开':'关'}
 button.addEventListener('click',()=>setLow(!low));
 setLow(low);
-let frames=0;
+let frames=0,perfSamples=0,perfTotal=0,autoEvaluated=false;
 function loop(){
- const delta=Math.min(.045,clock.getDelta()),t=clock.elapsedTime;
+ const rawDelta=clock.getDelta(),delta=Math.min(.045,rawDelta),t=clock.elapsedTime;
+ // Automatically fall back to low-cost effects when sustained frame time is slow.
+ if(!autoEvaluated && !low && frames>5 && document.visibilityState==='visible'){
+   perfSamples++;perfTotal+=rawDelta;
+   if(perfSamples>=16){
+     autoEvaluated=true;
+     if(perfTotal/perfSamples>.068){
+       setLow(true);state.autoQualityFallback=true;
+       button.querySelector('b').textContent='自动优化';
+     }
+   }
+ }
  const speed=delta*(keys.has('ShiftLeft')?7.4:4.25);
  if(keys.has('ArrowLeft'))yaw+=delta*1.55;if(keys.has('ArrowRight'))yaw-=delta*1.55;
  const f=keeper.state.talking?0:(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)+joystick.z;

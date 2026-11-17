@@ -145,7 +145,7 @@ export function createKeeper(scene, camera) {
   close.addEventListener('click',hide);
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&state.talking){e.preventDefault();hide()}
-    if((e.code==='KeyE'||e.key==='Enter')&&!state.talking&&state.nearby&&e.target?.tagName!=='BUTTON'){
+    if((e.code==='KeyE'||(e.key==='Enter'&&e.target?.tagName!=='BUTTON'))&&!state.talking&&state.nearby){
       e.preventDefault();e.stopImmediatePropagation();show();
     }
   },true);
