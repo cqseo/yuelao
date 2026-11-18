@@ -23,6 +23,7 @@ import { hallOfferingRequest } from './hall-offering';
 import { errorResponse, json } from './http';
 import { finishGoogleLogin, startGoogleLogin } from './oauth-google';
 import { redeemPackRequest } from './pack-redemption';
+import { adminPartnersRequest, partnerSelfRequest } from './partners';
 import { paidReadingResponse } from './reading';
 import { askFollowupRequest, followupStatusRequest } from './reading-followup';
 import type { SiteConfig } from './site';
@@ -64,6 +65,20 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
       .map((e) => e.trim())
       .filter(Boolean);
     return [...(site.adminEmails ?? [site.supportEmail]), ...extra];
+  }
+
+  /** 只為了查手續費（分銷結算）；沒設 Stripe 金鑰就回 null，報表照出，手續費標「待入帳」。 */
+  function feeLookup(): StripeProvider | null {
+    const env = context().env;
+    if (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET) return null;
+    return new StripeProvider({
+      secretKey: env.STRIPE_SECRET_KEY,
+      webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+      automaticTax: site.billing.automaticTax,
+      taxCode: site.billing.taxCode,
+      taxBehavior: site.billing.taxBehavior,
+      live: billingMode(env) === 'live',
+    });
   }
 
   return {
@@ -155,6 +170,20 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
         if (!user) return errorResponse(401, 'auth_required');
         if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase())) return errorResponse(403, 'forbidden');
         return previewReadingRequest(request, ctx.env, options.stickContext);
+      },
+      /** 分銷：GET 推廣人列表與報表；POST 新增推廣人。 */
+      adminPartners: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        if (!user) return errorResponse(401, 'auth_required');
+        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase())) return errorResponse(403, 'forbidden');
+        if (!ctx.supabaseService) return errorResponse(503, 'supabase_not_configured');
+        return adminPartnersRequest(request, ctx.supabaseService, feeLookup(), ctx.baseURL);
+      },
+      /** 分銷：推廣人用私密連結看自己的數據（不用登入）。 */
+      partner: async (request: Request) => {
+        const ctx = context();
+        return partnerSelfRequest(request, ctx.supabaseService, feeLookup());
       },
       isAdmin: async (request: Request) => {
         const ctx = context();

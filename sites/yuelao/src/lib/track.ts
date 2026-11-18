@@ -144,6 +144,16 @@ export function trackPageView() {
   try {
     if (new URLSearchParams(location.search).get('from') === 'share') enqueue('share_visit');
   } catch {}
+  // 分銷：點推廣人的連結（?ref=代號）進來。記 30 天（最後一次點的連結為準），結帳時伺服器讀這個 cookie。
+  try {
+    const ref = new URLSearchParams(location.search).get('ref');
+    if (ref && /^[a-z0-9]{3,16}$/.test(ref)) {
+      const secure = location.protocol === 'https:' ? '; Secure' : '';
+      // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API is not available in Safari/Firefox
+      document.cookie = `yl_ref=${ref}; Max-Age=${30 * 24 * 3600}; Path=/; SameSite=Lax${secure}`;
+      enqueue('ref_visit', { ref });
+    }
+  } catch {}
 }
 
 let identified: string | null = null;

@@ -101,6 +101,8 @@ export interface PaymentProvider {
   portalUrl(customerRef: string, returnUrl: string): Promise<string>;
   /** The provider's receipt page (https) for this payment; omit if the provider has none. */
   receiptUrl?(paymentRef: string): Promise<string | null>;
+  /** 手續費與實收（分銷結算用）。 */
+  fetchFee?(paymentRef: string): Promise<{ fee: number; net: number; currency: string } | null>;
 }
 
 /** A correctly signed event for a payment environment this site must not process. */

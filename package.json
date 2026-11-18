@@ -24,6 +24,7 @@
     "test:guest": "tsx tools/test-guest-auth.ts",
     "test:reading": "tsx tools/test-reading-v2.ts",
     "test:followup": "tsx tools/test-followup.ts",
+    "test:partners": "tsx tools/test-partners.ts",
     "test:followup:db": "bash tools/run-reading-followups.sh",
     "test:stripe:webhook": "tsx tools/test-stripe-webhook.ts",
     "test:wishes": "tsx tools/test-wishes.ts",
