@@ -17,7 +17,7 @@ import { parseReadingParams } from './reading';
 // 追問月老（站長 2026-11-18）：買過付費解籤的人，就同一件事再問一句。
 // 一份解籤最多 3 次，每次單獨付款（site.config 的 followup_1）。問題照舊不存，只存回答。
 // 問了別的事、或需要先照顧安全時，月老只回一段短話，這一次不算用掉（名額歸還）。
-// 資料庫：supabase/migrations/20261118060001_reading_followups.sql。
+// 資料庫：supabase/migrations/20261118061307_reading_followups.sql。
 
 export const FOLLOWUP_LIMIT = 3;
 export const FOLLOWUP_QUESTION_MAX = 200;
