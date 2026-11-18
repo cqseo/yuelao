@@ -249,6 +249,7 @@ export function computeStats(input: StatsInput) {
   const readers = new Set<string>();
   const starters = new Set<string>();
   const unlockers = new Set<string>();
+  const offerSeen = new Set<string>();
   for (const e of cur) {
     if (e.name !== 'page_view' || normalizePath(e.path) !== '/') engaged.add(e.vid);
     if (e.user_id || e.name === 'login') loggedIn.add(e.vid);
@@ -256,9 +257,13 @@ export function computeStats(input: StatsInput) {
     if (e.name === 'reading_done') readers.add(e.vid);
     if (e.name === 'ritual_begin') starters.add(e.vid);
     if (e.name === 'unlock_click') unlockers.add(e.vid);
+    if (e.name === 'offer_seen') offerSeen.add(e.vid);
   }
   // 後面的步驟一定經過前面的步驟：去結帳的人必定按過解鎖、看過結果（舊資料沒記這兩步時也不會倒掛）。
   for (const vid of checkout) unlockers.add(vid);
+  // offer_seen 2026-11-18 才開始記：按過解鎖的必定看過價錢（舊資料不倒掛）。
+  for (const vid of unlockers) offerSeen.add(vid);
+  for (const vid of offerSeen) readers.add(vid);
   for (const vid of unlockers) readers.add(vid);
   // Older visits had completion but no start event; count these as started so
   // a later funnel stage can never exceed the preceding one.
@@ -273,6 +278,7 @@ export function computeStats(input: StatsInput) {
     { key: 'engage', count: engaged.size },
     { key: 'start', count: starters.size },
     { key: 'reading', count: readers.size },
+    { key: 'offer', count: offerSeen.size },
     { key: 'unlock', count: unlockers.size },
     { key: 'checkout', count: checkout.size },
     { key: 'paid', count: payingVisitors },

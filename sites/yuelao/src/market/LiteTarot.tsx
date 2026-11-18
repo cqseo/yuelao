@@ -206,6 +206,7 @@ export function LiteTarot() {
       recorded = true;
       observer.disconnect();
       track('offer_view', { product: 'spread_1', lite: true });
+      track('offer_seen', { product: 'spread_1', lite: true, where: 'section' });
     }, { threshold: 0.2 });
     observer.observe(target);
     return () => observer.disconnect();

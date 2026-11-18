@@ -41,7 +41,8 @@ type SectionId =
   | 'ops'
   | 'pages'
   | 'traffic'
-  | 'partners';
+  | 'partners'
+  | 'feedback';
 const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] = [
   { id: 'overview', label: '概览', icon: '◎', desc: '核心数字与每日趋势，括号里是跟上一个同长区间比。' },
   {
@@ -68,6 +69,12 @@ const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] =
   { id: 'ops', label: '内容与运营', icon: '✎', desc: '各功能被用了多少次，以及现在等着你处理的事。' },
   { id: 'pages', label: '页面与动作', icon: '▤', desc: '哪些页面看的人多、哪些按钮按的人多。' },
   { id: 'traffic', label: '流量来源', icon: '◉', desc: '访客从哪来、用什么设备、在哪个地区、用哪种语言。' },
+  {
+    id: 'feedback',
+    label: '用户意见',
+    icon: '✉',
+    desc: '用户在「意见反馈」留的话。只有你看得到；处理完标成「已处理」。',
+  },
   {
     id: 'partners',
     label: '分销',
@@ -177,6 +184,7 @@ const FUNNEL_LABELS: Record<string, string> = {
   engage: '逛了首页以外',
   start: '开始求签／抽牌（含历史补全）',
   reading: '看到签文／牌面结果',
+  offer: '看到解锁价格（按钮出现在屏幕上）',
   unlock: '点「解锁」',
   checkout: '发起结账',
   paid: '付款',
@@ -385,7 +393,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
       : '—';
   const [allJourneys, setAllJourneys] = useState(false);
   const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 15);
-  const needsTracking = !['sales', 'ops', 'users', 'wishes'].includes(section);
+  const needsTracking = !['sales', 'ops', 'users', 'wishes', 'partners', 'feedback'].includes(section);
   const ops = stats.ops;
   const n = (v: number | null | undefined) => (v === null || v === undefined ? '—' : num(v));
   return (
@@ -659,6 +667,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
       {section === 'users' && <Users />}
       {section === 'wishes' && <Wishes />}
       {section === 'partners' && <Partners />}
+      {section === 'feedback' && <Feedback />}
 
       {section === 'ops' &&
         (ops ? (
@@ -973,6 +982,131 @@ function Wishes() {
   );
 }
 
+type FeedbackRow = {
+  id: string;
+  created_at: string;
+  kind: 'idea' | 'problem' | 'other';
+  message: string;
+  contact: string | null;
+  page: string | null;
+  locale: string | null;
+  device: string | null;
+  user_id: string | null;
+  status: 'new' | 'read' | 'done';
+};
+const FEEDBACK_KIND: Record<FeedbackRow['kind'], string> = {
+  idea: '想要的功能',
+  problem: '遇到问题',
+  other: '其他',
+};
+const FEEDBACK_STATUS: Record<FeedbackRow['status'], string> = { new: '新', read: '已读', done: '已处理' };
+
+function Feedback() {
+  const [rows, setRows] = useState<FeedbackRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState('');
+  const [showDone, setShowDone] = useState(false);
+  const [tick, setTick] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tick 只用來在標記後重新讀取
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/admin/feedback', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (res) => {
+        if (!alive) return;
+        if (!res.ok) return setFailed(true);
+        setFailed(false);
+        setRows(((await res.json()) as { feedback: FeedbackRow[] }).feedback);
+      })
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [tick]);
+  const mark = async (id: string, status: FeedbackRow['status']) => {
+    setBusy(id);
+    try {
+      const res = await fetch('/api/admin/feedback', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+      if (!res.ok) setFailed(true);
+    } catch {
+      setFailed(true);
+    }
+    setBusy('');
+    setTick((t) => t + 1);
+  };
+  if (failed) return <p className="admin-empty">意见暂时取不到，稍后再试。</p>;
+  if (!rows) return <p className="admin-empty">正在读取……</p>;
+  const open = rows.filter((r) => r.status !== 'done');
+  const shown = showDone ? rows : open;
+  return (
+    <section className="admin-card">
+      <p className="admin-muted">
+        未处理 {num(open.length)} 条，共 {num(rows.length)} 条（最近 200 条）。{' '}
+        <button type="button" className="admin-btn" onClick={() => setShowDone((v) => !v)}>
+          {showDone ? '只看未处理' : '也显示已处理'}
+        </button>
+      </p>
+      {shown.length === 0 ? (
+        <p className="admin-empty">没有待处理的意见。</p>
+      ) : (
+        <ul className="admin-wishes">
+          {shown.map((f) => (
+            <li key={f.id} className="admin-wish">
+              <div>
+                <p className="admin-wish-body">{f.message}</p>
+                <p className="admin-muted">
+                  {FEEDBACK_KIND[f.kind]} · {FEEDBACK_STATUS[f.status]} ·{' '}
+                  {timeFmt.format(new Date(f.created_at))}
+                  {f.page ? ` · 来自 ${f.page}` : ''}
+                  {f.device ? ` · ${f.device}` : ''}
+                  {f.locale ? ` · ${f.locale}` : ''}
+                  {f.user_id ? ' · 已登录用户' : ''}
+                  {f.contact ? ` · 联系方式：${f.contact}` : ''}
+                </p>
+              </div>
+              <div className="admin-wish-actions">
+                {f.status === 'new' && (
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    disabled={busy === f.id}
+                    onClick={() => void mark(f.id, 'read')}
+                  >
+                    标为已读
+                  </button>
+                )}
+                {f.status !== 'done' ? (
+                  <button
+                    type="button"
+                    className="admin-btn primary"
+                    disabled={busy === f.id}
+                    onClick={() => void mark(f.id, 'done')}
+                  >
+                    已处理
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    disabled={busy === f.id}
+                    onClick={() => void mark(f.id, 'read')}
+                  >
+                    重新打开
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 type PartnerRow = {
   code: string;
   name: string;
@@ -1007,6 +1141,7 @@ function Partners() {
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<{ name: string; link: string; dashboard: string } | null>(null);
   const [reload, setReload] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reload 只用來在新增後重新讀取
   useEffect(() => {
     let alive = true;
     setFailed(false);

@@ -295,6 +295,7 @@ export function LiteMarket() {
       recorded = true;
       observer.disconnect();
       track('offer_view', { product: 'unlock_1', lite: true });
+      track('offer_seen', { product: 'unlock_1', lite: true, where: 'section' });
     }, { threshold: 0.2 });
     observer.observe(target);
     return () => observer.disconnect();

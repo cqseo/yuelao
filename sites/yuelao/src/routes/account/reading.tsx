@@ -231,6 +231,11 @@ function Reading() {
       <p>
         <Link to={localizeHref('/account')}>{t('返回我的帳戶', '返回我的账户')}</Link>
       </p>
+      <p className="reading-consent">
+        <a href={localizeHref('/feedback?from=/account/reading')}>
+          {t('這份解讀說得準不準？跟我們說一聲', '这份解读说得准不准？跟我们说一声')}
+        </a>
+      </p>
     </article>
   );
 }

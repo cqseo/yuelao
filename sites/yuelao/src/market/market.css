@@ -1543,6 +1543,24 @@
 .mk .unlock .offer:hover {
   background: linear-gradient(#efd58a, #d2ad55);
 }
+/* 判詞正下方的解鎖鈕：跟解鎖區塊同一個金色，判詞讀完就看得到價錢 */
+.mk .offer-inline-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+}
+.mk .offer-inline-wrap .note {
+  margin: 0;
+}
+.mk .offer.offer-inline {
+  border: none;
+  background: linear-gradient(#e6c97a, #c9a24a);
+  color: #1d1408;
+  box-shadow: 0 8px 24px rgba(201, 162, 74, 0.25);
+}
+.mk .offer.offer-inline:hover {
+  background: linear-gradient(#efd58a, #d2ad55);
+}
 /* 塔羅館：解鎖區塊在面板裡，寬度跟著面板內寬走（判詞卡的 24rem 會撐破面板） */
 .mk #panel .unlock {
   width: auto;

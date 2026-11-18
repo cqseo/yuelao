@@ -122,8 +122,8 @@ assert.deepEqual(stats.kpis.otherCurrencies, [{ currency: 'USD', orders: 1, reve
 assert.equal(stats.kpis.signups.value, 1);
 assert.deepEqual(
   stats.funnel.map((f) => f.count),
-  [2, 1, 1, 1, 1, 1, 1],
-  'visit, engage, start (historical implied), reading, unlock, checkout, paid',
+  [2, 1, 1, 1, 1, 1, 1, 1],
+  'visit, engage, start (historical implied), reading, offer seen (implied by unlock), unlock, checkout, paid',
 );
 assert.equal(stats.kpis.loggedIn, 1);
 assert.deepEqual(stats.checkout, { started: 1, uniqueAccounts: 1, paid: 1, failed: 0, abandoned: 0 });
@@ -184,7 +184,7 @@ const newFunnel = computeStats({
   ],
   orders: [], refunds: new Map(), profiles: [], totalUsers: 0, eventsTruncated: false,
 });
-assert.deepEqual(newFunnel.funnel.map((s) => s.count), [1, 1, 1, 1, 0, 0, 0]);
+assert.deepEqual(newFunnel.funnel.map((s) => s.count), [1, 1, 1, 1, 0, 0, 0, 0]);
 assert.ok(newFunnel.recent.some((s) => s.steps.includes('@ritual_start')));
 assert.ok(newFunnel.recent.some((s) => s.steps.includes('@home_yuelao')));
 
@@ -209,3 +209,11 @@ assert.equal(partialWindow.checkout.uniqueAccounts, 1, 'three checkouts from one
 assert.equal(partialWindow.kpis.payers.value, 1);
 assert.equal(partialWindow.funnel.at(-1)?.count, 0, 'an unlinked paying account must not count as a known visitor payer');
 console.log('PASS: stats aggregate visitors, live orders, funnel, paths and journeys');
+
+// 機房網段的事件不記（雲端主機、Meta 連結預覽）；iPhone 私密轉送（Cloudflare 13335、Akamai 36183）照記
+{
+  const { fromDatacenter } = await import('../packages/core/src/site-events');
+  assert.ok(fromDatacenter(16509) && fromDatacenter(32934) && fromDatacenter(15169));
+  assert.ok(!fromDatacenter(13335) && !fromDatacenter(36183) && !fromDatacenter(3462) && !fromDatacenter(undefined));
+  console.log('PASS: datacenter networks are left out of analytics, private relay is not');
+}
