@@ -636,3 +636,17 @@
 .admin .admin-btn:disabled {
   opacity: 0.5;
 }
+
+/* 分銷：新建推廣人後顯示一次的兩條連結 */
+.admin-partner-new {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px dashed currentColor;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.admin-partner-new code,
+.admin-card code {
+  user-select: all;
+  overflow-wrap: anywhere;
+}

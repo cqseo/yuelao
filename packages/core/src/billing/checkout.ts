@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AccountUser } from '../auth';
 import { errorResponse, json } from '../http';
 import { checkoutProductForCurrency, findProduct, type Locale, type SiteConfig } from '../site';
+import { refForCheckout, refFromRequest } from '../partners';
 import { followupCheckoutBlock } from '../reading-followup';
 import { parseSpread } from '../spread';
 import type { PaymentProvider } from './provider';
@@ -239,6 +240,14 @@ export async function createTestCheckout({
 
   if (!customerRef) return errorResponse(503, 'customer_storage_failed');
 
+  // 分銷：點推廣連結進來（yl_ref cookie）、而且這是他的第一筆付款，訂單記上推廣人。查不到就不記，不擋結帳。
+  let refPartner: string | null = null;
+  try {
+    refPartner = await refForCheckout(database, user.id, refFromRequest(request));
+  } catch {
+    refPartner = null;
+  }
+
   const { data: order, error: orderError } = await database
     .from('orders')
     .insert({
@@ -254,6 +263,7 @@ export async function createTestCheckout({
       // 只有牌陣訂單才帶這欄，其他商品的下單不依賴它
       ...(selection.spread ? { spread: selection.spread } : {}),
       ...(followupUnlock ? { followup_unlock: followupUnlock } : {}),
+      ...(refPartner ? { ref_partner: refPartner } : {}),
       pack_uses: product.kind === 'pack' ? product.uses : null,
       status: 'pending',
     })

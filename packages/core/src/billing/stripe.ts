@@ -359,6 +359,18 @@ export class StripeProvider implements PaymentProvider {
     return typeof intent.latest_charge === 'object' ? (intent.latest_charge?.receipt_url ?? null) : null;
   }
 
+  /** 分銷結算用：這筆付款 Stripe 收了多少手續費、實收多少（結算幣別）。還沒入帳就回 null。 */
+  async fetchFee(paymentRef: string): Promise<{ fee: number; net: number; currency: string } | null> {
+    if (!paymentRef.startsWith('pi_')) return null;
+    const intent = await this.stripe.paymentIntents.retrieve(paymentRef, {
+      expand: ['latest_charge.balance_transaction'],
+    });
+    const charge = typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
+    const txn = charge && typeof charge.balance_transaction === 'object' ? charge.balance_transaction : null;
+    if (!txn) return null;
+    return { fee: txn.fee, net: txn.net, currency: txn.currency.toUpperCase() };
+  }
+
   private async intentDetails(intentRef: string) {
     const intent = await this.stripe.paymentIntents.retrieve(intentRef, { expand: ['latest_charge'] });
     const charge = typeof intent.latest_charge === 'object' ? intent.latest_charge : null;

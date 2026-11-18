@@ -40,7 +40,8 @@ type SectionId =
   | 'wishes'
   | 'ops'
   | 'pages'
-  | 'traffic';
+  | 'traffic'
+  | 'partners';
 const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] = [
   { id: 'overview', label: '概览', icon: '◎', desc: '核心数字与每日趋势，括号里是跟上一个同长区间比。' },
   {
@@ -67,6 +68,12 @@ const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] =
   { id: 'ops', label: '内容与运营', icon: '✎', desc: '各功能被用了多少次，以及现在等着你处理的事。' },
   { id: 'pages', label: '页面与动作', icon: '▤', desc: '哪些页面看的人多、哪些按钮按的人多。' },
   { id: 'traffic', label: '流量来源', icon: '◉', desc: '访客从哪来、用什么设备、在哪个地区、用哪种语言。' },
+  {
+    id: 'partners',
+    label: '分销',
+    icon: '⇄',
+    desc: '推广人带来的顾客第一单，佣金 =（实收 − Stripe 手续费）× 分成。退款的不算。月底按这里的数字手动结算。',
+  },
 ];
 
 const PAGE_LABELS: Record<string, string> = {
@@ -217,10 +224,13 @@ const step = (key: string) => {
 const nf = new Intl.NumberFormat('zh-CN');
 const num = (n: number) => nf.format(n);
 const money = (cents: number, currency: string) =>
-  `${currency === 'USD' ? 'US$' : currency === 'HKD' ? 'HK$' : `${currency} `}${(cents / 100).toLocaleString('zh-CN', {
-    minimumFractionDigits: cents % 100 ? 2 : 0,
-    maximumFractionDigits: 2,
-  })}`;
+  `${currency === 'USD' ? 'US$' : currency === 'HKD' ? 'HK$' : `${currency} `}${(cents / 100).toLocaleString(
+    'zh-CN',
+    {
+      minimumFractionDigits: cents % 100 ? 2 : 0,
+      maximumFractionDigits: 2,
+    },
+  )}`;
 const pct = (a: number, b: number) => (b > 0 ? `${((a / b) * 100).toFixed(a / b < 0.1 ? 1 : 0)}%` : '—');
 const timeFmt = new Intl.DateTimeFormat('zh-CN', {
   timeZone: 'Asia/Shanghai',
@@ -363,11 +373,16 @@ function Delta({ value, prev, money: isMoney }: { value: number; prev: number; m
 function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
   const { kpis } = stats;
   const cur = kpis.currency;
-  const otherCurrencyNote = kpis.otherCurrencies.map((x) => `${money(x.revenue, x.currency)}（已退 ${money(x.refunded, x.currency)}，${num(x.orders)} 单）`).join('；');
+  const otherCurrencyNote = kpis.otherCurrencies
+    .map(
+      (x) => `${money(x.revenue, x.currency)}（已退 ${money(x.refunded, x.currency)}，${num(x.orders)} 单）`,
+    )
+    .join('；');
   const matchedPayers = stats.funnel.find((f) => f.key === 'paid')?.count ?? 0;
-  const conv = stats.meta.completeWindowTracking && !stats.meta.eventsTruncated
-    ? pct(matchedPayers, kpis.visitors.value)
-    : '—';
+  const conv =
+    stats.meta.completeWindowTracking && !stats.meta.eventsTruncated
+      ? pct(matchedPayers, kpis.visitors.value)
+      : '—';
   const [allJourneys, setAllJourneys] = useState(false);
   const journeys = allJourneys ? stats.recent : stats.recent.slice(0, 15);
   const needsTracking = !['sales', 'ops', 'users', 'wishes'].includes(section);
@@ -405,14 +420,23 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
               label="港币收入（扣退款）"
               value={money(kpis.revenue.value, cur)}
               delta={<Delta {...kpis.revenue} money />}
-              foot={[kpis.refunded ? `港币退款 ${money(kpis.refunded, cur)}` : '', otherCurrencyNote ? `其他币种另计：${otherCurrencyNote}` : ''].filter(Boolean).join('；') || undefined}
+              foot={
+                [
+                  kpis.refunded ? `港币退款 ${money(kpis.refunded, cur)}` : '',
+                  otherCurrencyNote ? `其他币种另计：${otherCurrencyNote}` : '',
+                ]
+                  .filter(Boolean)
+                  .join('；') || undefined
+              }
             />
             <Kpi
               label="访客归因付费率（参考）"
               value={conv}
-              foot={stats.meta.completeWindowTracking
-                ? `${num(matchedPayers)} 个可关联付费访客 / ${num(kpis.visitors.value)} 访客；可能有跨设备漏计`
-                : '本期埋点覆盖不足；不能用付款账户数直接除以访客数'}
+              foot={
+                stats.meta.completeWindowTracking
+                  ? `${num(matchedPayers)} 个可关联付费访客 / ${num(kpis.visitors.value)} 访客；可能有跨设备漏计`
+                  : '本期埋点覆盖不足；不能用付款账户数直接除以访客数'
+              }
             />
             <Kpi
               label="登录访客"
@@ -437,7 +461,12 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
               <MiniBars title="访客" days={stats.daily} pick={(d) => d.visitors} fmt={num} />
               <MiniBars title="新注册" days={stats.daily} pick={(d) => d.signups} fmt={num} />
               <MiniBars title="付费订单" days={stats.daily} pick={(d) => d.orders} fmt={num} />
-              <MiniBars title="港币收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
+              <MiniBars
+                title="港币收入"
+                days={stats.daily}
+                pick={(d) => d.revenue}
+                fmt={(v) => money(v, cur)}
+              />
             </div>
           </section>
         </>
@@ -547,7 +576,9 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
       {section === 'sales' && (
         <>
           {otherCurrencyNote && (
-            <div className="admin-note">本期存在非港币历史订单，未与港币收入相加：{otherCurrencyNote}。请在下方订单明细查看原始币种。</div>
+            <div className="admin-note">
+              本期存在非港币历史订单，未与港币收入相加：{otherCurrencyNote}。请在下方订单明细查看原始币种。
+            </div>
           )}
           <section className="admin-kpis" aria-label="销售指标">
             <Kpi label="付费订单" value={num(kpis.orders.value)} delta={<Delta {...kpis.orders} />} />
@@ -566,17 +597,23 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
             <Kpi
               label="超时未付款（待核实）"
               value={num(stats.checkout.abandoned)}
-              foot={stats.checkout.failed
-                ? `另有 ${num(stats.checkout.failed)} 个失败订单；超时不等于 Stripe 已回传过期`
-                : '后台待支付超过 30 分钟；以 Stripe 真实状态为准'}
-            
+              foot={
+                stats.checkout.failed
+                  ? `另有 ${num(stats.checkout.failed)} 个失败订单；超时不等于 Stripe 已回传过期`
+                  : '后台待支付超过 30 分钟；以 Stripe 真实状态为准'
+              }
             />
           </section>
           <section className="admin-card">
             <h2>每日订单与港币收入</h2>
             <div className="admin-multiples admin-multiples-2">
               <MiniBars title="付费订单" days={stats.daily} pick={(d) => d.orders} fmt={num} />
-              <MiniBars title="港币收入" days={stats.daily} pick={(d) => d.revenue} fmt={(v) => money(v, cur)} />
+              <MiniBars
+                title="港币收入"
+                days={stats.daily}
+                pick={(d) => d.revenue}
+                fmt={(v) => money(v, cur)}
+              />
             </div>
           </section>
           <section className="admin-card">
@@ -621,6 +658,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
 
       {section === 'users' && <Users />}
       {section === 'wishes' && <Wishes />}
+      {section === 'partners' && <Partners />}
 
       {section === 'ops' &&
         (ops ? (
@@ -794,7 +832,9 @@ function Users() {
                   dateFmt.format(new Date(u.createdAt)),
                   LOCALE[u.locale] ?? u.locale,
                   num(u.paidOrders),
-                  u.paidOrders ? u.paidAmountByCurrency.map((p) => money(p.amount, p.currency)).join(' / ') : '—',
+                  u.paidOrders
+                    ? u.paidAmountByCurrency.map((p) => money(p.amount, p.currency)).join(' / ')
+                    : '—',
                   u.lastPaidAt ? dateFmt.format(new Date(u.lastPaidAt)) : '—',
                 ])}
               />
@@ -929,6 +969,156 @@ function Wishes() {
           <p className="admin-empty">还没有处理过的愿望。</p>
         )}
       </section>
+    </>
+  );
+}
+
+type PartnerRow = {
+  code: string;
+  name: string;
+  share: number;
+  active: boolean;
+  link: string;
+  visitors: number;
+  orders: {
+    date: string;
+    product: string;
+    amount: number;
+    currency: string;
+    status: 'counted' | 'refunded' | 'repeat' | 'pending';
+    fee: number | null;
+    net: number | null;
+    commission: number | null;
+    feeCurrency: string | null;
+  }[];
+  months: { month: string; currency: string; orders: number; net: number; commission: number }[];
+};
+const PARTNER_STATUS: Record<PartnerRow['orders'][number]['status'], string> = {
+  counted: '计佣',
+  refunded: '已退款，不计',
+  repeat: '非首单，不计',
+  pending: '手续费待入账',
+};
+
+function Partners() {
+  const [data, setData] = useState<PartnerRow[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState<{ name: string; link: string; dashboard: string } | null>(null);
+  const [reload, setReload] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    setFailed(false);
+    fetch('/api/admin/partners', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (res) => {
+        if (!alive) return;
+        if (!res.ok) return setFailed(true);
+        setData(((await res.json()) as { partners: PartnerRow[] }).partners);
+      })
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [reload]);
+  async function create() {
+    if (busy || !name.trim()) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/admin/partners', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      if (res.ok) {
+        setCreated((await res.json()) as { name: string; link: string; dashboard: string });
+        setName('');
+        setReload((n) => n + 1);
+      } else setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <section className="admin-card">
+        <h3>新增推广人</h3>
+        <form
+          className="admin-search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void create();
+          }}
+        >
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="推广人名称（只有你看得到）"
+            aria-label="推广人名称"
+            maxLength={60}
+          />
+          <button type="submit" className="admin-btn primary" disabled={busy || !name.trim()}>
+            新增
+          </button>
+        </form>
+        {created && (
+          <div className="admin-partner-new">
+            <p>
+              已为 <b>{created.name}</b> 建好。两条链接都发给他：
+            </p>
+            <p>
+              推广链接（他拿去发）：<code>{created.link}</code>
+            </p>
+            <p>
+              他的数据页（私密，只给他）：<code>{created.dashboard}</code>
+            </p>
+            <p className="admin-muted">数据页链接只显示这一次，请现在复制保存。弄丢了就新增一个推广人。</p>
+          </div>
+        )}
+      </section>
+      {failed && <p className="admin-empty">分销数据暂时取不到，稍后再试。</p>}
+      {!failed && !data && <p className="admin-empty">正在读取……</p>}
+      {data && data.length === 0 && <p className="admin-empty">还没有推广人。</p>}
+      {data?.map((p) => {
+        const counted = p.orders.filter((o) => o.status === 'counted');
+        return (
+          <section className="admin-card" key={p.code}>
+            <h3>
+              {p.name}{' '}
+              <span className="admin-muted">
+                （代号 {p.code}，分成 {Math.round(p.share * 100)}%{p.active ? '' : '，已停用'}）
+              </span>
+            </h3>
+            <p className="admin-muted">
+              推广链接 <code>{p.link}</code>；带来 {num(p.visitors)} 位访客，{num(counted.length)}{' '}
+              笔首单计佣。
+            </p>
+            <Table
+              head={['月份', '计佣订单', '实收（扣手续费）', '应付佣金']}
+              rows={p.months.map((m) => [
+                m.month,
+                num(m.orders),
+                money(m.net, m.currency),
+                money(m.commission, m.currency),
+              ])}
+            />
+            {p.orders.length > 0 && (
+              <Table
+                head={['付款时间', '商品', '金额', '手续费', '佣金', '状态']}
+                rows={p.orders.map((o) => [
+                  timeFmt.format(new Date(o.date)),
+                  o.product,
+                  money(o.amount, o.currency),
+                  o.fee !== null && o.feeCurrency ? money(o.fee, o.feeCurrency) : '—',
+                  o.commission !== null && o.feeCurrency ? money(o.commission, o.feeCurrency) : '—',
+                  PARTNER_STATUS[o.status],
+                ])}
+              />
+            )}
+          </section>
+        );
+      })}
     </>
   );
 }
