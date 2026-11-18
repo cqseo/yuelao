@@ -693,5 +693,19 @@
   "未完成付款": "Payment not completed",
   "每支籤的同一情境只扣一次。": "The same stick and situation is only deducted once.",
   "訂單號": "Order no.",
-  "選單": "Menu"
+  "選單": "Menu",
+  "你現在是訪客身分。綁定信箱後，換手機或清掉瀏覽器資料也找得回來。": "You're using a guest account. Link an email so you can still find this on another phone or after clearing your browser data.",
+  "你現在是訪客，買過的解讀存在訪客帳號裡。要保留它們，請改到「我的」綁定信箱；在這裡登入會換成另一個帳號。": "You're using a guest account, and the readings you bought are saved in it. To keep them, link an email under \"Account\" instead — signing in here switches to a different account.",
+  "你現在是訪客：買的解讀存在這個瀏覽器的訪客帳號裡。換手機、換瀏覽器或清掉瀏覽器資料，就看不到了。綁定信箱後，用這個信箱登入就能找回全部紀錄。": "You're using a guest account: the readings you bought are saved to a guest account in this browser. On another phone or browser, or after clearing browser data, you won't see them. Link an email, and signing in with it brings everything back.",
+  "去綁定信箱": "Link an email",
+  "寄驗證碼": "Send code",
+  "換一個信箱": "Use a different email",
+  "綁定信箱": "Link email",
+  "綁定信箱保存": "Link an email to keep it",
+  "綁定信箱，換手機也找得回來": "Link an email to find your readings on any phone",
+  "綁定好了。": "Email linked.",
+  "訪客身分已過期，請重新整理頁面。": "Your guest session has expired. Please refresh the page.",
+  "訪客（還沒綁定信箱）": "Guest (no email linked yet)",
+  "這個信箱已經有帳號了。請改用別的信箱綁定；如果想把這次買的解讀移到那個帳號，請來信 {0}（附上訂單號），我們幫你轉。": "This email already has an account. Please link a different email. If you'd like this purchase moved to that account, email {0} with your order number and we'll move it.",
+  "驗證碼已寄到 {0}。": "Code sent to {0}."
 }

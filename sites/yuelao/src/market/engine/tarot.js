@@ -841,7 +841,8 @@ export function createTarot(ui) {
       `<p class="kicker">${deepTitle()}</p>
        <p class="asked deep-q">問．${esc(question)}</p>
        <div class="deep-body" id="deep-body"></div>
-       <p class="note small">牌義解讀供自我反思，不是預言。</p>${backToReading}`,
+       <p class="note small">牌義解讀供自我反思，不是預言。</p>
+       ${ui.spread?.guest ? `<p class="note small guest-note">你現在是訪客身分。綁定信箱後，換手機或清掉瀏覽器資料也找得回來。</p><a class="seal linkbtn" href="${ui.spread.bindHref}">綁定信箱保存</a>` : ''}${backToReading}`,
       onBack,
       true,
     );

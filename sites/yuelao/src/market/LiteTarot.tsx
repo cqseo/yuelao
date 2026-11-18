@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { GuestBindHint } from '~/components/GuestBindHint';
+import { withGuest } from '~/lib/guest';
 import { findProduct, formatPrice, priceForLocale } from '@yuelao/core/site';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
 import { track } from '~/lib/track';
@@ -247,7 +249,8 @@ export function LiteTarot() {
     track('unlock_click', { product: 'spread_1', lite: true });
     track('checkout_start', { product: 'spread_1', from: 'market', lite: true });
     try {
-      const response = await liteRequest('/api/billing/checkout', {
+      // 沒登入：先給一個訪客帳號再結帳（lib/guest.ts）
+      const response = await withGuest(() => liteRequest('/api/billing/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -258,7 +261,7 @@ export function LiteTarot() {
           from: 'market',
           spread: key,
         }),
-      });
+      }));
       if (response.status === 401) {
         track('checkout_login_required', { product: 'spread_1', lite: true });
         window.location.assign(localizeHref('/login'));
@@ -399,7 +402,7 @@ export function LiteTarot() {
               {access === 'checking' && <p role="status">{c.check}</p>}
               {access === 'pending' && <p role="status">{c.waiting}</p>}
               {access === 'ready' && (
-                <><p>{c.owned}</p><div className="lite-market__deep-body">{body}</div></>
+                <><p>{c.owned}</p><div className="lite-market__deep-body">{body}</div><GuestBindHint /></>
               )}
               {access === 'unlocked' && <p>{c.owned}</p>}
               {(access === 'none' || access === 'unlocked') && (

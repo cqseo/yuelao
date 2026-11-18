@@ -9,6 +9,15 @@ export interface CoreEnv {
   SUPABASE_SERVICE_ROLE_KEY: string;
   /** Sender address shown on emails. */
   EMAIL_FROM: string;
+  /**
+   * "true" lets a visitor who is not signed in buy straight away: clicking unlock creates a
+   * guest (Supabase anonymous user) and the purchase belongs to it until they bind an email.
+   * Needs "Allow anonymous sign-ins" on in Supabase Auth. Only gates creating new guests;
+   * existing guests keep access to what they bought either way.
+   */
+  GUEST_AUTH_ENABLED?: string;
+  /** Workers rate-limiting binding for guest creation, keyed by visitor IP (wrangler.jsonc "ratelimits"). */
+  GUEST_RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   /** Google login is gated until the Supabase Google provider + redirect allowlist are configured. */
   GOOGLE_AUTH_ENABLED?: string;
   /** Overrides site.url in local dev, e.g. http://localhost:5173. */

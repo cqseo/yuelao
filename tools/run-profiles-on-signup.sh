@@ -11,14 +11,15 @@ for i in $(seq 1 60); do docker exec "$name" pg_isready -U postgres >/dev/null 2
 sleep 1
 docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres >/dev/null <<'SQL'
 create schema auth;
-create table auth.users(id uuid primary key, email text);
+create table auth.users(id uuid primary key, email text, is_anonymous boolean not null default false);
 create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;
 create role anon;
 create role authenticated;
 create role service_role;
 SQL
-for f in 20261105000001_profiles_sticks.sql 20261112150001_profiles_on_signup.sql; do
+for f in 20261105000001_profiles_sticks.sql 20261112150001_profiles_on_signup.sql 20261118000001_guest_profiles.sql; do
   docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < "supabase/migrations/$f" >/dev/null
 done
 docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < tools/test-profiles-on-signup.sql
+docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < tools/test-guest-profiles.sql
 echo 'ALL OFFLINE PROFILE-ON-SIGNUP TESTS PASSED'

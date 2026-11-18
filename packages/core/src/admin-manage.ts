@@ -62,7 +62,8 @@ export async function adminWishesRequest(
       .from('profiles')
       .select('id,email')
       .in('id', ids.slice(i, i + 200));
-    for (const p of (data ?? []) as { id: string; email: string }[]) emails.set(p.id, p.email);
+    for (const p of (data ?? []) as { id: string; email: string | null }[])
+      emails.set(p.id, p.email ?? '訪客');
   }
   const shape = (r: WishRow) => ({
     id: r.id,
@@ -140,7 +141,7 @@ export async function adminUsersRequest(
   if (q) query = query.ilike('email', `%${q}%`);
   const { data, error, count } = await query.order('created_at', { ascending: false }).limit(200);
   if (error) return errorResponse(503, 'users_unavailable');
-  const profiles = (data ?? []) as { id: string; email: string; locale: string; created_at: string }[];
+  const profiles = (data ?? []) as { id: string; email: string | null; locale: string; created_at: string }[];
   const paid = new Map<string, { orders: number; byCurrency: Record<string, number>; last: string | null }>();
   const ids = profiles.map((p) => p.id);
   for (let i = 0; i < ids.length; i += 100) {

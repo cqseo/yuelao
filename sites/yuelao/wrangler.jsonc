@@ -19,6 +19,8 @@
     { "tag": "v1-hall", "new_sqlite_classes": ["HallRoom"] },
     { "tag": "v2-plaza", "new_sqlite_classes": ["PlazaRoom"] }
   ],
+  // 訪客帳號（guest-auth.ts）：同一個 IP 一分鐘最多建 5 個，擋腳本大量建號。
+  "ratelimits": [{ "name": "GUEST_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }],
   // Staging creates a separate Worker, with no live DB, API keys or payment secrets.
   "env": {
     "staging": {
@@ -64,6 +66,9 @@
     // 許願池：使用者寫的字公開可見。wishing_pool 遷移已於 2026-11-12 套用到 Supabase。
     // Enable only after configuring and testing Supabase Google provider + callback allowlist.
     "GOOGLE_AUTH_ENABLED": "true",
+    // 沒登入也能付款：按解鎖時建訪客帳號（guest-auth.ts）。要先在 Supabase 開「Allow anonymous sign-ins」
+    // 並把「Change email address」信件範本換成六位數驗證碼（docs/GUEST_CHECKOUT.md），開好後改成 "true"。
+    "GUEST_AUTH_ENABLED": "false",
     "WISHES_ENABLED": "true",
     // "true" 才把願望送 OpenAI moderation 自動放行；否則一律待審，人工用 review_wish 放行。
     "WISH_AUTO_MODERATION": "false",

@@ -177,7 +177,8 @@ export function computeStats(input: StatsInput) {
     item.refunded += Math.min(o.amount, input.refunds.get(o.id) ?? 0);
     nonHkdByCurrency.set(currency, item);
   }
-  const otherCurrencies = [...nonHkdByCurrency].map(([currency, totals]) => ({ currency, ...totals }))
+  const otherCurrencies = [...nonHkdByCurrency]
+    .map(([currency, totals]) => ({ currency, ...totals }))
     .sort((a, b) => a.currency.localeCompare(b.currency));
   const signCur = input.profiles.filter((p) => inRange(Date.parse(p.created_at)));
   const signPrev = input.profiles.filter((p) => inPrev(Date.parse(p.created_at)));
@@ -545,11 +546,13 @@ export async function adminStatsRequest(
       database
         .from('profiles')
         .select('id,created_at')
+        // 「新註冊」只算有信箱的帳號；訪客（按解鎖時自動建、還沒綁信箱）不算
+        .not('email', 'is', null)
         .gte('created_at', since)
         .order('created_at', { ascending: true })
         .range(from, to),
     ),
-    database.from('profiles').select('id', { count: 'exact', head: true }),
+    database.from('profiles').select('id', { count: 'exact', head: true }).not('email', 'is', null),
   ]).catch(() => [null, null, null, null] as const);
   if (!ordersResult || !profilesResult) return errorResponse(503, 'stats_unavailable');
 

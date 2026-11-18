@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { tr } from '~/i18n/ui';
+import { isGuest } from '~/lib/guest';
 import { track } from '~/lib/track';
 import { getPublicConfig } from '~/lib/public-config';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
@@ -61,6 +62,8 @@ function Login() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [guest, setGuest] = useState(false);
+  useEffect(() => setGuest(isGuest()), []);
   const googleCopy = GOOGLE_COPY[getLocale()] ?? GOOGLE_COPY.en!;
 
   useEffect(() => {
@@ -210,6 +213,20 @@ function Login() {
             '使用邮箱接收六位验证码。无需密码，你的订单和已购权益只会显示在自己的账户。',
           )}
         </p>
+        {/* 訪客改用信箱登入會換成另一個帳號，訪客買的東西不會跟過去：先請他去綁定 */}
+        {guest && (
+          <div className="auth-notice" role="note">
+            <p>
+              {text(
+                '你現在是訪客，買過的解讀存在訪客帳號裡。要保留它們，請改到「我的」綁定信箱；在這裡登入會換成另一個帳號。',
+                '你现在是访客，买过的解读存在访客账号里。要保留它们，请改到「我的」绑定邮箱；在这里登录会换成另一个账号。',
+              )}
+            </p>
+            <Link className="account-link" to={localizeHref('/account#bind')}>
+              {text('去綁定信箱', '去绑定邮箱')}
+            </Link>
+          </div>
+        )}
         {step === 'email' && googleEnabled && (
           <div className="auth-social">
             <button className="auth-google-button" type="button" disabled={busy} onClick={() => void startGoogle()}>

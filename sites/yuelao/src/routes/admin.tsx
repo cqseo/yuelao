@@ -713,7 +713,7 @@ const dateFmt = new Intl.DateTimeFormat('zh-CN', {
 
 type AdminUser = {
   id: string;
-  email: string;
+  email: string | null;
   locale: string;
   createdAt: string;
   admin: boolean;
@@ -790,7 +790,7 @@ function Users() {
               <Table
                 head={['邮箱', '注册时间', '语言', '付款笔数', '付款金额', '最近付款']}
                 rows={data.users.map((u) => [
-                  `${u.email}${u.admin ? '（站长）' : ''}`,
+                  `${u.email ?? '访客（未绑定邮箱）'}${u.admin ? '（站长）' : ''}`,
                   dateFmt.format(new Date(u.createdAt)),
                   LOCALE[u.locale] ?? u.locale,
                   num(u.paidOrders),

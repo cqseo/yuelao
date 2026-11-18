@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { SessionUser } from '../auth';
+import type { AccountUser } from '../auth';
 import { errorResponse, json } from '../http';
 import { checkoutProductForCurrency, findProduct, type Locale, type SiteConfig } from '../site';
 import { parseSpread } from '../spread';
@@ -81,7 +81,7 @@ export interface CheckoutDeps {
   site: SiteConfig;
   provider: PaymentProvider;
   database: SupabaseClient;
-  user: SessionUser;
+  user: AccountUser;
   baseUrl: string;
 }
 

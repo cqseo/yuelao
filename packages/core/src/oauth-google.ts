@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { sameOriginPost, sessionResponse } from './auth-session';
+import { guestMarkerCookie, sameOriginPost, sessionResponse } from './auth-session';
 import type { CoreEnv } from './env';
 import { errorResponse } from './http';
 
@@ -66,7 +66,10 @@ function isReady(request: Request, env: CoreEnv, baseURL: string): boolean {
 function redirectToLogin(request: Request, baseURL: string): Response {
   const response = new Response(null, {
     status: 303,
-    headers: { location: new URL('/login?google=failed', baseURL).toString(), 'cache-control': 'private, no-store' },
+    headers: {
+      location: new URL('/login?google=failed', baseURL).toString(),
+      'cache-control': 'private, no-store',
+    },
   });
   response.headers.append('set-cookie', verifierCookie(request, '', 0));
   return response;
@@ -122,6 +125,7 @@ export async function finishGoogleLogin(request: Request, env: CoreEnv, baseURL:
     data.session,
   );
   result.headers.append('set-cookie', verifierCookie(request, '', 0));
+  result.headers.append('set-cookie', guestMarkerCookie(request, false));
   result.headers.set('cache-control', 'private, no-store');
   return result;
 }

@@ -1,4 +1,5 @@
 import { findProduct, formatPrice, priceForLocale } from '@yuelao/core/site';
+import { withGuest } from '~/lib/guest';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
 import site from '../../site.config';
 import type { OracleCategory } from './lite-pending';
@@ -65,7 +66,8 @@ export async function liteCheckout(stickId: number, category: OracleCategory): P
   if (!product) return { state: 'closed' };
   try {
     const locale = contentLocale();
-    const res = await liteRequest('/api/billing/checkout', {
+    // 沒登入：先給一個訪客帳號再結帳（lib/guest.ts）
+    const res = await withGuest(() => liteRequest('/api/billing/checkout', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -77,7 +79,7 @@ export async function liteCheckout(stickId: number, category: OracleCategory): P
         stickId,
         category,
       }),
-    });
+    }));
     if (res.status === 401) return { state: 'login' };
     if (res.status === 409) return { state: 'owned' };
     if (res.status === 429) return { state: 'busy' };

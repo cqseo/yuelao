@@ -1,12 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { SessionUser } from './auth';
+import type { AccountUser } from './auth';
 import { errorResponse, json } from './http';
 
 /** Server-only account data. Service role must always be scoped to a verified
  * user ID; no caller-supplied IDs, SQL filters or arbitrary table access. */
 export async function accountSnapshot(
   db: SupabaseClient | null,
-  user: SessionUser | null,
+  user: AccountUser | null,
   billingTestEnabled: boolean,
   aiTestEnabled: boolean,
 ): Promise<Response> {
@@ -36,6 +36,8 @@ export async function accountSnapshot(
   if (orders.error || packs.error || unlocks.error) return errorResponse(503, 'account_query_failed');
   return json({
     email: user.email,
+    // 訪客：還沒綁信箱。前端據此顯示「綁定信箱」而不是登出。
+    guest: user.guest === true,
     orders: orders.data,
     packs: packs.data?.map((pack) => ({
       ...pack,
