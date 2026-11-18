@@ -60,6 +60,8 @@ export default defineSite({
     },
   ],
   supportEmail: 'support@yuexia.app',
+  // 後台權限要明列：不設時只認 supportEmail，2026-11-18 把聯絡信箱換成 support@yuexia.app 後，站長的 Gmail 就被擋在後台外。
+  adminEmails: ['yunhuazhang99@gmail.com', 'support@yuexia.app'],
   // taxCode：深度解讀是 AI 線上生成的個人用數位內容（AI as a Service - Cloud Based - Personal Use）。
   // Managed Payments 已在程式裡關掉（2026-11-15，站長選擇自己當賣方，換取微信支付／支付寶）：
   // Stripe 不再代算代繳各地消費稅，稅務由站長自行負責；automaticTax 維持 false。
