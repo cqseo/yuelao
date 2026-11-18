@@ -728,5 +728,7 @@
   "這份解籤的追問次數已滿。": "This reading has used all its follow-up questions.",
   "連線失敗，這次追問仍然保留，請稍後重試。": "Connection failed. Your question credit is kept; please try again later.",
   "還可以再追問 {0} 次。": "You can ask {0} more time(s).",
-  "還想問月老一句？": "Ask Yue Lao one more question?"
+  "還想問月老一句？": "Ask Yue Lao one more question?",
+  "去追問": "Ask now",
+  "就你最近求的第 {0} 籤，讀完還有放不下的地方，可以再追問月老。": "Still something on your mind about stick {0}, the one you drew most recently? You can ask Yue Lao a follow-up question."
 }
