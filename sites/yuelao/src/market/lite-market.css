@@ -17,6 +17,8 @@
 .lite-market__result { scroll-margin-top:12px; margin-top:1.3rem; padding:1.25rem; color:#2a1d14; background:#efe5cf; border-radius:5px; }
 .lite-market__result h2 { color:#892b20; font-size:1.2rem; }
 .lite-market__result a { color:#7c2922; text-decoration:underline; }
+.lite-market__share { display:block; margin-top:0.9rem; min-height:44px; padding:0.55rem 1.1rem; border:1px solid #7c2922; border-radius:4px; background:transparent; color:#7c2922; font:inherit; font-weight:700; cursor:pointer; }
+.lite-market__share:focus-visible { outline:3px solid #c9a35a; outline-offset:2px; }
 .lite-market__poem { white-space:pre-line; font-size:1.15rem; }
 .lite-market__note { font-size:.78rem; color:#b8afa1; }
 .lite-market__nav { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; border-top:1px solid #60523b; padding-top:1rem; margin-top:1rem; }
