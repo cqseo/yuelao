@@ -20,6 +20,8 @@ export const REACT_FILES = [
   'src/routes/account.tsx',
   'src/routes/daily.tsx',
   'src/routes/login.tsx',
+  'src/components/GuestBind.tsx',
+  'src/components/GuestBindHint.tsx',
   'src/routes/account/reading.tsx',
   'src/routes/tests/index.tsx',
   'src/routes/tests/$slug.tsx',

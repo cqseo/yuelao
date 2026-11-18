@@ -3,7 +3,7 @@ import { accountSnapshot } from './account';
 import { adminUsersRequest, adminWishesRequest, adminWishReviewRequest } from './admin-manage';
 import { adminStatsRequest } from './admin-stats';
 import { aiGenerationEnabled, generatePaidReadingRequest } from './ai-reading';
-import { getUserFromRequest, type SessionUser } from './auth';
+import { getAccountUser, getUserFromRequest, type SessionUser } from './auth';
 import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCode } from './auth-handlers';
 import { sameOriginPost } from './auth-session';
 import { createTestCheckout } from './billing/checkout';
@@ -13,8 +13,9 @@ import { StripeProvider } from './billing/stripe';
 import { companionChatRequest, companionStatus } from './companion-chat';
 import { dailyCheckinRequest } from './daily-checkin';
 import type { CoreEnv } from './env';
+import { createGuestRequest, guestsEnabled, sendGuestBindCode, verifyGuestBindCode } from './guest-auth';
 import { hallOfferingRequest } from './hall-offering';
-import { errorResponse } from './http';
+import { errorResponse, json } from './http';
 import { finishGoogleLogin, startGoogleLogin } from './oauth-google';
 import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
@@ -81,6 +82,20 @@ export function createCore(site: SiteConfig) {
       googleCallback: (request: Request) => {
         const ctx = context();
         return finishGoogleLogin(request, ctx.env, ctx.baseURL);
+      },
+      // 訪客帳號：按解鎖時建、之後綁信箱（guest-auth.ts）
+      guestStatus: () => json({ enabled: guestsEnabled(context().env) }),
+      guest: (request: Request) => {
+        const ctx = context();
+        return createGuestRequest(request, ctx.env, () => createAnonClient(ctx.env), ctx.supabaseService);
+      },
+      guestEmail: (request: Request) => {
+        const ctx = context();
+        return sendGuestBindCode(request, () => createAnonClient(ctx.env));
+      },
+      guestVerify: (request: Request) => {
+        const ctx = context();
+        return verifyGuestBindCode(request, () => createAnonClient(ctx.env));
       },
     },
     companion: {
@@ -149,17 +164,17 @@ export function createCore(site: SiteConfig) {
     account: {
       generate: async (request: Request) => {
         const ctx = context();
-        const user = await getUserFromRequest(request, ctx.env);
+        const user = await getAccountUser(request, ctx.env);
         return generatePaidReadingRequest(request, ctx.supabaseService, user, ctx.env);
       },
       redeem: async (request: Request) => {
         const ctx = context();
-        const user = await getUserFromRequest(request, ctx.env);
+        const user = await getAccountUser(request, ctx.env);
         return redeemPackRequest(request, ctx.supabaseService, user, ctx.env);
       },
       reading: async (request: Request) => {
         const ctx = context();
-        const user = await getUserFromRequest(request, ctx.env);
+        const user = await getAccountUser(request, ctx.env);
         return paidReadingResponse(request, ctx.supabaseService, user);
       },
       daily: async (request: Request) => {
@@ -169,17 +184,17 @@ export function createCore(site: SiteConfig) {
       },
       spread: async (request: Request) => {
         const ctx = context();
-        const user = await getUserFromRequest(request, ctx.env);
+        const user = await getAccountUser(request, ctx.env);
         return spreadReadingResponse(request, ctx.supabaseService, user);
       },
       spreadGenerate: async (request: Request) => {
         const ctx = context();
-        const user = await getUserFromRequest(request, ctx.env);
+        const user = await getAccountUser(request, ctx.env);
         return generateSpreadReadingRequest(request, ctx.supabaseService, user, ctx.env);
       },
       snapshot: async (request: Request) => {
         const ctx = context();
-        const user = await getUserFromRequest(request, ctx.env);
+        const user = await getAccountUser(request, ctx.env);
         const enabled = checkoutGate(ctx.env) === null && Boolean(ctx.supabaseService);
         return accountSnapshot(ctx.supabaseService, user, enabled, aiGenerationEnabled(ctx.env));
       },
@@ -201,7 +216,8 @@ export function createCore(site: SiteConfig) {
         const { data: deliveryReady, error: deliveryError } =
           await ctx.supabaseService.rpc('paid_ai_delivery_ready');
         if (deliveryError || deliveryReady !== true) return errorResponse(503, 'delivery_schema_unavailable');
-        const user = await getUserFromRequest(request, ctx.env);
+        // 訪客也能結帳（買到的記在訪客帳號上，之後綁信箱帶走）
+        const user = await getAccountUser(request, ctx.env);
         if (!user) return errorResponse(401, 'login_required');
         // 測試模式：測試卡號是公開的，只讓白名單上的帳號結帳，其他人看到的跟「沒開賣」一樣。正式模式不限。
         if (!buyerAllowed(ctx.env, user.email)) {

@@ -90,7 +90,7 @@ export class WebhookSignatureError extends Error {
 
 export interface PaymentProvider {
   readonly name: string;
-  createCustomer(user: { id: string; email: string; name: string; siteId: string }): Promise<string>;
+  createCustomer(user: { id: string; email: string | null; name: string; siteId: string }): Promise<string>;
   createCheckout(request: CheckoutRequest): Promise<{ url: string; checkoutRef: string }>;
   /** Throws WebhookSignatureError on an invalid signature. */
   parseWebhook(request: Request): Promise<WebhookTrigger>;

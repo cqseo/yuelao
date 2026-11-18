@@ -5,10 +5,11 @@ import {
   sameOriginPost,
   sessionResponse,
   sessionTokens,
+  withGuestMarker,
 } from './auth-session';
 import { errorResponse, json } from './http';
 
-function validEmail(email: unknown): email is string {
+export function validEmail(email: unknown): email is string {
   return (
     typeof email === 'string' &&
     email.length >= 5 &&
@@ -17,7 +18,7 @@ function validEmail(email: unknown): email is string {
   );
 }
 
-async function input(request: Request, max = 1024): Promise<Record<string, unknown> | null> {
+export async function input(request: Request, max = 1024): Promise<Record<string, unknown> | null> {
   if (!jsonRequest(request)) return null;
   const text = await request.text();
   if (text.length > max) return null;
@@ -60,7 +61,12 @@ export async function verifyEmailCode(request: Request, client: SupabaseClient |
     type: 'email',
   });
   if (error || !verified.session || !verified.user?.email) return errorResponse(401, 'verification_failed');
-  return sessionResponse(request, json({ authenticated: true }), verified.session);
+  // 換成信箱帳號了：拿掉「訪客」記號
+  return withGuestMarker(
+    request,
+    sessionResponse(request, json({ authenticated: true }), verified.session),
+    false,
+  );
 }
 
 export async function refreshLogin(request: Request, client: SupabaseClient | null): Promise<Response> {
@@ -85,5 +91,5 @@ export async function logoutUser(request: Request, client: SupabaseClient | null
       console.warn('auth sign-out service unavailable');
     }
   }
-  return clearSessionResponse(request, json({ authenticated: false }));
+  return withGuestMarker(request, clearSessionResponse(request, json({ authenticated: false })), false);
 }

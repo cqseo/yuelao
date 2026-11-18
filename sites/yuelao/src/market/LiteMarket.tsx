@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { GuestBindHint } from '~/components/GuestBindHint';
 import { track } from '~/lib/track';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { STICKS, type Stick } from '~/ritual/sticks';
@@ -350,6 +351,7 @@ export function LiteMarket() {
                 <>
                   <p>{payC.owned}</p>
                   <div className="lite-market__deep-body">{report}</div>
+                  <GuestBindHint />
                   <a href={readingHref}>{payC.view}</a>
                 </>
               )}

@@ -3599,3 +3599,8 @@ html:not(:lang(zh)) body * {
   opacity: 0.75;
   text-align: center;
 }
+
+/* 訪客綁定信箱區塊（DESIGN.md「訪客結帳與綁定信箱」）：和下方統計卡片留出間距 */
+#bind.account-panel {
+  margin-bottom: 1.5rem;
+}

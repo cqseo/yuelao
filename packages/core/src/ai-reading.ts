@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { SessionUser } from './auth';
+import type { AccountUser } from './auth';
 import { sameOriginPost } from './auth-session';
 import type { CoreEnv } from './env';
 import { errorResponse, json } from './http';
@@ -62,7 +62,7 @@ export const READING_INSTRUCTIONS = `你是「月老」文化籤詩與情感反�
 ${FOREIGN_LANGUAGE_RULE}`;
 
 type GenerationData = {
-  user: SessionUser;
+  user: AccountUser;
   input: ReadingGenerationInput;
   database: SupabaseClient;
   apiKey: string;
@@ -321,7 +321,7 @@ export async function generatePaidReading({
 export async function generatePaidReadingRequest(
   request: Request,
   database: SupabaseClient | null,
-  user: SessionUser | null,
+  user: AccountUser | null,
   env: CoreEnv,
 ): Promise<Response> {
   if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');

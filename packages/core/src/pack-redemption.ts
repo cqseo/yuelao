@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { aiGenerationEnabled } from './ai-reading';
-import type { SessionUser } from './auth';
+import type { AccountUser } from './auth';
 import { sameOriginPost } from './auth-session';
 import type { CoreEnv } from './env';
 import { errorResponse, json } from './http';
@@ -11,7 +11,7 @@ const uuid = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 export async function redeemPackRequest(
   request: Request,
   database: SupabaseClient | null,
-  user: SessionUser | null,
+  user: AccountUser | null,
   env: CoreEnv,
 ): Promise<Response> {
   if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');

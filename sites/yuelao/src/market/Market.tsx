@@ -4,6 +4,7 @@ import { LiteMarket } from './LiteMarket';
 import { LiteTarot } from './LiteTarot';
 import { hasLiteTarotPending } from './lite-tarot-pending';
 import { hasLitePending } from './lite-pending';
+import { guestCheckoutOn, isGuest, withGuest } from '~/lib/guest';
 import { track } from '~/lib/track';
 import { COMPANION_STARTERS, type CompanionTheme, guidedReply } from '~/site/companion';
 import site from '../../site.config';
@@ -113,20 +114,23 @@ export function Market() {
       track('checkout_start', { product: productId, from: 'market' });
       const product = findProduct(site, productId);
       try {
-        const res = await authed(() =>
-          fetch('/api/billing/checkout', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              ui: uiPrefix(),
-              productId,
-              currency: product?.prices[locale].currency,
-              locale,
-              from: 'market',
-              ...extra,
+        // 沒登入：先給一個訪客帳號再結帳（lib/guest.ts）；伺服器沒開訪客時照舊請他登入
+        const res = await withGuest(() =>
+          authed(() =>
+            fetch('/api/billing/checkout', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                ui: uiPrefix(),
+                productId,
+                currency: product?.prices[locale].currency,
+                locale,
+                from: 'market',
+                ...extra,
+              }),
             }),
-          }),
+          ),
         );
         if (res.status === 401) {
           track('checkout_login_required', { product: productId });
@@ -254,7 +258,13 @@ export function Market() {
       leaving: () => shop.leaving(),
     };
 
+    // 訪客買完：解讀下面提醒他綁信箱（不綁的話，換手機或清掉瀏覽器資料就找不回來）
+    const bindHref = localizeHref('/account#bind');
     const deep = {
+      get guest() {
+        return isGuest();
+      },
+      bindHref,
       cancelled: payCancelled,
       price: unlock ? formatPrice(priceForLocale(unlock, locale), locale) : '',
       page: (stickId: number, category: string) =>
@@ -370,6 +380,10 @@ export function Market() {
     const spreadProduct = findProduct(site, 'spread_1');
     const SPREAD_PENDING = 'market-spread-pending';
     const spread = {
+      get guest() {
+        return isGuest();
+      },
+      bindHref,
       cancelled: payCancelled,
       price: spreadProduct ? formatPrice(priceForLocale(spreadProduct, locale), locale) : '',
       async check(key: string) {
@@ -381,7 +395,8 @@ export function Market() {
             }),
           );
           // 401：沒登入。付款鈕下方先說要登入，不要按了才被擋。
-          if (res.status === 401) return { state: 'none' as const, guest: true };
+          // 沒登入：開了訪客結帳就不提示「需先登入」
+          if (res.status === 401) return { state: 'none' as const, guest: !(await guestCheckoutOn()) };
           if (res.ok) {
             const d = (await res.json()) as { state?: string; body?: string };
             if (d.state === 'ready' && d.body) return { state: 'ready' as const, body: d.body };

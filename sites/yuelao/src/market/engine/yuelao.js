@@ -836,7 +836,8 @@ export function createYuelao(ui) {
     say('寫好了，慢慢看。');
     ui.panel(
       `<p class="kicker">${stick.no}　完整解籤</p><div class="deep-body" id="deep-body"></div>
-       <p class="note small">這份解籤也存在「我的」，日後隨時能看。籤詩解讀供自我反思，不是預言。</p>${backToCard}`,
+       <p class="note small">這份解籤也存在「我的」，日後隨時能看。籤詩解讀供自我反思，不是預言。</p>
+       ${ui.deep?.guest ? `<p class="note small guest-note">你現在是訪客身分。綁定信箱後，換手機或清掉瀏覽器資料也找得回來。</p><a class="seal linkbtn" href="${ui.deep.bindHref}">綁定信箱保存</a>` : ''}${backToCard}`,
       (a) => a === 'card' && verdict(),
       true,
     );

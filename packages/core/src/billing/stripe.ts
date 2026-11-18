@@ -187,9 +187,19 @@ export class StripeProvider implements PaymentProvider {
     this.stripe = stripe ?? new Stripe(options.secretKey, { httpClient: Stripe.createFetchHttpClient() });
   }
 
-  async createCustomer(user: { id: string; email: string; name: string; siteId: string }): Promise<string> {
+  async createCustomer(user: {
+    id: string;
+    email: string | null;
+    name: string;
+    siteId: string;
+  }): Promise<string> {
     const customer = await this.stripe.customers.create(
-      { email: user.email, name: user.name || undefined, metadata: { userId: user.id, site: user.siteId } },
+      // 訪客沒有信箱：留空，Stripe 結帳頁會請他填（收據寄到那裡，也是日後找回購買的線索）
+      {
+        email: user.email || undefined,
+        name: user.name || undefined,
+        metadata: { userId: user.id, site: user.siteId },
+      },
       { idempotencyKey: `customer:${user.siteId}:${user.id}` },
     );
     return customer.id;

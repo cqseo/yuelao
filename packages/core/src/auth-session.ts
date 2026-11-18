@@ -70,3 +70,19 @@ export function sameOriginPost(request: Request): boolean {
 export function jsonRequest(request: Request): boolean {
   return request.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() === 'application/json';
 }
+
+const GUEST_MARKER = 'yl_guest';
+
+/**
+ * 「這台瀏覽器是訪客」的記號（見 guest-auth.ts）。不是憑證：HttpOnly 的 session cookie 才是；
+ * 這個前端讀得到，只用來決定要不要顯示「綁定信箱」。
+ */
+export function guestMarkerCookie(request: Request, on: boolean): string {
+  const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
+  return `${GUEST_MARKER}=${on ? '1' : ''}; Path=/; SameSite=Lax${secure}; Max-Age=${on ? 30 * 86400 : 0}`;
+}
+
+export function withGuestMarker(request: Request, response: Response, on: boolean): Response {
+  response.headers.append('set-cookie', guestMarkerCookie(request, on));
+  return response;
+}

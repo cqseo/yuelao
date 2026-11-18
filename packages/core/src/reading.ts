@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { SessionUser } from './auth';
+import type { AccountUser } from './auth';
 import { getDeepReading } from './entitlements';
 import { errorResponse, json } from './http';
 
@@ -26,7 +26,7 @@ export function parseReadingParams(url: URL): ReadingParams | null {
 export async function paidReadingResponse(
   request: Request,
   db: SupabaseClient | null,
-  user: SessionUser | null,
+  user: AccountUser | null,
 ): Promise<Response> {
   if (!user) return errorResponse(401, 'login_required');
   if (!db) return errorResponse(503, 'reading_unavailable');

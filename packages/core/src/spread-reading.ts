@@ -8,7 +8,7 @@ import {
   runModel,
   type UiLanguage,
 } from './ai-reading';
-import type { SessionUser } from './auth';
+import type { AccountUser } from './auth';
 import { sameOriginPost } from './auth-session';
 import type { CoreEnv } from './env';
 import { errorResponse, json } from './http';
@@ -77,7 +77,7 @@ const isUuid = (s: unknown): s is string =>
 export async function spreadReadingResponse(
   request: Request,
   db: SupabaseClient | null,
-  user: SessionUser | null,
+  user: AccountUser | null,
 ): Promise<Response> {
   if (!user) return errorResponse(401, 'login_required');
   if (!db) return errorResponse(503, 'reading_unavailable');
@@ -109,7 +109,7 @@ export function parseSpreadGeneration(value: unknown): SpreadInput | null {
 }
 
 export async function generateSpreadReading(
-  user: SessionUser,
+  user: AccountUser,
   input: SpreadInput,
   database: SupabaseClient,
   ai: { apiKey: string; model: string; baseUrl: string | null; fetchImpl?: typeof fetch },
@@ -161,7 +161,7 @@ export async function generateSpreadReading(
 export async function generateSpreadReadingRequest(
   request: Request,
   database: SupabaseClient | null,
-  user: SessionUser | null,
+  user: AccountUser | null,
   env: CoreEnv,
 ): Promise<Response> {
   if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');

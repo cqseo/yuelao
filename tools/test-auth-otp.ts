@@ -98,7 +98,9 @@ const verifiedResp = await verifyEmailCode(
 assert.equal(verifiedResp.status, 200);
 assert.equal(verified, 1);
 const cookies = verifiedResp.headers.getSetCookie();
-assert.equal(cookies.length, 2);
+// access + refresh, plus clearing the guest marker (signing in with an email is no longer a guest)
+assert.equal(cookies.length, 3);
+assert.ok(cookies.some((c) => c.startsWith('yl_guest=;') && c.includes('Max-Age=0')));
 assert.ok(
   cookies.some(
     (c) =>
@@ -122,7 +124,8 @@ console.log('PASS: session refresh requires server-managed cookie');
 const loggedOut = await logoutUser(request('/api/auth/logout', {}, `__Host-yl_access=${token}`), client);
 assert.equal(loggedOut.status, 200);
 const cleared = loggedOut.headers.getSetCookie();
-assert.equal(cleared.length, 2);
+assert.equal(cleared.length, 3);
+assert.ok(cleared.some((c) => c.startsWith('yl_guest=;') && c.includes('Max-Age=0')));
 assert.ok(cleared.every((c) => c.includes('Max-Age=0')));
 console.log('PASS: logout clears both session cookies');
 console.log('ALL MOCK AUTH OTP TESTS PASSED; NO REAL EMAILS SENT');

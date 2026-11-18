@@ -101,3 +101,14 @@
   .lite-tarot__card img { grid-row:1/4; max-height:11rem; }
   .lite-tarot__card p { grid-column:2; }
 }
+/* 訪客買完：提醒綁信箱（DESIGN.md「訪客結帳與綁定信箱」） */
+.guest-bind-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  opacity: 0.85;
+}
+.guest-bind-hint a {
+  color: #dcbb7c;
+  text-underline-offset: 0.2em;
+}

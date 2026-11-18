@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { GuestBind } from '~/components/GuestBind';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
 import { tr } from '~/i18n/ui';
 import { track } from '~/lib/track';
@@ -45,7 +46,9 @@ type Unlock = {
   revoked: boolean;
 };
 type AccountData = {
-  email: string;
+  email: string | null;
+  /** 訪客：按解鎖時自動建的帳號，還沒綁信箱。 */
+  guest?: boolean;
   orders: Order[];
   packs: Pack[];
   unlocks: Unlock[];
@@ -239,11 +242,15 @@ function Account() {
       {view === 'ready' && data && (
         <>
           <div className="account-intro">
-            <span>{data.email}</span>
-            <button type="button" onClick={() => void logout()} disabled={busy}>
-              {t('登出', '退出登录')}
-            </button>
+            <span>{data.guest ? t('訪客（還沒綁定信箱）', '访客（还没绑定邮箱）') : data.email}</span>
+            {/* 訪客登出就再也回不到這個帳號：不給登出鈕，先請他綁信箱 */}
+            {!data.guest && (
+              <button type="button" onClick={() => void logout()} disabled={busy}>
+                {t('登出', '退出登录')}
+              </button>
+            )}
           </div>
+          {data.guest && <GuestBind onBound={() => window.location.reload()} />}
           <div className="account-stats">
             <div className="account-card">
               <p>{t('我的問事包', '我的问事包')}</p>
