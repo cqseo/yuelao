@@ -66,9 +66,9 @@
     // 許願池：使用者寫的字公開可見。wishing_pool 遷移已於 2026-11-12 套用到 Supabase。
     // Enable only after configuring and testing Supabase Google provider + callback allowlist.
     "GOOGLE_AUTH_ENABLED": "true",
-    // 沒登入也能付款：按解鎖時建訪客帳號（guest-auth.ts）。要先在 Supabase 開「Allow anonymous sign-ins」
-    // 並把「Change email address」信件範本換成六位數驗證碼（docs/GUEST_CHECKOUT.md），開好後改成 "true"。
-    "GUEST_AUTH_ENABLED": "false",
+    // 沒登入也能付款：按解鎖時建訪客帳號（guest-auth.ts）。站長 2026-11-18 已在 Supabase 開「Allow anonymous sign-ins」、
+    // 換好「Change email address」驗證碼範本，guest_profiles 遷移已套用（docs/GUEST_CHECKOUT.md）。
+    "GUEST_AUTH_ENABLED": "true",
     "WISHES_ENABLED": "true",
     // "true" 才把願望送 OpenAI moderation 自動放行；否則一律待審，人工用 review_wish 放行。
     "WISH_AUTO_MODERATION": "false",
