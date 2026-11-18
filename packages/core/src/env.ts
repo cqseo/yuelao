@@ -40,6 +40,8 @@ export interface CoreEnv {
   OPENAI_MODEL?: string;
   /** OpenAI 相容中轉站的網址（https，例如 https://relay.example.com/v1）。設了就改走 chat/completions；不設走 OpenAI 官方。 */
   OPENAI_BASE_URL?: string;
+  /** 付費解籤用哪一版提示詞："2" 用第二版（ai-reading.ts READING_INSTRUCTIONS_V2），其他用第一版。 */
+  READING_PROMPT_VERSION?: string;
   /** Private AI chat, intentionally disabled until a paid-model budget is accepted. */
   AI_CHAT_ENABLED?: string;
   /** Explicit model name; server-only, not exposed as a client configuration. */

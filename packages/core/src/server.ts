@@ -2,7 +2,12 @@ import { env as workerEnv } from 'cloudflare:workers';
 import { accountSnapshot } from './account';
 import { adminUsersRequest, adminWishesRequest, adminWishReviewRequest } from './admin-manage';
 import { adminStatsRequest } from './admin-stats';
-import { aiGenerationEnabled, generatePaidReadingRequest } from './ai-reading';
+import {
+  aiGenerationEnabled,
+  generatePaidReadingRequest,
+  previewReadingRequest,
+  type StickContextProvider,
+} from './ai-reading';
 import { getAccountUser, getUserFromRequest, type SessionUser } from './auth';
 import { logoutUser, refreshLogin, sendEmailCode, verifyEmailCode } from './auth-handlers';
 import { sameOriginPost } from './auth-session';
@@ -36,7 +41,12 @@ function required(env: CoreEnv, name: 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECR
   return value;
 }
 
-export function createCore(site: SiteConfig) {
+export interface CoreOptions {
+  /** 付費解籤用的籤內容，要和籤頁顯示的一致（站點提供；沒有就退回資料庫 sticks 表）。 */
+  stickContext?: StickContextProvider;
+}
+
+export function createCore(site: SiteConfig, options: CoreOptions = {}) {
   function context() {
     const env = workerEnv as unknown as CoreEnv;
     return {
@@ -137,6 +147,14 @@ export function createCore(site: SiteConfig) {
         const user = await getUserFromRequest(request, ctx.env);
         return adminUsersRequest(request, ctx.supabaseService, user, admins());
       },
+      /** 站長預覽解籤（新舊提示詞對照），不存、不扣權益。 */
+      readingPreview: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        if (!user) return errorResponse(401, 'auth_required');
+        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase())) return errorResponse(403, 'forbidden');
+        return previewReadingRequest(request, ctx.env, options.stickContext);
+      },
       isAdmin: async (request: Request) => {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
@@ -165,7 +183,7 @@ export function createCore(site: SiteConfig) {
       generate: async (request: Request) => {
         const ctx = context();
         const user = await getAccountUser(request, ctx.env);
-        return generatePaidReadingRequest(request, ctx.supabaseService, user, ctx.env);
+        return generatePaidReadingRequest(request, ctx.supabaseService, user, ctx.env, options.stickContext);
       },
       redeem: async (request: Request) => {
         const ctx = context();
