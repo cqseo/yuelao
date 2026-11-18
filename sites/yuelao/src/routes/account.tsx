@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { FollowUpHint } from '~/components/FollowUpHint';
 import { GuestBind } from '~/components/GuestBind';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
 import { tr } from '~/i18n/ui';
@@ -251,6 +252,7 @@ function Account() {
             )}
           </div>
           {data.guest && <GuestBind onBound={() => window.location.reload()} />}
+          <FollowUpHint unlocks={data.unlocks} />
           <div className="account-stats">
             <div className="account-card">
               <p>{t('我的問事包', '我的问事包')}</p>

@@ -3562,6 +3562,28 @@ a.ask-entry:hover {
   margin: 0;
 }
 
+.followup-hint {
+  margin-bottom: 1.2rem;
+}
+.followup-hint p {
+  margin: 0.4rem 0 0.9rem;
+}
+.followup-hint-link {
+  display: inline-block;
+  min-height: 44px;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--color-gold-soft);
+  border-radius: 4px;
+  background: var(--color-vermilion-deep);
+  color: var(--color-paper);
+  font-weight: 700;
+  text-decoration: none;
+}
+.followup-hint-link:focus-visible {
+  outline: 3px solid var(--color-gold-soft);
+  outline-offset: 2px;
+}
+
 /* Only displayed when VITE_SITE_STAGING=true during the preview build. */
 .staging-notice {
   position: relative;
