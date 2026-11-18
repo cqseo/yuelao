@@ -1,6 +1,8 @@
 // 分享圖（DESIGN.md「分享圖與付費範例」）：在瀏覽器裡用 canvas 畫一張 1080×1350 的直圖，
 // 能用系統分享（手機）就直接分享圖片，不能就存成檔案。圖上不放用戶問的那句話（那是他的私事），
 // 只放籤或牌、判詞、站名與網址。
+// 2026-11-18：籤圖與牌圖右下角加 QR code，掃了直接到這支籤的頁面（帶 ?from=share，後台看得到分享帶來多少人）。
+import qrcode from 'qrcode-generator';
 
 const W = 1080;
 const H = 1350;
@@ -59,6 +61,49 @@ function night(g) {
   g.globalAlpha = 1;
 }
 
+/** 掃碼網址：同站、固定路徑，帶 from=share 讓後台分得出是分享圖帶來的。 */
+export function shareUrl(path) {
+  const origin = typeof location !== 'undefined' ? location.origin : 'https://yuexia.app';
+  const u = new URL(path, origin);
+  u.searchParams.set('from', 'share');
+  return u.href;
+}
+
+/** 在 (x, y) 畫一個邊長 size 的 QR（米白底、深色碼，夜色背景上也掃得到）。 */
+function drawQr(g, url, x, y, size) {
+  const q = qrcode(0, 'L');
+  q.addData(url);
+  q.make();
+  const n = q.getModuleCount();
+  const quiet = 2;
+  const cell = size / (n + quiet * 2);
+  g.fillStyle = PAPER;
+  g.fillRect(x, y, size, size);
+  g.fillStyle = INK;
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      if (q.isDark(r, c))
+        g.fillRect(x + (c + quiet) * cell, y + (r + quiet) * cell, Math.ceil(cell), Math.ceil(cell));
+}
+
+/** 底部：左邊站名與一句說明，右邊 QR。沒有網址就照舊置中。 */
+function footerQr(g, url, hint) {
+  const size = 176;
+  const x = W - 96 - size;
+  const y = H - 16 - size;
+  drawQr(g, url, x, y, size);
+  g.textAlign = 'left';
+  g.fillStyle = GOLD;
+  g.font = `600 34px ${SERIF}`;
+  g.fillText('月下集市 · 月老', 96, H - 112);
+  g.fillStyle = 'rgba(239,229,207,0.7)';
+  g.font = `400 26px ${SERIF}`;
+  g.fillText(hint, 96, H - 70);
+  g.fillStyle = 'rgba(239,229,207,0.45)';
+  g.font = `400 22px ${SERIF}`;
+  g.fillText(host(), 96, H - 36);
+}
+
 function footer(g, line) {
   g.textAlign = 'center';
   g.fillStyle = GOLD;
@@ -102,7 +147,7 @@ async function deliver(canvas, filename, title) {
 const host = () => (typeof location !== 'undefined' ? location.host : '');
 
 /** 月老殿判詞：籤號、等第、籤詩、出處、判詞、「月老已批」印。 */
-export async function shareVerdict({ no, grade, poem, source, verdict, cat }) {
+export async function shareVerdict({ id, no, grade, poem, source, verdict, cat }) {
   await ready();
   const c = document.createElement('canvas');
   c.width = W;
@@ -111,9 +156,9 @@ export async function shareVerdict({ no, grade, poem, source, verdict, cat }) {
   night(g);
   // 米紙
   const px = 96;
-  const py = 150;
+  const py = 120;
   const pw = W - px * 2;
-  const ph = 1010;
+  const ph = 1000;
   const paper = await loadImg('/ritual/paper.jpg');
   g.save();
   g.shadowColor = 'rgba(0,0,0,0.55)';
@@ -171,7 +216,8 @@ export async function shareVerdict({ no, grade, poem, source, verdict, cat }) {
   g.fillText('已批', 0, 44);
   g.restore();
 
-  footer(g, host());
+  if (id) footerQr(g, shareUrl(`/sign/${id}`), '掃碼看這支籤的白話與原典');
+  else footer(g, host());
   return deliver(c, 'yuelao-sign.png', `${no} · ${grade}`);
 }
 
@@ -237,7 +283,7 @@ export async function shareSpread({ deckName, cards }) {
       g.fillText(d.kw.slice(0, 3).join('・'), x + cw / 2, ty + (d.tag ? 140 : 100));
     }
   });
-  footer(g, host());
+  footerQr(g, shareUrl('/market#tarot'), '掃碼來抽你自己的三張');
   return deliver(c, 'yuelao-tarot.png', `塔羅館 · ${deckName}`);
 }
 

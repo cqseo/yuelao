@@ -552,7 +552,10 @@ export function createYuelao(ui) {
               poem: d.stick.poem,
               line: d.love || d.plain,
               color: d.color,
-            }).then((r) => r === 'saved' && say('存好了，可以放進限時動態。'));
+            }).then((r) => {
+              ui.emit?.('share_image', { kind: 'daily_sign', result: r });
+              if (r === 'saved') say('存好了，可以放進限時動態。');
+            });
             return;
           }
           if (a === 'leave') return ui.leave();
@@ -660,13 +663,17 @@ export function createYuelao(ui) {
         if (a === 'share') {
           // 分享圖不放問的那句話（私事），只放籤、判詞與站名
           void shareVerdict({
+            id: stick.id,
             no: stick.no,
             grade: stick.grade,
             poem: stick.poem,
             source: stick.source,
             verdict: stick.verdict[cat],
             cat: c.word,
-          }).then((r) => r === 'saved' && say('籤圖存好了，可以傳給朋友。'));
+          }).then((r) => {
+            ui.emit?.('share_image', { kind: 'sign', result: r, stickId: stick.id });
+            if (r === 'saved') say('籤圖存好了，可以傳給朋友。');
+          });
           return;
         }
         ui.card('');

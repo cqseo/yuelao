@@ -5,6 +5,7 @@ import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { STICKS, type Stick } from '~/ritual/sticks';
 import { liteCheck, liteCheckout, liteGenerate, litePrice, liteReadingUrl } from './lite-billing';
 import { saveLitePending, takeLitePending } from './lite-pending';
+import { shareVerdict } from './engine/share.js';
 import './lite-market.css';
 
 type Situation = 'him' | 'single' | 'reunion';
@@ -12,6 +13,8 @@ type PaymentStatus = 'idle' | 'checking' | 'none' | 'pending' | 'unlocked' | 're
 const WORDS: Record<string, {
   title: string; intro: string; question: string; choices: [string, string, string]; draw: string;
   again: string; reading: string; retry: string; home: string; label: string; notes: string;
+  /** 分享籤圖（圖上不放問題）。 */
+  share: string; saved: string;
 }> = {
   'zh-Hant': {
     title: '月老殿 · 輕量模式',
@@ -19,6 +22,7 @@ const WORDS: Record<string, {
     question: '心裡想問什麼？（可留空）', choices: ['曖昧／問他', '單身／脫單', '想復合'],
     draw: '免費求一支籤', again: '再求一支', reading: '閱讀完整免費判詞', retry: '重試 3D 集市', home: '返回首頁',
     label: '你現在的情況', notes: '數位籤詩是文化體驗與自我整理，不保證感情結果。輕量模式不使用 3D 動畫。',
+    share: '分享籤圖', saved: '籤圖存好了，可以傳給朋友。圖上不會有你寫的問題。',
   },
   'zh-Hans': {
     title: '月老殿 · 轻量模式',
@@ -26,6 +30,7 @@ const WORDS: Record<string, {
     question: '你想问什么？（可留空）', choices: ['暧昧／问他', '单身／脱单', '想复合'],
     draw: '免费求一支签', again: '再求一支', reading: '查看完整免费判词', retry: '重试 3D 集市', home: '返回首页',
     label: '你目前的情况', notes: '数字签诗仅供文化体验与自我整理，不保证感情结果。轻量模式不使用 3D 动画。',
+    share: '分享签图', saved: '签图保存好了，可以发给朋友。图上不会有你写的问题。',
   },
   en: {
     title: 'Yuelao Hall · Lightweight mode',
@@ -33,6 +38,7 @@ const WORDS: Record<string, {
     question: 'What is on your mind? (optional)', choices: ['A person I like', 'Finding love', 'Reconciliation'],
     draw: 'Draw a free stick', again: 'Draw again', reading: 'Read full free interpretation', retry: 'Retry 3D market', home: 'Back to home',
     label: 'Your situation', notes: 'A cultural reflection activity, not a prediction of relationship outcomes.',
+    share: 'Share as image', saved: 'Image saved. Your question is not on it.',
   },
   ja: {
     title: '月老殿 · 軽量モード',
@@ -40,6 +46,7 @@ const WORDS: Record<string, {
     question: '何について考えていますか？（任意）', choices: ['気になる人', '出会い', '復縁'],
     draw: '無料で引く', again: 'もう一度', reading: '無料の解説を読む', retry: '3D市場を再試行', home: 'トップに戻る',
     label: '現在の状況', notes: '文化体験と自己省察を目的とし、結果を保証するものではありません。',
+    share: '画像で共有', saved: '画像を保存しました。質問は載っていません。',
   },
 };
 
@@ -108,6 +115,7 @@ export function LiteMarket() {
   const [situation, setSituation] = useState<Situation>('him');
   const [question, setQuestion] = useState('');
   const [result, setResult] = useState<Stick | null>(null);
+  const [shareNote, setShareNote] = useState('');
   const [hydrated, setHydrated] = useState(false);
   const [waitingForPayment, setWaitingForPayment] = useState(false);
   const [payment, setPayment] = useState<PaymentStatus>('idle');
@@ -179,6 +187,7 @@ export function LiteMarket() {
     crypto.getRandomValues(bytes);
     const stick = STICKS[bytes[0]! % STICKS.length]!;
     setResult(stick);
+    setShareNote('');
     setReport('');
     setConsent(false);
     setMessage('');
@@ -345,6 +354,28 @@ export function LiteMarket() {
               <p className="lite-market__poem">{result.poem}</p>
               <p>{result.verdict[situation]}</p>
               <a href={localizeHref('/sign/' + result.id)}>{c.reading}</a>
+              <button
+                type="button"
+                className="lite-market__share"
+                onClick={() => {
+                  // 圖上只放籤與判詞，不放問的那句話（私事）
+                  void shareVerdict({
+                    id: result.id,
+                    no: result.no,
+                    grade: result.grade,
+                    poem: result.poem,
+                    source: result.source,
+                    verdict: result.verdict[situation],
+                    cat: '',
+                  }).then((r: string) => {
+                    track('share_image', { kind: 'sign', result: r, stickId: result.id, lite: true });
+                    if (r === 'saved') setShareNote(c.saved);
+                  });
+                }}
+              >
+                {c.share}
+              </button>
+              {shareNote && <p role="status">{shareNote}</p>}
             </section>
           )}
           {result && (

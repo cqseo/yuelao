@@ -140,6 +140,10 @@ export function trackPageView() {
   if (typeof window === 'undefined' || location.pathname === lastPage) return;
   lastPage = location.pathname;
   enqueue('page_view');
+  // 掃分享圖上的 QR 進來（網址帶 from=share）：記一筆，後台看得到分享帶來多少人。
+  try {
+    if (new URLSearchParams(location.search).get('from') === 'share') enqueue('share_visit');
+  } catch {}
 }
 
 let identified: string | null = null;

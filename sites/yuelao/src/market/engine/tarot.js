@@ -421,7 +421,10 @@ export function createTarot(ui) {
               line: d.line,
               color: d.color,
               img: `/market/cards/rws/${d.card.img}.webp`,
-            }).then((r) => r === 'saved' && say('存好了，可以放進限時動態。'));
+            }).then((r) => {
+              ui.emit?.('share_image', { kind: 'daily_tarot', result: r });
+              if (r === 'saved') say('存好了，可以放進限時動態。');
+            });
             return;
           }
           if (a === 'leave') return ui.leave();
@@ -642,7 +645,10 @@ export function createTarot(ui) {
                     rev: d.rev,
                   },
             ),
-          }).then((r) => r === 'saved' && say('牌圖存好了，可以傳給朋友。'));
+          }).then((r) => {
+            ui.emit?.('share_image', { kind: 'spread', result: r, deck });
+            if (r === 'saved') say('牌圖存好了，可以傳給朋友。');
+          });
           return;
         }
         if (x === 'jump') {
