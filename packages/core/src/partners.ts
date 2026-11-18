@@ -7,7 +7,7 @@ import { errorResponse, json } from './http';
 // 最後一次點的連結為準）；這 30 天內結帳，訂單記上推廣人。只算「這位顧客的第一筆付款」。
 // 佣金 = （實收 − Stripe 手續費）× 分成（預設 0.5）；退款、爭議的單不算。站長月底手動結算。
 // 推廣人看自己的數據頁（私密連結，不用登入），只看得到數字，看不到顧客資料。
-// 資料庫：supabase/migrations/20261118080001_partners.sql。
+// 資料庫：supabase/migrations/20261118072434_partners.sql。
 
 export const REF_COOKIE = 'yl_ref';
 const CODE = /^[a-z0-9]{3,16}$/;
