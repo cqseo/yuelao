@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { FollowUp } from '~/components/FollowUp';
 import { uiPrefix } from '~/i18n/locale';
 import { tr } from '~/i18n/ui';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
@@ -22,6 +23,26 @@ function Reading() {
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // 追問月老要知道是哪一份解籤；網址參數不合格就不顯示追問。
+  const [selection, setSelection] = useState<{
+    stickId: number;
+    category: 'him' | 'single' | 'reunion';
+    locale: 'zh-Hant' | 'zh-Hans';
+  } | null>(null);
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const stickId = Number(p.get('stickId'));
+    const category = p.get('category');
+    const locale = p.get('locale');
+    if (
+      Number.isInteger(stickId) &&
+      stickId >= 1 &&
+      stickId <= 100 &&
+      (category === 'him' || category === 'single' || category === 'reunion') &&
+      (locale === 'zh-Hant' || locale === 'zh-Hans')
+    )
+      setSelection({ stickId, category, locale });
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -130,6 +151,7 @@ function Reading() {
           {uiPrefix() ? body.replace(/【([^】]{1,12})】/g, (_, h: string) => tr(h)) : body}
         </div>
       )}
+      {status === 'ready' && selection && <FollowUp selection={selection} />}
       {status === 'login' && (
         <p>
           {t('請先登入帳戶後查看已購內容。', '请先登录账户后查看已购内容。')}

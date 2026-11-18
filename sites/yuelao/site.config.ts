@@ -31,6 +31,14 @@ export default defineSite({
       prices: hkd(1800),
     },
     {
+      // 追問月老：買過付費解籤後，就同一件事再問一句（站長 2026-11-18 定價 HK$8，一份解籤最多 3 次）。
+      // 上線後 id 不改。
+      id: 'followup_1',
+      kind: 'followup',
+      name: '追問月老 · 一次',
+      prices: hkd(800),
+    },
+    {
       // 大殿靜心上香的高階供品：永久擁有，只換香的樣子（煙色、落花），不改籤運。
       // 價位照站長給的 item 價位（港幣固定價）。上線後 id 不改。
       id: 'incense_lotus',

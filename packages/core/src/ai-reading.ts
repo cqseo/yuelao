@@ -176,21 +176,21 @@ export function relayBaseUrl(value: unknown): string | null {
   }
 }
 
-function checkLength(text: string): string {
+function checkLength(text: string, min = 100): string {
   const t = text.trim();
-  if (t.length < 100 || t.length > 8000) throw new Error('ai_output_length');
+  if (t.length < min || t.length > 8000) throw new Error('ai_output_length');
   return t;
 }
 
 /** chat/completions 的回覆：取第一個選項的文字；沒寫完（被截斷）也算失敗。 */
-export function extractChatText(raw: unknown): string {
+export function extractChatText(raw: unknown, min = 100): string {
   if (!raw || typeof raw !== 'object') throw new Error('ai_empty');
   const choice = (raw as { choices?: unknown }).choices;
   const first = Array.isArray(choice) ? (choice[0] as Record<string, unknown> | undefined) : undefined;
   if (!first || (first.finish_reason !== undefined && first.finish_reason !== 'stop'))
     throw new Error('ai_incomplete');
   const content = (first.message as { content?: unknown } | undefined)?.content;
-  if (typeof content === 'string') return checkLength(content);
+  if (typeof content === 'string') return checkLength(content, min);
   if (Array.isArray(content))
     return checkLength(
       content
@@ -200,13 +200,14 @@ export function extractChatText(raw: unknown): string {
             : '',
         )
         .join('\n'),
+      min,
     );
   throw new Error('ai_empty');
 }
 const isUuid = (s: unknown): s is string =>
   typeof s === 'string' && /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(s);
 
-function extractText(raw: unknown): string {
+function extractText(raw: unknown, min = 100): string {
   if (!raw || typeof raw !== 'object') throw new Error('ai_empty');
   const result = raw as Record<string, unknown>;
   if (result.status !== 'completed' || !Array.isArray(result.output)) throw new Error('ai_incomplete');
@@ -226,7 +227,7 @@ function extractText(raw: unknown): string {
       }
     }
   }
-  return checkLength(chunks.join('\n'));
+  return checkLength(chunks.join('\n'), min);
 }
 
 export async function generateWithOpenAI(
@@ -271,6 +272,8 @@ export async function runModel(
   model: string,
   fetchImpl: typeof fetch = fetch,
   baseUrl: string | null = null,
+  /** 回答最少幾個字（追問的轉介回答比較短）。 */
+  minChars = 100,
 ): Promise<string> {
   if (!validKey(apiKey, !!baseUrl) || !validModel(model)) throw new Error('ai_not_configured');
   if (baseUrl) {
@@ -289,7 +292,7 @@ export async function runModel(
       signal: AbortSignal.timeout(45000),
     });
     if (!res.ok) throw new Error('ai_provider_failed');
-    return extractChatText(await res.json());
+    return extractChatText(await res.json(), minChars);
   }
   const payload = {
     model,
@@ -308,7 +311,7 @@ export async function runModel(
     signal: AbortSignal.timeout(45000),
   });
   if (!response.ok) throw new Error('ai_provider_failed');
-  return extractText(await response.json());
+  return extractText(await response.json(), minChars);
 }
 
 export function parseGenerationInput(value: unknown): ReadingGenerationInput | null {
