@@ -22,7 +22,7 @@ Worker 自己另有每個訪客 IP 一分鐘 5 個的限制（`wrangler.jsonc` �
 
 ## 開啟
 
-1. 資料庫套用 `supabase/migrations/20261118000001_guest_profiles.sql`（profiles.email 允許空值、匿名使用者也建 profile）。
+1. 資料庫套用 `supabase/migrations/20261118010553_guest_profiles.sql`（profiles.email 允許空值、匿名使用者也建 profile）。
 2. `wrangler.jsonc` 的 `GUEST_AUTH_ENABLED` 改成 `"true"`，合併上線。
 3. 用無痕視窗走一次：求籤 → 解鎖 → 應該直接到 Stripe（不經登入頁）→ 付款 → 解讀出現，下方有「綁定信箱保存」→
    到「我的」綁信箱 → 收到六位數碼 → 綁定完成 → 換一個瀏覽器用這個信箱登入，看得到那份解讀。

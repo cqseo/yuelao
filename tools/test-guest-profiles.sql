@@ -1,5 +1,5 @@
 -- Isolated ephemeral PostgreSQL integration test; never run on a hosted database.
--- 訪客帳號（20261118000001_guest_profiles）：匿名使用者也有 profile，綁信箱後同一列補上信箱。
+-- 訪客帳號（20261118010553_guest_profiles）：匿名使用者也有 profile，綁信箱後同一列補上信箱。
 do $$
 declare n int; e text;
 begin

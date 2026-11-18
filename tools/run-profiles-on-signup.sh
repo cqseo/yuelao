@@ -17,7 +17,7 @@ create role anon;
 create role authenticated;
 create role service_role;
 SQL
-for f in 20261105000001_profiles_sticks.sql 20261112150001_profiles_on_signup.sql 20261118000001_guest_profiles.sql; do
+for f in 20261105000001_profiles_sticks.sql 20261112150001_profiles_on_signup.sql 20261118010553_guest_profiles.sql; do
   docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < "supabase/migrations/$f" >/dev/null
 done
 docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < tools/test-profiles-on-signup.sql
