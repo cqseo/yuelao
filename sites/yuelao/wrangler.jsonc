@@ -69,6 +69,7 @@
     // 沒登入也能付款：按解鎖時建訪客帳號（guest-auth.ts）。站長 2026-11-18 已在 Supabase 開「Allow anonymous sign-ins」、
     // 換好「Change email address」驗證碼範本，guest_profiles 遷移已套用（docs/GUEST_CHECKOUT.md）。
     "GUEST_AUTH_ENABLED": "true",
+    "READING_PROMPT_VERSION": "2",
     "WISHES_ENABLED": "true",
     // "true" 才把願望送 OpenAI moderation 自動放行；否則一律待審，人工用 review_wish 放行。
     "WISH_AUTO_MODERATION": "false",
