@@ -24,6 +24,7 @@ import { errorResponse, json } from './http';
 import { finishGoogleLogin, startGoogleLogin } from './oauth-google';
 import { redeemPackRequest } from './pack-redemption';
 import { paidReadingResponse } from './reading';
+import { askFollowupRequest, followupStatusRequest } from './reading-followup';
 import type { SiteConfig } from './site';
 import { trackRequest } from './site-events';
 import { generateSpreadReadingRequest, spreadReadingResponse } from './spread-reading';
@@ -184,6 +185,18 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
         const ctx = context();
         const user = await getAccountUser(request, ctx.env);
         return generatePaidReadingRequest(request, ctx.supabaseService, user, ctx.env, options.stickContext);
+      },
+      /** 追問月老：這份解籤的追問狀態與已答內容。 */
+      followups: async (request: Request) => {
+        const ctx = context();
+        const user = await getAccountUser(request, ctx.env);
+        return followupStatusRequest(request, ctx.supabaseService, user, ctx.env);
+      },
+      /** 追問月老：用掉一個已付錢的名額，請月老回答。 */
+      followupAsk: async (request: Request) => {
+        const ctx = context();
+        const user = await getAccountUser(request, ctx.env);
+        return askFollowupRequest(request, ctx.supabaseService, user, ctx.env, options.stickContext);
       },
       redeem: async (request: Request) => {
         const ctx = context();

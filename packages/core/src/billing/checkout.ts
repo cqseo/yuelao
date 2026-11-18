@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AccountUser } from '../auth';
 import { errorResponse, json } from '../http';
 import { checkoutProductForCurrency, findProduct, type Locale, type SiteConfig } from '../site';
+import { followupCheckoutBlock } from '../reading-followup';
 import { parseSpread } from '../spread';
 import type { PaymentProvider } from './provider';
 
@@ -113,8 +114,8 @@ export async function createTestCheckout({
   const checkoutProduct = checkoutProductForCurrency(product, selection.currency);
   if (!checkoutProduct) return errorResponse(400, 'unsupported_currency');
   if (checkoutProduct.kind === 'subscription') return errorResponse(400, 'subscription_unavailable');
-  // The selection's shape must match the product's kind: unlocks name a stick, nothing else may.
-  if ((product.kind === 'unlock') !== (selection.stickId !== null)) {
+  // The selection's shape must match the product's kind: unlocks and follow-ups name a stick, nothing else may.
+  if ((product.kind === 'unlock' || product.kind === 'followup') !== (selection.stickId !== null)) {
     return errorResponse(400, 'invalid_product_selection');
   }
   // Spread products name exactly one drawn spread; nothing else may carry one.
@@ -137,7 +138,23 @@ export async function createTestCheckout({
   if (countError) return errorResponse(503, 'order_rate_limit_unavailable');
   if ((count ?? 0) >= 5) return errorResponse(429, 'too_many_checkout_attempts');
 
-  if (selection.stickId !== null && selection.category !== null) {
+  // 追問：要有自己的、已寫好的付費解籤，沒有未用的追問，名額（含結帳中）未滿。
+  let followupUnlock: string | null = null;
+  if (product.kind === 'followup' && selection.stickId !== null && selection.category !== null) {
+    try {
+      const check = await followupCheckoutBlock(database, user, {
+        stickId: selection.stickId,
+        category: selection.category,
+        locale: selection.locale,
+      });
+      if ('error' in check) return errorResponse(check.status, check.error);
+      followupUnlock = check.unlockId;
+    } catch {
+      return errorResponse(503, 'unlock_lookup_failed');
+    }
+  }
+
+  if (product.kind === 'unlock' && selection.stickId !== null && selection.category !== null) {
     const { data: existing, error: unlockError } = await database
       .from('unlocks')
       .select('id')
@@ -236,6 +253,7 @@ export async function createTestCheckout({
       category: selection.category,
       // 只有牌陣訂單才帶這欄，其他商品的下單不依賴它
       ...(selection.spread ? { spread: selection.spread } : {}),
+      ...(followupUnlock ? { followup_unlock: followupUnlock } : {}),
       pack_uses: product.kind === 'pack' ? product.uses : null,
       status: 'pending',
     })
@@ -250,16 +268,29 @@ export async function createTestCheckout({
   const marketPath =
     product.kind === 'unlock' ? '/market#yuelao' : product.kind === 'spread' ? '/market#tarot' : '/market';
   const prefix = selection.ui ? `/${selection.ui}` : '';
-  const returnUrl =
-    selection.from === 'market'
-      ? new URL(prefix + marketPath, siteUrl)
-      : new URL(`${prefix}/billing/return`, siteUrl);
-  if (selection.from !== 'market') returnUrl.searchParams.set('order', order.id);
-  const cancelPath = selection.from !== 'market' ? '/ritual' : marketPath;
-  const cancelUrl = new URL(prefix + cancelPath, siteUrl);
-  // The market's success and cancel pages are the same room: mark the cancel so it does not sit
-  // waiting for a payment that was never made.
-  if (selection.from === 'market') cancelUrl.searchParams.set('pay', 'cancelled');
+  let returnUrl: URL;
+  let cancelUrl: URL;
+  if (product.kind === 'followup') {
+    // 追問：付完、取消都回到那份解籤的頁面（頁面自己向伺服器確認名額）。
+    returnUrl = new URL(`${prefix}/account/reading`, siteUrl);
+    returnUrl.searchParams.set('stickId', String(selection.stickId));
+    returnUrl.searchParams.set('category', String(selection.category));
+    returnUrl.searchParams.set('locale', selection.locale);
+    cancelUrl = new URL(returnUrl);
+    returnUrl.searchParams.set('followup', 'paid');
+    cancelUrl.searchParams.set('followup', 'cancelled');
+  } else {
+    returnUrl =
+      selection.from === 'market'
+        ? new URL(prefix + marketPath, siteUrl)
+        : new URL(`${prefix}/billing/return`, siteUrl);
+    if (selection.from !== 'market') returnUrl.searchParams.set('order', order.id);
+    const cancelPath = selection.from !== 'market' ? '/ritual' : marketPath;
+    cancelUrl = new URL(prefix + cancelPath, siteUrl);
+    // The market's success and cancel pages are the same room: mark the cancel so it does not sit
+    // waiting for a payment that was never made.
+    if (selection.from === 'market') cancelUrl.searchParams.set('pay', 'cancelled');
+  }
   let checkout: { url: string; checkoutRef: string } | null = null;
   const checkoutRequest = {
     orderId: order.id,

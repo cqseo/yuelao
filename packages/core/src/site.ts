@@ -42,11 +42,22 @@ export interface SpreadProduct extends ProductBase {
   kind: 'spread';
 }
 
-export type Product = UnlockProduct | PackProduct | SubscriptionProduct | ItemProduct | SpreadProduct;
+/** 追問月老一次：針對一份已買的解籤再問一句；一份最多 3 次（reading-followup.ts）。 */
+export interface FollowupProduct extends ProductBase {
+  kind: 'followup';
+}
+
+export type Product =
+  | UnlockProduct
+  | PackProduct
+  | SubscriptionProduct
+  | ItemProduct
+  | SpreadProduct
+  | FollowupProduct;
 
 /** A product with the price resolved for one locale — what the payment provider sees. */
 export type CheckoutProduct =
-  | { id: string; kind: 'unlock' | 'pack' | 'item' | 'spread'; name: string; price: Price }
+  | { id: string; kind: 'unlock' | 'pack' | 'item' | 'spread' | 'followup'; name: string; price: Price }
   | { id: string; kind: 'subscription'; name: string; price: Price; interval: 'month' | 'year' };
 
 export function priceForLocale(product: Product, locale: Locale): Price {

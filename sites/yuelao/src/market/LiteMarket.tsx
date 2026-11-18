@@ -48,6 +48,8 @@ const PAY: Record<string, {
   title: string; note: string; consent: string; buy: string; generate: string; view: string;
   checking: string; generating: string; pending: string; verify: string; owned: string;
   cancelled: string; failed: string; login: string; storage: string; pack: string;
+  /** 追問月老的入口（付費解籤下面）。 */
+  followup: string;
 }> = {
   'zh-Hant': {
     title: '付費完整解籤', note: '完整解籤會結合你的問題，提供原典提示、現況分析、可以採取的行動等七段個人化解讀。單次港幣 HKD 付款；同一支籤與情境不重複收費。',
@@ -59,6 +61,7 @@ const PAY: Record<string, {
     cancelled: '已取消付款，這支籤仍保留。', failed: '暫時無法核對或生成。若已付款，請先查看帳戶，勿重複付款。',
     login: '請先登入，回來後會接著這支籤。', storage: '瀏覽器未能保存求籤進度，為防付款後遺失記錄，請允許工作階段儲存。',
     pack: '已有問事包？去帳戶兌換',
+    followup: '還想問月老一句？',
   },
   'zh-Hans': {
     title: '付费完整解签', note: '完整解签结合你的问题，包含原典提示、现况分析、可采取的行动等七段个性化解读。单次港币 HKD 付款；同一支签与情境不会重复收费。',
@@ -70,6 +73,7 @@ const PAY: Record<string, {
     cancelled: '已取消付款，这支签仍然保留。', failed: '暂时无法核对或生成。若已付款，请先查看账户，不要重复付款。',
     login: '请先登录，回来后继续这支签。', storage: '浏览器无法保存求签进度。请允许会话存储，以免付款返回后丢失记录。',
     pack: '已有问事包？前往账户兑换',
+    followup: '还想问月老一句？',
   },
   en: {
     title: 'Optional paid in-depth reading', note: 'Actual charge is in HKD. The same stick/category is never charged twice after unlocking.',
@@ -81,6 +85,7 @@ const PAY: Record<string, {
     cancelled: 'Checkout cancelled. Your stick is still here.', failed: 'Cannot verify or generate right now. If you paid, check your account before buying again.',
     login: 'Sign in first, then return to this stick.', storage: 'Session storage is unavailable. Enable it to keep your reading across checkout.',
     pack: 'Already have a question pack? Redeem in your account',
+    followup: 'Ask Yue Lao one more question',
   },
   ja: {
     title: '有料の詳しい解説', note: '実際の請求通貨は香港ドル（HKD）です。同じおみくじと状況は二重請求しません。',
@@ -92,6 +97,7 @@ const PAY: Record<string, {
     cancelled: 'お支払いをキャンセルしました。', failed: '一時的に確認できません。購入済みの場合は再購入しないでください。',
     login: 'ログイン後、このおみくじに戻ります。', storage: '決済後に戻るため、セッション保存を有効にしてください。',
     pack: '回数パックはアカウントから利用',
+    followup: '月下老人にもう一つ聞く',
   },
 };
 
@@ -353,6 +359,7 @@ export function LiteMarket() {
                   <div className="lite-market__deep-body">{report}</div>
                   <GuestBindHint />
                   <a href={readingHref}>{payC.view}</a>
+                  <a href={`${readingHref}#followup`}>{payC.followup}</a>
                 </>
               )}
               {canGenerate && <p>{payC.owned}</p>}

@@ -3519,6 +3519,49 @@ a.ask-entry:hover {
   margin: 1.2rem 0;
 }
 
+/* 追問月老：接在付費解籤下面，像同一張紙往下寫，不另開卡片。 */
+.followup {
+  margin: 2rem 0 1.2rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--color-gold-55);
+}
+.followup h2 {
+  margin: 0 0 0.9rem;
+  color: var(--color-gold-soft);
+  font-size: 1.15rem;
+}
+.followup-answer {
+  color: var(--color-paper);
+  line-height: 2;
+  overflow-wrap: anywhere;
+  border-left: 3px solid var(--color-gold-55);
+  padding: 0.2rem 0 0.2rem clamp(0.9rem, 3vw, 1.3rem);
+  margin: 0 0 1.4rem;
+}
+.followup-answer p {
+  margin: 0 0 0.6rem;
+}
+.followup-label {
+  color: var(--color-gold-soft);
+  font-size: 0.85rem;
+}
+.followup-redirect {
+  border-left-style: dashed;
+}
+.followup-note {
+  color: var(--color-gold-soft);
+  font-size: 0.9rem;
+}
+.followup-offer {
+  display: grid;
+  gap: 0.8rem;
+  justify-items: start;
+  color: var(--color-paper);
+}
+.followup-offer p {
+  margin: 0;
+}
+
 /* Only displayed when VITE_SITE_STAGING=true during the preview build. */
 .staging-notice {
   position: relative;
