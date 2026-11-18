@@ -7,7 +7,7 @@ import { deviceFrom } from './site-events';
 
 // 用戶意見（站長 2026-11-18）：任何人都能留一句（不用登入），只有站長在後台看得到。
 // 擋濫用：同一個 IP 每分鐘最多 5 則（與訪客帳號共用 Workers 限流，key 前綴不同）、內容長度上限、欄位白名單。
-// 資料庫：supabase/migrations/20261118090001_feedback.sql。
+// 資料庫：supabase/migrations/20261118081158_feedback.sql。
 
 export const FEEDBACK_KINDS = ['idea', 'problem', 'other'] as const;
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
