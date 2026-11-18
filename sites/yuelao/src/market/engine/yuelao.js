@@ -618,6 +618,35 @@ export function createYuelao(ui) {
         <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
       </section>`;
   }
+  /** 判詞正下方的一顆解鎖鈕（站長 2026-11-18：原本的解鎖區塊在白話與說明之後，手機上要滑好幾屏才看得到價錢）。 */
+  function inlineOffer() {
+    if (!ui.deep?.price) return '';
+    return `<div class="offer-inline-wrap">
+        <button class="offer offer-inline" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>
+        <p class="note small">七段只寫你問的這件事，寫好存在「我的」</p>
+      </div>`;
+  }
+  /** 解鎖鈕真的出現在螢幕上才記一次 offer_seen（offer_view 是面板一打開就記，不代表看到了價錢）。 */
+  let offerSeenObserver = null;
+  function watchOfferSeen() {
+    offerSeenObserver?.disconnect();
+    if (typeof IntersectionObserver === 'undefined') return;
+    const buttons = document.querySelectorAll('#card .offer[data-a="deep"]');
+    if (!buttons.length) return;
+    offerSeenObserver = new IntersectionObserver((entries) => {
+      const hit = entries.find((e) => e.isIntersecting && e.intersectionRatio >= 0.6);
+      if (!hit) return;
+      offerSeenObserver?.disconnect();
+      offerSeenObserver = null;
+      ui.emit?.('offer_seen', {
+        product: 'unlock_1',
+        source: 'yuelao',
+        where: hit.target.classList.contains('offer-inline') ? 'inline' : 'section',
+      });
+    }, { threshold: [0, 0.6] });
+    for (const b of buttons) offerSeenObserver.observe(b);
+  }
+
   function verdict() {
     if (!readingEmitted && stick) {
       readingEmitted = true;
@@ -639,8 +668,9 @@ export function createYuelao(ui) {
          <p class="p-verdict">${stick.verdict[cat]}</p>
          <span class="p-seal">月老已批</span>
        </div>
+       ${inlineOffer()}
        ${explainBlock()}
-       <p class="note small">這是文化體驗與自我整理，不代表對方的真實心意。<a href="/methodology" target="_blank" rel="noopener noreferrer">來源與解讀方法</a></p>
+       <p class="note small">這是文化體驗與自我整理，不代表對方的真實心意。<a href="/methodology" target="_blank" rel="noopener noreferrer">來源與解讀方法</a>　<a href="/feedback?from=/market" target="_blank" rel="noopener">意見回饋</a></p>
        ${unlockBlock()}
        <button type="button" class="share-btn" data-a="share">分享籤圖</button>
        <button type="button" class="share-btn" data-a="copy-link">複製這支籤的連結</button>
@@ -690,6 +720,7 @@ export function createYuelao(ui) {
       },
     );
     ui.emit?.('offer_view', { product: 'unlock_1', source: 'yuelao' });
+    watchOfferSeen();
     refreshDeep();
   }
 

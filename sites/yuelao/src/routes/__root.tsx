@@ -170,6 +170,7 @@ function Layout() {
           <Link to="/refunds">{m.common_footer_refunds()}</Link>
           <Link to="/dmca">{m.common_footer_dmca()}</Link>
           <a href={localizeHref('/llms.txt')}>{m.common_footer_llms()}</a>
+          <a href={localizeHref('/feedback')}>{getLocale() === 'en' ? 'Feedback' : getLocale() === 'ja' ? 'ご意見' : getLocale() === 'th' ? 'ข้อเสนอแนะ' : getLocale() === 'ko' ? '의견 보내기' : getLocale() === 'zh-Hans' ? '意见反馈' : '意見回饋'}</a>
           <a href={`mailto:${SUPPORT_EMAIL}`}>{m.common_footer_contact()}</a>
         </nav>
       </footer>

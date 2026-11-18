@@ -100,6 +100,7 @@ const UNTHROTTLED = new Set([
   'login',
   'checkout_start',
   'offer_view',
+  'offer_seen',
   'checkout_login_required',
   'checkout_session_created',
   'market_room_open',

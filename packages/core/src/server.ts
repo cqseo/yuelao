@@ -23,6 +23,7 @@ import { hallOfferingRequest } from './hall-offering';
 import { errorResponse, json } from './http';
 import { finishGoogleLogin, startGoogleLogin } from './oauth-google';
 import { redeemPackRequest } from './pack-redemption';
+import { adminFeedbackRequest, submitFeedbackRequest } from './feedback';
 import { adminPartnersRequest, partnerSelfRequest } from './partners';
 import { paidReadingResponse } from './reading';
 import { askFollowupRequest, followupStatusRequest } from './reading-followup';
@@ -179,6 +180,21 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
         if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase())) return errorResponse(403, 'forbidden');
         if (!ctx.supabaseService) return errorResponse(503, 'supabase_not_configured');
         return adminPartnersRequest(request, ctx.supabaseService, feeLookup(), ctx.baseURL);
+      },
+      /** 用戶意見：任何人都能留（不用登入）。 */
+      feedback: async (request: Request) => {
+        const ctx = context();
+        const user = await getAccountUser(request, ctx.env).catch(() => null);
+        return submitFeedbackRequest(request, ctx.supabaseService, user, ctx.env);
+      },
+      /** 用戶意見：站長讀取與標記。 */
+      adminFeedback: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        if (!user) return errorResponse(401, 'auth_required');
+        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase())) return errorResponse(403, 'forbidden');
+        if (!ctx.supabaseService) return errorResponse(503, 'supabase_not_configured');
+        return adminFeedbackRequest(request, ctx.supabaseService);
       },
       /** 分銷：推廣人用私密連結看自己的數據（不用登入）。 */
       partner: async (request: Request) => {

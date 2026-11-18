@@ -24,6 +24,7 @@ export const REACT_FILES = [
   'src/components/GuestBindHint.tsx',
   'src/components/FollowUp.tsx',
   'src/components/FollowUpHint.tsx',
+  'src/routes/feedback.tsx',
   'src/routes/account/reading.tsx',
   'src/routes/tests/index.tsx',
   'src/routes/tests/$slug.tsx',

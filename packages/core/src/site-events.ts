@@ -26,6 +26,27 @@ const NAME = /^[a-z][a-z0-9_]{0,39}$/;
 const MAX_EVENTS = 25;
 const MAX_BODY = 16_000;
 const BOT = /bot|crawl|spider|slurp|headless|lighthouse|preview|facebookexternalhit|embedly|pingdom|monitor/i;
+/**
+ * 機房網段（站長 2026-11-18：一週 40 位「美國訪客」幾乎都是直接打開、只看一頁就走，像是會跑 JS 的爬蟲／連結預覽）。
+ * 只列雲端主機與 Meta 的網段；Cloudflare、Akamai、Fastly 不列，iPhone 的「私密轉送」走這些，那是真人。
+ */
+const DATACENTER_ASNS = new Set([
+  16509, 14618, // Amazon AWS
+  15169, 396982, // Google / Google Cloud
+  8075, // Microsoft / Azure
+  32934, // Meta（連結預覽爬蟲）
+  14061, // DigitalOcean
+  16276, // OVH
+  24940, // Hetzner
+  63949, // Linode
+  31898, // Oracle Cloud
+  20473, // Vultr
+  45102, // Alibaba Cloud
+  132203, // Tencent Cloud
+]);
+export function fromDatacenter(asn: unknown): boolean {
+  return typeof asn === 'number' && DATACENTER_ASNS.has(asn);
+}
 
 function cleanPath(value: unknown): string | null {
   if (typeof value !== 'string' || !value.startsWith('/')) return null;
@@ -127,7 +148,8 @@ export async function trackRequest(
   const user = hasSession ? await getUser().catch(() => null) : null;
   if (user && isAdminEmail(user.email, admins)) return done;
 
-  const cf = (request as unknown as { cf?: { country?: string } }).cf;
+  const cf = (request as unknown as { cf?: { country?: string; asn?: number } }).cf;
+  if (fromDatacenter(cf?.asn)) return done;
   const country = (cf?.country ?? request.headers.get('cf-ipcountry') ?? '').toUpperCase();
   const rows = batch.events.map((e) => ({
     at: e.at,
