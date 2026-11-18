@@ -747,5 +747,9 @@
   "送出中…": "Sending…",
   "送出太頻繁，請過一分鐘再試。": "Too many messages. Please wait a minute.",
   "這份解讀說得準不準？跟我們說一聲": "Did this reading ring true? Let us know",
-  "遇到問題": "Something isn't working"
+  "遇到問題": "Something isn't working",
+  "{0}上面的判詞是這支籤的大意；完整解籤會把「{1}」放進你「{2}」的處境裡細說：這件事該往前、要等，還是放下；這幾天具體做什麼、別做什麼；對方那一邊可能在顧慮什麼。": "{0}The verdict above is the gist of this stick. The full reading places “{1}” in your situation ({2}) and goes further: whether to move forward, wait, or let go; what to do and not do in the next few days; and what the other person may be worried about.",
+  "你問的是「{0}」。": "You asked: “{0}”. ",
+  "約一千字，寫好存在「我的」，日後隨時能看；讀完還能就這件事追問月老。": "About 1,000 words, saved in your account to read any time. Afterwards you can ask Yue Lao a follow-up about the same matter.",
+  "付款即表示同意服務條款與隱私說明。": "By paying you agree to the Terms and Privacy Policy."
 }

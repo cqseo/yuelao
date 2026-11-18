@@ -289,6 +289,8 @@ export function createYuelao(ui) {
     ko: ['이 관계에 아직 기회가 있을까요?', '제가 먼저 연락해야 할까요?', '어떻게 좋은 사람을 만날 수 있을까요?'],
     th: ['ความสัมพันธ์นี้ยังมีโอกาสไหม?', 'ฉันควรติดต่อก่อนหรือไม่?', 'ทำอย่างไรจึงจะพบคนที่เหมาะสม?'],
   };
+  // 常見問法對應的處境（站長 2026-11-18 走查：點「我們還有機會嗎？」卻停在預設的「單身」，判詞會照單身寫）
+  const QUICK_SITS = ['reunion', 'crush', 'single'];
   const PICK_LINES = {
     him: '心裡有人了。那就搖吧，籤筒不會騙你。',
     single: '還沒遇到？緣分這條線，我替你找找。',
@@ -344,6 +346,12 @@ export function createYuelao(ui) {
             const pick = (QUICK_QUESTIONS[ui.locale] || QUICK_QUESTIONS['zh-Hant'])[i];
             if (pick) {
               draftQ = pick;
+              if (QUICK_SITS[i] && SITS.some((x) => x.key === QUICK_SITS[i])) {
+                sit = QUICK_SITS[i];
+                try {
+                  sessionStorage.setItem('yuelao:sit', sit);
+                } catch {}
+              }
               ui.emit?.('quick_question_click', { index: i });
               return render();
             }
@@ -606,12 +614,14 @@ export function createYuelao(ui) {
   /** 判詞下方直接接「解鎖完整解籤」：開頭一段漸淡、付款按鈕、七段目錄。 */
   function unlockBlock() {
     if (!ui.deep?.price) return '';
-    const x = STICK_PLAIN[stick.id];
-    const teaser = `${SIT_LEAD[sit] || ''}${x ? x.love : ''}${stick.verdict[cat]}`;
+    // 預覽不再重複上面已經免費看過的判詞與姻緣解讀（站長 2026-11-18 走查），改成說清楚付費多了什麼，並帶上他自己問的那句。
+    const q = draftQ.replace(/\s+/g, ' ').trim();
+    const firstLine = String(stick.poem).split('\n')[0].replace(/[，。、；！？,.]+$/, '');
+    const teaser = `${q ? `你問的是「${q}」。` : ''}上面的判詞是這支籤的大意；完整解籤會把「${firstLine}」放進你「${sitWord()}」的處境裡細說：這件事該往前、要等，還是放下；這幾天具體做什麼、別做什麼；對方那一邊可能在顧慮什麼。`;
     return `<section class="unlock" id="unlock">
         <h3>解鎖完整解籤</h3>
         <p class="deep-teaser">${esc(teaser)}</p>
-        <p class="unlock-note">這一段還沒說完。解鎖之後它會完整，另外六段只寫你問的那件事。</p>
+        <p class="unlock-note">約一千字，寫好存在「我的」，日後隨時能看；讀完還能就這件事追問月老。</p>
         <button class="offer" id="deep-btn" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>
         <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
         ${yuelaoSampleHtml()}

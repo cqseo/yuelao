@@ -55,6 +55,8 @@ const PAY: Record<string, {
   title: string; note: string; consent: string; buy: string; generate: string; view: string;
   checking: string; generating: string; pending: string; verify: string; owned: string;
   cancelled: string; failed: string; login: string; storage: string; pack: string;
+  /** 付款鈕下方的一行：付款即同意條款（勾選同意改到生成解讀那一步）。 */
+  agree: string;
   /** 追問月老的入口（付費解籤下面）。 */
   followup: string;
 }> = {
@@ -68,6 +70,7 @@ const PAY: Record<string, {
     cancelled: '已取消付款，這支籤仍保留。', failed: '暫時無法核對或生成。若已付款，請先查看帳戶，勿重複付款。',
     login: '請先登入，回來後會接著這支籤。', storage: '瀏覽器未能保存求籤進度，為防付款後遺失記錄，請允許工作階段儲存。',
     pack: '已有問事包？去帳戶兌換',
+    agree: '付款即表示同意服務條款與隱私說明。',
     followup: '還想問月老一句？',
   },
   'zh-Hans': {
@@ -80,6 +83,7 @@ const PAY: Record<string, {
     cancelled: '已取消付款，这支签仍然保留。', failed: '暂时无法核对或生成。若已付款，请先查看账户，不要重复付款。',
     login: '请先登录，回来后继续这支签。', storage: '浏览器无法保存求签进度。请允许会话存储，以免付款返回后丢失记录。',
     pack: '已有问事包？前往账户兑换',
+    agree: '付款即表示同意服务条款与隐私说明。',
     followup: '还想问月老一句？',
   },
   en: {
@@ -92,6 +96,7 @@ const PAY: Record<string, {
     cancelled: 'Checkout cancelled. Your stick is still here.', failed: 'Cannot verify or generate right now. If you paid, check your account before buying again.',
     login: 'Sign in first, then return to this stick.', storage: 'Session storage is unavailable. Enable it to keep your reading across checkout.',
     pack: 'Already have a question pack? Redeem in your account',
+    agree: 'By paying you agree to the Terms and Privacy Policy.',
     followup: 'Ask Yue Lao one more question',
   },
   ja: {
@@ -104,6 +109,7 @@ const PAY: Record<string, {
     cancelled: 'お支払いをキャンセルしました。', failed: '一時的に確認できません。購入済みの場合は再購入しないでください。',
     login: 'ログイン後、このおみくじに戻ります。', storage: '決済後に戻るため、セッション保存を有効にしてください。',
     pack: '回数パックはアカウントから利用',
+    agree: 'お支払いにより利用規約とプライバシーポリシーに同意したものとみなします。',
     followup: '月下老人にもう一つ聞く',
   },
 };
@@ -198,7 +204,7 @@ export function LiteMarket() {
   };
 
   async function buy() {
-    if (!result || busy || inFlight.current || payment !== 'none' || !consent || !price) return;
+    if (!result || busy || inFlight.current || payment !== 'none' || !price) return;
     inFlight.current = true;
     setBusy(true);
     setMessage('');
@@ -305,7 +311,8 @@ export function LiteMarket() {
   const checking = payment === 'checking' || payment === 'generating';
   const canPurchase = payment === 'none';
   const canGenerate = payment === 'unlocked';
-  const showConsent = canPurchase || canGenerate;
+  // 勾選同意只在生成解讀時（那一步才把問題送去解讀服務）；付款不用先勾（站長 2026-11-18 走查：按鈕看起來像灰掉）。
+  const showConsent = canGenerate;
 
   return (
     <main className="lite-market">
@@ -416,6 +423,22 @@ export function LiteMarket() {
                     disabled={!consent || busy || !price}
                     onClick={() => void (canGenerate ? generate() : buy())}
                   >{canGenerate ? payC.generate : payC.buy + ' · ' + price}</button>
+                </>
+              )}
+              {canPurchase && (
+                <>
+                  <button
+                    className="lite-market__pay"
+                    type="button"
+                    disabled={busy || !price}
+                    onClick={() => void buy()}
+                  >{`${payC.buy} · ${price}`}</button>
+                  <p className="lite-market__agree">
+                    {payC.agree}{' '}
+                    <a href={localizeHref('/terms')} target="_blank" rel="noopener noreferrer">Terms</a>
+                    {' · '}
+                    <a href={localizeHref('/privacy')} target="_blank" rel="noopener noreferrer">Privacy</a>
+                  </p>
                 </>
               )}
               {(payment === 'pending' || payment === 'error') && (

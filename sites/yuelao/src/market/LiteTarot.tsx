@@ -34,6 +34,7 @@ const COPY = {
     check: '正在核對購買紀錄…', waiting: '付款尚未確認，不用再付款；可稍後重查。',
     cancelled: '已取消付款。牌面已保留，沒有扣款。', error: '暫時無法完成，若已付款請勿重複下單，可稍後重查。',
     login: '繼續付款前需要登入，登入後會回到這三張牌。', store: '無法保存此牌陣的會話資料。為免付款後遺失，請允許瀏覽器工作階段儲存。',
+    agree: '付款即表示同意服務條款與隱私說明。',
     retry: '重新核對狀態', market: '體驗 3D 塔羅館', back: '回首頁', note: '牌義用於文化體驗與自我反思，不代表對方的真實心意或未來。',
   },
   'zh-Hans': {
@@ -46,6 +47,7 @@ const COPY = {
     check: '正在核对购买记录…', waiting: '付款尚未确认，请不要重复付款；可稍后核对。',
     cancelled: '已取消付款。牌面已保留，没有扣款。', error: '暂时无法完成。如果已付款请勿重复下单，可稍后重查。',
     login: '付款前需要登录，登录后会回到这三张牌。', store: '浏览器无法保存本次牌阵，为免付款返回后丢失，请允许会话存储。',
+    agree: '付款即表示同意服务条款与隐私说明。',
     retry: '重新核对状态', market: '体验 3D 塔罗馆', back: '返回首页', note: '牌义仅供文化体验与自我反思，不代表对方真实心意或未来。',
   },
 };
@@ -240,7 +242,7 @@ export function LiteTarot() {
   };
 
   async function buy() {
-    if (!result || !key || !PRODUCT || access !== 'none' || !consent || busy || pendingRef.current) return;
+    if (!result || !key || !PRODUCT || access !== 'none' || busy || pendingRef.current) return;
     if (!saveLiteTarotPending({ ...result, why: 'login' })) {
       setMessage(c.store); return;
     }
@@ -406,7 +408,20 @@ export function LiteTarot() {
                 <><p>{c.owned}</p><div className="lite-market__deep-body">{body}</div><GuestBindHint /></>
               )}
               {access === 'unlocked' && <p>{c.owned}</p>}
-              {(access === 'none' || access === 'unlocked') && (
+              {access === 'none' && (
+                <>
+                  <button className="lite-market__pay" type="button" disabled={busy || !price} onClick={() => void buy()}>
+                    {c.buy + ' · ' + price}
+                  </button>
+                  <p className="lite-market__agree">
+                    {c.agree}{' '}
+                    <a href={localizeHref('/terms')} target="_blank" rel="noopener noreferrer">Terms</a>{' · '}
+                    <a href={localizeHref('/privacy')} target="_blank" rel="noopener noreferrer">Privacy</a>
+                  </p>
+                </>
+              )}
+              {/* 勾選同意只在生成解讀時（那一步才把問題送去解讀服務）；付款不用先勾 */}
+              {access === 'unlocked' && (
                 <>
                   <label className="lite-market__consent">
                     <input type="checkbox" checked={consent} disabled={busy}
@@ -416,11 +431,10 @@ export function LiteTarot() {
                       <a href={localizeHref('/privacy')} target="_blank" rel="noopener noreferrer">Privacy</a>
                     </span>
                   </label>
-                  <button className="lite-market__pay" type="button" disabled={!consent || busy || !price}
-                    onClick={() => void (access === 'unlocked' ? generate() : buy())}>
-                    {access === 'unlocked' ? c.generate : c.buy + ' · ' + price}
+                  <button className="lite-market__pay" type="button" disabled={!consent || busy}
+                    onClick={() => void generate()}>
+                    {c.generate}
                   </button>
-                  {access === 'none' && <p className="lite-market__note">{c.login}</p>}
                 </>
               )}
               {(access === 'error' || access === 'pending') && (
