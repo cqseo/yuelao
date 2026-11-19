@@ -1,5 +1,5 @@
 -- Isolated ephemeral PostgreSQL integration test; never run on a hosted database.
--- 算命攤（20261119070001）：match: 識別字串走同一套牌陣解鎖；格式不對的仍然擋下。
+-- 算命攤（20261119063400）：match: 識別字串走同一套牌陣解鎖；格式不對的仍然擋下。
 insert into auth.users(id) values ('00000000-0000-4000-8000-0000000000f1') on conflict do nothing;
 insert into public.profiles(id,email) values ('00000000-0000-4000-8000-0000000000f1','fortune@example.invalid')
   on conflict do nothing;
