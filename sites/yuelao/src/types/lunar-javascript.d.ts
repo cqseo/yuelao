@@ -14,6 +14,13 @@ declare module 'lunar-javascript' {
   interface SolarDay {
     getLunar(): Lunar;
   }
+  export const Lunar: {
+    /** 閏月用負數月份（閏五月 = -5）；日期不存在會丟錯。 */
+    fromYmd(year: number, month: number, day: number): { getSolar(): { toYmd(): string } };
+  };
+  export const LunarYear: {
+    fromYear(year: number): { getLeapMonth(): number };
+  };
   export const Solar: {
     fromYmd(year: number, month: number, day: number): SolarDay;
     fromYmdHms(

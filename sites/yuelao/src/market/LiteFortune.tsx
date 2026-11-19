@@ -44,8 +44,6 @@ import { liteRequest } from './lite-billing';
 import { saveLiteFortunePending, takeLiteFortunePending } from './lite-fortune-pending';
 import './lite-market.css';
 
-const DATE_WORDS = { y: '年', m: '月', d: '日' };
-
 // 輕量算命攤．合緣配對：3D 載不起來、或從輕量版付款回來時用。
 // 和 3D 算命攤同一套伺服器（/api/account/spread、/api/billing/checkout 的 match_1）。生日只在本機。
 
@@ -516,24 +514,24 @@ export function LiteFortune() {
           <p className="lm__lead">
             {mode === 'bazi'
               ? t(
-                  '填你的國曆生日（知道時辰更準），排出四柱八字、五行、夫妻宮與今年感情運。以立春換年、節氣換月；生日只在這台裝置裡算，不會送出。',
-                  '填你的公历生日（知道时辰更准），排出四柱八字、五行、夫妻宫与今年感情运。以立春换年、节气换月；生日只在这台设备里算，不会发送。',
+                  '填你的生日（公曆、農曆都可以；知道時辰更準），排出四柱八字、五行、夫妻宮與今年感情運。以立春換年、節氣換月；生日只在這台裝置裡算，不會送出。',
+                  '填你的生日（公历、农历都可以；知道时辰更准），排出四柱八字、五行、夫妻宫与今年感情运。以立春换年、节气换月；生日只在这台设备里算，不会发送。',
                 )
               : mode === 'love'
                 ? t(
-                    '填你的國曆生日，排出你的桃花、紅鸞、天喜和今年的感情運。生肖以立春換年；生日只在這台裝置裡算，不會送出。',
-                    '填你的公历生日，排出你的桃花、红鸾、天喜和今年的感情运。生肖以立春换年；生日只在这台设备里算，不会发送。',
+                    '填你的生日（公曆、農曆都可以），排出你的桃花、紅鸞、天喜和今年的感情運。生肖以立春換年；生日只在這台裝置裡算，不會送出。',
+                    '填你的生日（公历、农历都可以），排出你的桃花、红鸾、天喜和今年的感情运。生肖以立春换年；生日只在这台设备里算，不会发送。',
                   )
                 : t(
-                    '填你和對方的國曆生日，看生肖合沖與星座元素。生肖以立春換年；生日只在這台裝置裡算，不會送出。',
-                    '填你和对方的公历生日，看生肖合冲与星座元素。生肖以立春换年；生日只在这台设备里算，不会发送。',
+                    '填你和對方的生日（公曆、農曆都可以），看生肖合沖與星座元素。生肖以立春換年；生日只在這台裝置裡算，不會送出。',
+                    '填你和对方的生日（公历、农历都可以），看生肖合冲与星座元素。生肖以立春换年；生日只在这台设备里算，不会发送。',
                   )}
           </p>
           <div className={mode === 'love' ? 'lm__dates is-one' : 'lm__dates'}>
             <DateSelect
               label={t('你的生日', '你的生日')}
               value={you}
-              words={DATE_WORDS}
+              hans={hans}
               disabled={locked}
               onChange={(v) => {
                 setYou(v);
@@ -544,7 +542,7 @@ export function LiteFortune() {
               <DateSelect
                 label={t('對方的生日', '对方的生日')}
                 value={them}
-                words={DATE_WORDS}
+                hans={hans}
                 disabled={locked}
                 onChange={(v) => {
                   setThem(v);

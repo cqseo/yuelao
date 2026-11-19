@@ -1,7 +1,7 @@
 import { type BaziInput, type BaziTopic, baziIds, type Gender, type Pillar } from '@yuelao/core/bazi';
 import { loveIds } from '@yuelao/core/love';
 import { type MatchPerson, matchIds, signOf } from '@yuelao/core/match';
-import { Solar } from 'lunar-javascript';
+import { Lunar, LunarYear, Solar } from 'lunar-javascript';
 
 // 算命攤．合緣配對：生日 → 生肖（以立春換年，用萬年曆）與星座。只在瀏覽器裡算，生日不送出。
 // 萬年曆檔案不小，只在算命攤按「合一合」時才載入（engine/fortune.js 動態 import）。
@@ -127,4 +127,30 @@ export function reportYear(now = new Date()): number {
   const flow = flowYear(now);
   const m = now.getMonth() + 1;
   return m >= 10 || flow < now.getFullYear() ? flow + 1 : flow;
+}
+
+/**
+ * 農曆生日換成公曆（YYYY-MM-DD）。leap：閏月。日期不存在（例如那年沒有閏這個月、那個月只有 29 天）回 null。
+ * 2026-11-19：很多人只記得農曆生日，填錯曆法生肖、星座、八字都會跟著錯。
+ */
+export function lunarToSolar(year: number, month: number, day: number, leap = false): string | null {
+  if (year < 1901 || year > 2099 || month < 1 || month > 12 || day < 1 || day > 30) return null;
+  try {
+    if (leap && LunarYear.fromYear(year).getLeapMonth() !== month) return null;
+    const ymd = Lunar.fromYmd(year, leap ? -month : month, day)
+      .getSolar()
+      .toYmd();
+    return personOf(ymd) ? ymd : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 某年有沒有閏月、閏幾月（0 = 沒有）。 */
+export function leapMonthOf(year: number): number {
+  try {
+    return LunarYear.fromYear(year).getLeapMonth();
+  } catch {
+    return 0;
+  }
 }

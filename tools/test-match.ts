@@ -171,3 +171,18 @@ assert.equal((await buy('match_1', `lnm:15,19,07|${h}`)).status, 400, 'match pri
 assert.equal((await buy('spread_1', `lnm:15,19,07|${h}`)).status, 201);
 assert.match(successUrl, /\/market#tarot$/);
 console.log('PASS: each spread product only buys its own kind and returns to its own room');
+
+// 農曆生日換公曆（2026-11-19）
+{
+  const { lunarToSolar, leapMonthOf, personOf: p } = await import('../sites/yuelao/src/ritual/match');
+  assert.equal(lunarToSolar(1990, 6, 18), '1990-08-08');
+  assert.equal(leapMonthOf(1990), 5);
+  assert.equal(lunarToSolar(1990, 5, 1, true), '1990-06-23', '閏五月初一');
+  assert.equal(lunarToSolar(1990, 3, 1, true), null, '1990 has no leap 3rd month');
+  assert.equal(lunarToSolar(1990, 1, 30), null, '1990 正月 has 29 days');
+  // 農曆臘月出生、公曆已到下一年：生肖照立春算
+  const s = lunarToSolar(1994, 12, 23);
+  assert.equal(s, '1995-01-23');
+  assert.equal(p(s!)?.zodiac, 11, 'still 狗 before 立春');
+  console.log('PASS: lunar birthdays convert to solar, leap months and missing days are caught');
+}

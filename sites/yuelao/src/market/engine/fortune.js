@@ -103,27 +103,64 @@ const BAZI_SECTIONS = [
 ];
 const THIS_YEAR = new Date().getFullYear();
 /** 生日用年、月、日三個下拉：安卓的日期選擇器預設停在今天，往回翻幾十年很累。 */
-function dateFields(id, value, label) {
-  const [y, m, d] = (value || '--').split('-');
-  const opts = (from, to, cur, unit, step = 1) => {
-    const out = [];
-    for (let v = from; step > 0 ? v <= to : v >= to; v += step)
-      out.push(`<option value="${v}"${Number(cur) === v ? ' selected' : ''}>${v}${unit}</option>`);
-    return out.join('');
-  };
-  return `<fieldset class="dsel" id="${id}"><legend>${label}</legend>
-    <select data-p="y" aria-label="${label}．年"><option value="">年</option>${opts(THIS_YEAR, 1930, y, '', -1)}</select>
-    <select data-p="m" aria-label="${label}．月"><option value="">月</option>${opts(1, 12, m, '月')}</select>
-    <select data-p="d" aria-label="${label}．日"><option value="">日</option>${opts(1, 31, d, '日')}</select>
+const LUNAR_MONTHS = [
+  '正月',
+  '二月',
+  '三月',
+  '四月',
+  '五月',
+  '六月',
+  '七月',
+  '八月',
+  '九月',
+  '十月',
+  '冬月',
+  '臘月',
+];
+const LUNAR_DAYS = Array.from({ length: 30 }, (_, i) => {
+  const n = i + 1;
+  if (n <= 10) return `初${'一二三四五六七八九十'[n - 1]}`;
+  if (n < 20) return `十${'一二三四五六七八九'[n - 11]}`;
+  if (n === 20) return '二十';
+  if (n < 30) return `廿${'一二三四五六七八九'[n - 21]}`;
+  return '三十';
+});
+/** raw：{ cal: 's'|'l', y, m, d, leap }；公曆或農曆（2026-11-19 加農曆，農曆在按下時換成公曆）。 */
+function dateFields(id, raw, label) {
+  const l = raw.cal === 'l';
+  const opts = (list, cur) =>
+    list
+      .map(([v, t]) => `<option value="${v}"${String(cur) === String(v) ? ' selected' : ''}>${t}</option>`)
+      .join('');
+  const years = [];
+  for (let v = THIS_YEAR; v >= 1930; v--) years.push([v, v]);
+  const months = Array.from({ length: 12 }, (_, i) => [i + 1, l ? LUNAR_MONTHS[i] : `${i + 1}月`]);
+  const days = Array.from({ length: l ? 30 : 31 }, (_, i) => [i + 1, l ? LUNAR_DAYS[i] : `${i + 1}日`]);
+  return `<fieldset class="dsel" id="${id}"><legend>${label}
+      <select data-p="c" class="cal" aria-label="${label}．曆法"><option value="s"${l ? '' : ' selected'}>公曆</option><option value="l"${l ? ' selected' : ''}>農曆</option></select></legend>
+    <select data-p="y" aria-label="${label}．年"><option value="">年</option>${opts(years, raw.y)}</select>
+    <select data-p="m" aria-label="${label}．月"><option value="">月</option>${opts(months, raw.m)}</select>
+    <select data-p="d" aria-label="${label}．日"><option value="">日</option>${opts(days, raw.d)}</select>
+    ${l ? `<label class="leap"><input type="checkbox" data-p="leap"${raw.leap ? ' checked' : ''}> 閏月</label>` : ''}
   </fieldset>`;
 }
-function readDate(id) {
+function readRaw(id) {
   const box = document.getElementById(id);
   if (!box) return null;
   const get = (p) => box.querySelector(`[data-p="${p}"]`)?.value || '';
-  const [y, m, d] = [get('y'), get('m'), get('d')];
-  return y && m && d ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : '';
+  return {
+    cal: get('c') === 'l' ? 'l' : 's',
+    y: get('y'),
+    m: get('m'),
+    d: get('d'),
+    leap: !!box.querySelector('[data-p="leap"]')?.checked,
+  };
 }
+const rawOf = (date) => {
+  const [y, m, d] = (date || '--').split('-');
+  return { cal: 's', y: y || '', m: m ? String(Number(m)) : '', d: d ? String(Number(d)) : '', leap: false };
+};
+const solarOf = (r) => (r.y && r.m && r.d ? `${r.y}-${r.m.padStart(2, '0')}-${r.d.padStart(2, '0')}` : '');
 const TOPIC_WORD = { love: '感情', career: '事業', wealth: '財運', year: '年運' };
 /** 年運看哪一年：10 月起看下一年（和 ritual/match.ts 的 reportYear 一致）。 */
 const yearLabel = () => {
@@ -308,6 +345,9 @@ export function createFortune(ui) {
   let sit = 'dating';
   let question = '';
   let keep = false; // 在這台裝置記住我的生日
+  let rawYou = rawOf(''); // 下拉的原始值（可能是農曆）
+  let rawThem = rawOf('');
+  let lunarNote = ''; // 農曆換算後的公曆，結果頁給人確認
   let mode = 'match'; // 'match' 合緣配對｜'love' 個人姻緣盤｜'bazi' 八字命盤
   let hour = null; // 時辰 0–11，不知道是 null
   let gender = 'n'; // 'f'｜'m'｜'n'（不說）
@@ -352,10 +392,10 @@ export function createFortune(ui) {
              ).join('')}</div>`
            : ''
        }
-       <p class="note small">${solo() ? '填你的國曆生日' : '填兩個人的國曆生日'}${mode === 'bazi' ? '，知道出生時辰更準' : ''}。生肖以立春換年；日期只在你這台手機或電腦裡算，不會送出。</p>
+       <p class="note small">${solo() ? '填你的生日' : '填兩個人的生日'}（公曆、農曆都可以）${mode === 'bazi' ? '，知道出生時辰更準' : ''}。生肖以立春換年；日期只在你這台手機或電腦裡算，不會送出。</p>
        <div class="fortune-form${mode === 'love' ? ' one' : ''}">
-         ${dateFields('f-you', you, '你的生日')}
-         ${mode === 'match' ? dateFields('f-them', them, '對方的生日') : ''}
+         ${dateFields('f-you', rawYou, '你的生日')}
+         ${mode === 'match' ? dateFields('f-them', rawThem, '對方的生日') : ''}
          ${
            mode === 'bazi'
              ? `<label><span>出生時辰</span><select id="f-hour"><option value="">不知道</option>${HOURS.map((h, i) => `<option value="${i}"${hour === i ? ' selected' : ''}>${h}</option>`).join('')}</select></label>`
@@ -417,6 +457,17 @@ export function createFortune(ui) {
       },
       true,
     );
+    // 換曆法：月、日的意思不同，清掉重選（年保留）
+    for (const id of ['f-you', 'f-them']) {
+      const c = document.querySelector(`#${id} [data-p="c"]`);
+      if (c)
+        c.onchange = () => {
+          read();
+          const r = id === 'f-you' ? rawYou : rawThem;
+          Object.assign(r, { cal: c.value === 'l' ? 'l' : 's', m: '', d: '', leap: false });
+          form();
+        };
+    }
     const ta = document.getElementById('f-q');
     if (ta)
       ta.oninput = () => {
@@ -426,10 +477,10 @@ export function createFortune(ui) {
       };
   }
   function read() {
-    const y = readDate('f-you');
-    if (y !== null) you = y;
-    const th = readDate('f-them');
-    if (th !== null) them = th;
+    const ry = readRaw('f-you');
+    if (ry) rawYou = ry;
+    const rt = readRaw('f-them');
+    if (rt) rawThem = rt;
     const k = document.getElementById('f-keep');
     if (k) keep = k.checked;
     const hs = document.getElementById('f-hour');
@@ -464,7 +515,30 @@ export function createFortune(ui) {
     return !!key;
   }
 
+  /** 下拉 → 公曆日期；農曆在這裡換算。不存在的日期回 null。 */
+  async function toSolar(r) {
+    if (!(r.y && r.m && r.d)) return '';
+    if (r.cal === 's') return solarOf(r);
+    const m = await loadMatch();
+    return m.lunarToSolar(Number(r.y), Number(r.m), Number(r.d), r.leap);
+  }
   async function go() {
+    // 從結果頁互推過來時沒有表單：沿用已換好的公曆
+    if (document.getElementById('f-you')) {
+      const sy = await toSolar(rawYou);
+      const st = mode === 'match' ? await toSolar(rawThem) : '';
+      if (sy === null || st === null)
+        return form('這個農曆日期不存在（那個月可能只有 29 天，或那年沒有這個閏月）。');
+      you = sy;
+      if (mode === 'match') them = st;
+      const fmt = (d) => d.split('-').map(Number).join('/');
+      lunarNote = [
+        rawYou.cal === 'l' && sy ? `你的農曆生日 = 公曆 ${fmt(sy)}` : '',
+        mode === 'match' && rawThem.cal === 'l' && st ? `對方的農曆生日 = 公曆 ${fmt(st)}` : '',
+      ]
+        .filter(Boolean)
+        .join('；');
+    }
     if (!you) return form('先填你的生日。');
     if (mode === 'match' && !them) return form('兩個人的生日都要填。');
     state = 'turning';
@@ -538,7 +612,7 @@ export function createFortune(ui) {
       )
       .join('');
     ui.panel(
-      `<div class="reading match">
+      `<div class="reading match">${lunarNote ? `<p class="note small lunar-note">${esc(lunarNote)}</p>` : ''}
         <p class="asked">${question ? `問．${esc(question)}` : '我的姻緣盤'}<span>${sitWord()}</span></p>
         ${api?.lovePrice ? `<button type="button" class="jump-unlock" data-a="jump">想看桃花、紅鸞、流年連起來怎麼走？完整解讀 ${api.lovePrice} ↓</button>` : ''}
         <div class="match-pair">
@@ -624,7 +698,7 @@ export function createFortune(ui) {
         `<li><span>${e}</span><i style="width:${Math.round((c.counts[e] / max) * 100)}%"></i><b>${c.counts[e]}</b></li>`,
     ).join('');
     ui.panel(
-      `<div class="reading match">
+      `<div class="reading match">${lunarNote ? `<p class="note small lunar-note">${esc(lunarNote)}</p>` : ''}
         <p class="asked">${question ? `問．${esc(question)}` : topic === 'year' ? `我的 ${c.flow} 年運` : `我的八字．${TOPIC_WORD[topic]}`}<span>${sitWord()}</span></p>
         ${baziPrice() ? `<button type="button" class="jump-unlock" data-a="jump">想看完整${topic === 'year' ? '年運報告' : '解讀'}？${baziPrice()} ↓</button>` : ''}
         <div class="pillars">${cols}</div>
@@ -667,6 +741,7 @@ export function createFortune(ui) {
       question = '';
       if (mode === 'match') {
         them = '';
+        rawThem = rawOf('');
         say('把對方的生日給我。');
         return form();
       }
@@ -733,6 +808,7 @@ export function createFortune(ui) {
     if (x === 'leave') return ui.leave();
     question = '';
     them = '';
+    rawThem = rawOf('');
     form();
   }
 
@@ -762,7 +838,7 @@ export function createFortune(ui) {
     const r = result;
     say(`${r.title}。${TITLE_TEXT[r.title].split('。')[0]}。`);
     ui.panel(
-      `<div class="reading match">
+      `<div class="reading match">${lunarNote ? `<p class="note small lunar-note">${esc(lunarNote)}</p>` : ''}
         <p class="asked">${question ? `問．${esc(question)}` : '合緣'}<span>${sitWord()}</span></p>
         ${api?.price ? `<button type="button" class="jump-unlock" data-a="jump">想看你們合起來怎麼走？完整合緣 ${api.price} ↓</button>` : ''}
         <div class="match-pair">
@@ -774,7 +850,7 @@ export function createFortune(ui) {
         <p>${TITLE_TEXT[r.title]}</p>
         <article><p class="kicker">生肖．${ZODIAC_RELATION_NAME[r.zodiac]}</p><p>${ZODIAC_RELATION_TEXT[r.zodiac]}</p></article>
         <article><p class="kicker">星座．${SIGN_RELATION_NAME[r.sign]}</p><p>${signRelationText(r)}</p></article>
-        <p class="note small">生肖以立春換年，星座依國曆生日。合緣屬文化習俗與自我反思，不代表現實預測，也不能決定一段關係。</p>
+        <p class="note small">生肖以立春換年，星座依公曆生日。合緣屬文化習俗與自我反思，不代表現實預測，也不能決定一段關係。</p>
         ${unlockBlock()}
        </div>
        <button type="button" class="share-btn" data-a="share">存成合緣卡</button>
@@ -977,6 +1053,9 @@ export function createFortune(ui) {
         gender = back.gender || 'n';
         you = back.you;
         them = back.them;
+        rawYou = rawOf(you);
+        rawThem = rawOf(them);
+        lunarNote = '';
         question = back.question;
         sit = back.sit;
         void compute().then((ok) => {
@@ -1002,6 +1081,7 @@ export function createFortune(ui) {
         you = saved;
         keep = true;
       }
+      rawYou = rawOf(you);
       form();
       say('來合一合。把你和對方的生日給我。');
     },
