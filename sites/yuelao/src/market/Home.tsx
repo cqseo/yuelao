@@ -40,15 +40,20 @@ const QUICK_ACTION_COPY = {
   },
 } as const;
 
+// 頂欄只放最常用的幾個（2026-11-19 站長：鋪子變多後太擠）。各館入口在首屏「還有」與下方「鋪子一覽」。
+// wide：手機上收起，只留求籤、鋪子一覽、我的。
 const NAV = [
-  { to: '/market#enter', label: () => m.home_market_nav_market(), hard: true },
   // 首頁主導覽直接進入沉浸式 3D 殿堂；輕量模式僅由明確標示的快速入口開啟。
   { to: '/market#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
-  { to: '/market#tarot', label: () => m.home_market_room_tarot(), hard: true },
-  { to: '/market#bazi', label: () => m.home_market_room_bazi(), hard: true },
-  { to: '/market#caishen', label: () => m.home_market_room_caishen(), hard: true },
-  { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true },
-  { to: '/tests', label: () => m.home_market_nav_tests() },
+  { to: '#mh-rooms', label: () => m.home_nav_shops(), hard: true, anchor: true },
+  { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true, wide: true },
+  { to: '/tests', label: () => m.home_market_nav_tests(), wide: true },
+] as { to: string; label: () => string; hard?: boolean; anchor?: boolean; wide?: boolean }[];
+
+/** 首屏兩張大卡下面的小入口：新開的鋪子。 */
+const MORE = [
+  { hash: 'bazi', name: () => m.home_market_room_bazi(), hint: () => m.home_more_bazi_hint() },
+  { hash: 'caishen', name: () => m.home_market_room_caishen(), hint: () => m.home_more_caishen_hint() },
 ];
 
 const ROOMS = [
@@ -113,16 +118,34 @@ const TOPICS = [
 const INDEX_COPY: Record<string, { name: string; desc: string }> = {
   'zh-Hant': { name: '查看月老靈籤100首', desc: '依籤號查原文、吉凶及感情情境解讀。' },
   'zh-Hans': { name: '查看月老灵签100首', desc: '按签号查原文、吉凶及感情情境解读。' },
-  en: { name: 'Browse all 100 Yue Lao sticks', desc: 'Read the verses, grades and relationship interpretations.' },
+  en: {
+    name: 'Browse all 100 Yue Lao sticks',
+    desc: 'Read the verses, grades and relationship interpretations.',
+  },
   ja: { name: '月老おみくじ全100首を見る', desc: '番号から詩の原文・吉凶・恋愛解説を確認。' },
 };
 const indexCopy = () => INDEX_COPY[getLocale()] ?? INDEX_COPY.en!;
 
 const WAYS = [
   { to: '/signs', hard: false, name: () => indexCopy().name, desc: () => indexCopy().desc },
-  { to: '/market#yuelao', hard: true, name: () => m.home_market_way_ritual(), desc: () => m.home_market_way_ritual_desc() },
-  { to: '/daily', hard: false, name: () => m.home_market_way_daily(), desc: () => m.home_market_way_daily_desc() },
-  { to: '/tests', hard: false, name: () => m.home_market_way_tests(), desc: () => m.home_market_way_tests_desc() },
+  {
+    to: '/market#yuelao',
+    hard: true,
+    name: () => m.home_market_way_ritual(),
+    desc: () => m.home_market_way_ritual_desc(),
+  },
+  {
+    to: '/daily',
+    hard: false,
+    name: () => m.home_market_way_daily(),
+    desc: () => m.home_market_way_daily_desc(),
+  },
+  {
+    to: '/tests',
+    hard: false,
+    name: () => m.home_market_way_tests(),
+    desc: () => m.home_market_way_tests_desc(),
+  },
 ];
 
 export function Home() {
@@ -151,11 +174,15 @@ export function Home() {
         <nav className="mh-nav" aria-label={m.home_market_nav_label()}>
           {NAV.map((n) =>
             n.hard ? (
-              <a key={n.to} href={localizeHref(n.to)}>
+              <a
+                key={n.to}
+                href={n.anchor ? n.to : localizeHref(n.to)}
+                className={n.wide ? 'mh-nav-wide' : undefined}
+              >
                 {n.label()}
               </a>
             ) : (
-              <Link key={n.to} to={localizeHref(n.to)}>
+              <Link key={n.to} to={localizeHref(n.to)} className={n.wide ? 'mh-nav-wide' : undefined}>
                 {n.label()}
               </Link>
             ),
@@ -186,7 +213,9 @@ export function Home() {
               >
                 <strong>{quick.ritual}</strong>
                 <small>{quick.ritualHint}</small>
-                <span className="mh-quick-arrow" aria-hidden="true">→</span>
+                <span className="mh-quick-arrow" aria-hidden="true">
+                  →
+                </span>
               </a>
               <a
                 className="mh-quick-card mh-quick-card--tarot"
@@ -196,7 +225,9 @@ export function Home() {
               >
                 <strong>{quick.tarot}</strong>
                 <small>{quick.tarotHint}</small>
-                <span className="mh-quick-arrow" aria-hidden="true">→</span>
+                <span className="mh-quick-arrow" aria-hidden="true">
+                  →
+                </span>
               </a>
             </div>
             <div className="mh-fast-actions" aria-label={quick.fastRitual + ' / ' + quick.fastTarot}>
@@ -214,6 +245,20 @@ export function Home() {
               >
                 {quick.fastTarot} <span aria-hidden="true">→</span>
               </a>
+            </div>
+            <div className="mh-more">
+              <span>{m.home_more_label()}</span>
+              {MORE.map((x) => (
+                <a
+                  key={x.hash}
+                  href={localizeHref(`/market#${x.hash}`)}
+                  data-rybbit-event={`home_more_${x.hash}`}
+                  onClick={() => track('home_quick_entry_click', { destination: x.hash, mode: '3d' })}
+                >
+                  <b>{x.name()}</b>
+                  <small>{x.hint()}</small>
+                </a>
+              ))}
             </div>
             <div className="mh-hero-aux">
               <a
@@ -269,7 +314,9 @@ export function Home() {
                 >
                   <h3>{topic.title()}</h3>
                   <p>{topic.desc()}</p>
-                  <span className="mh-topic-action">{m.home_market_way_ritual()} <span aria-hidden="true">→</span></span>
+                  <span className="mh-topic-action">
+                    {m.home_market_way_ritual()} <span aria-hidden="true">→</span>
+                  </span>
                 </a>
               </li>
             ))}
@@ -282,9 +329,15 @@ export function Home() {
           <p>{m.home_sticks_body_1()}</p>
           <p>{m.home_sticks_body_2()}</p>
           <div className="mh-signs-links">
-            <Link to={localizeHref('/signs')}>{indexCopy().name} <span aria-hidden="true">→</span></Link>
-            <Link to={localizeHref('/sign/1')}>{m.home_sticks_cta()} <span aria-hidden="true">→</span></Link>
-            <Link to={localizeHref('/methodology')}>{m.home_faq_q6()} <span aria-hidden="true">→</span></Link>
+            <Link to={localizeHref('/signs')}>
+              {indexCopy().name} <span aria-hidden="true">→</span>
+            </Link>
+            <Link to={localizeHref('/sign/1')}>
+              {m.home_sticks_cta()} <span aria-hidden="true">→</span>
+            </Link>
+            <Link to={localizeHref('/methodology')}>
+              {m.home_faq_q6()} <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </section>
 
@@ -299,7 +352,8 @@ export function Home() {
                 {r.hash ? (
                   <a
                     href={localizeHref(`/market#${r.hash}`)}
-                    data-rybbit-event={`home_market_room_${r.hash}`} onClick={() => track('home_room_click', { room: r.hash })}
+                    data-rybbit-event={`home_market_room_${r.hash}`}
+                    onClick={() => track('home_room_click', { room: r.hash })}
                   >
                     {m.home_market_room_go()}
                   </a>
@@ -382,8 +436,24 @@ export function Home() {
       <footer className="mh-foot">
         <span>{m.common_footer_notice({ year: new Date().getFullYear(), name: tr(site.name) })}</span>
         <nav>
-          <Link to={localizeHref('/about')}>{getLocale() === 'en' ? 'About YUEXIA' : getLocale() === 'ja' ? '月下について' : getLocale() === 'zh-Hans' ? '关于月下' : '關於月下'}</Link>
-          <Link to={localizeHref('/methodology')}>{getLocale() === 'en' ? 'Sources & methodology' : getLocale() === 'ja' ? '出典と解説方法' : getLocale() === 'zh-Hans' ? '来源与解读方法' : '來源與解讀方法'}</Link>
+          <Link to={localizeHref('/about')}>
+            {getLocale() === 'en'
+              ? 'About YUEXIA'
+              : getLocale() === 'ja'
+                ? '月下について'
+                : getLocale() === 'zh-Hans'
+                  ? '关于月下'
+                  : '關於月下'}
+          </Link>
+          <Link to={localizeHref('/methodology')}>
+            {getLocale() === 'en'
+              ? 'Sources & methodology'
+              : getLocale() === 'ja'
+                ? '出典と解説方法'
+                : getLocale() === 'zh-Hans'
+                  ? '来源与解读方法'
+                  : '來源與解讀方法'}
+          </Link>
           <Link to="/privacy">{m.common_footer_privacy()}</Link>
           <Link to="/terms">{m.common_footer_terms()}</Link>
           <Link to="/refunds">{m.common_footer_refunds()}</Link>

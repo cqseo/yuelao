@@ -137,5 +137,9 @@
   "home_way_shake": "점괘 흔들기",
   "home_market_room_wish": "소원 연못",
   "home_market_room_wish_desc": "소원 한 줄을 쓰고 붉은 실을 묶어 소원나무에 걸어요. 다른 사람의 소원에 같은 소원을 빌 수도 있어요. 소원을 빌려면 로그인이 필요해요.",
-  "home_seo_subtitle": "무료 반달패 점괘 · 월하노인 점괘 100수 · 사랑 풀이"
+  "home_seo_subtitle": "무료 반달패 점괘 · 월하노인 점괘 100수 · 사랑 풀이",
+  "home_nav_shops": "가게 모두 보기",
+  "home_more_label": "그 밖에",
+  "home_more_bazi_hint": "궁합・사주・신년운",
+  "home_more_caishen_hint": "재물 점괘"
 }
