@@ -2522,3 +2522,26 @@
 .mk .reading .cai-stick h3 small {
   color: #a8291f;
 }
+.mk .fortune-form .dsel legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mk .fortune-form .dsel select.cal {
+  margin-left: auto;
+  min-height: 2rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8125rem;
+}
+.mk .fortune-form .dsel .leap {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: var(--paper-70);
+}
+.mk .lunar-note {
+  margin: 0 0 0.5rem;
+  color: var(--gold);
+}

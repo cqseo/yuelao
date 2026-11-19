@@ -458,3 +458,11 @@
 .lm__cross button { display: grid; gap: 0.15rem; padding: 0.8rem 1rem; border: 1px solid rgba(220, 187, 124, 0.4); border-radius: 6px; background: transparent; color: var(--paper); font: inherit; text-align: left; cursor: pointer; }
 .lm__cross button:hover, .lm__cross button:focus-visible { border-color: var(--gold); }
 .lm__cross small { font-size: 0.8rem; color: var(--paper-70); }
+.lm__dsel legend { display: flex; align-items: center; gap: 0.6rem; }
+.lm__cal { display: inline-flex; margin-left: auto; border: 1px solid rgba(220, 187, 124, 0.45); border-radius: 999px; overflow: hidden; }
+.lm__cal button { min-height: 32px; padding: 0 0.8rem; border: 0; background: transparent; color: var(--paper-70); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.lm__cal button[aria-checked='true'] { background: rgba(220, 187, 124, 0.22); color: var(--paper); }
+.lm__leap { grid-column: 1 / -1; display: flex; gap: 0.45rem; align-items: center; font-size: 0.85rem; color: var(--paper-70); }
+.lm__leap input { accent-color: var(--gold); }
+.lm__calnote { grid-column: 1 / -1; margin: 0.2rem 0 0; font-size: 0.82rem; color: var(--gold); }
+.lm__calnote.is-warn { color: #f2a08a; }
