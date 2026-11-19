@@ -416,3 +416,24 @@
 .lm__years b { color: var(--paper); }
 .lm__years span { font-size: 0.75rem; color: var(--paper-70); }
 .lm__years em { font-style: normal; font-size: 0.85rem; color: var(--gold); }
+.lm__dates select {
+  min-height: 2.9rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(220, 187, 124, 0.45);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--paper);
+  font: inherit;
+  font-size: 1rem;
+  color-scheme: dark;
+}
+.lm__pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.45rem; margin: 1rem 0; text-align: center; }
+.lm__pillars > div { display: grid; padding: 0.6rem 0.2rem; border: 1px solid rgba(220, 187, 124, 0.4); border-radius: 6px; }
+.lm__pillars > div.is-me { border-color: var(--gold); background: var(--red-deep); }
+.lm__pillars small { font-size: 0.75rem; color: var(--paper-70); }
+.lm__pillars b { font-size: 1.9rem; line-height: 1.2; color: var(--gold-hi); }
+.lm__pillars i { font-style: normal; font-size: 0.75rem; color: var(--paper-45); }
+.lm__elements { display: grid; gap: 0.35rem; margin: 0.5rem 0 1rem; padding: 0; list-style: none; }
+.lm__elements li { display: grid; grid-template-columns: 1.6rem 1fr 1.6rem; align-items: center; gap: 0.5rem; }
+.lm__elements i { display: block; height: 0.5rem; min-width: 2px; border-radius: 3px; background: var(--gold); }
+.lm__elements b { text-align: right; font-weight: 400; color: var(--paper-70); }

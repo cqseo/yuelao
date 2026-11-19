@@ -385,6 +385,53 @@ export async function shareLove({ zodiac, sign, taohua, hongluan, tianxi, year, 
   return deliver(c, 'yuelao-love.png', `我的姻緣盤 · ${title}`);
 }
 
+/** 算命攤．命盤卡：四柱、日主、五行與總評。不放生日、時辰、問題。 */
+export async function shareBazi({ pillars, dayMaster, counts, title, line }) {
+  await ready();
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  night(g);
+  g.textAlign = 'center';
+  g.fillStyle = GOLD;
+  g.font = `600 38px ${SERIF}`;
+  g.fillText('算命攤 · 我的八字命盤', W / 2, 140);
+  // 四柱由右而左：年 月 日 時
+  const labels = ['年柱', '月柱', '日柱', '時柱'];
+  const cw = 200;
+  const gap = 24;
+  const x0 = (W - (cw * 4 + gap * 3)) / 2;
+  const top = 210;
+  const ch = 440;
+  for (let i = 0; i < 4; i++) {
+    const x = x0 + (3 - i) * (cw + gap);
+    g.fillStyle = i === 2 ? RED : '#3a1612';
+    g.fillRect(x, top, cw, ch);
+    g.strokeStyle = GOLD;
+    g.lineWidth = 3;
+    g.strokeRect(x + 10, top + 10, cw - 20, ch - 20);
+    g.fillStyle = 'rgba(239,229,207,0.7)';
+    g.font = `400 30px ${SERIF}`;
+    g.fillText(labels[i], x + cw / 2, top + 60);
+    g.fillStyle = '#f1d79a';
+    g.font = `700 130px ${SERIF}`;
+    g.fillText(pillars[i][0], x + cw / 2, top + 210);
+    g.fillText(pillars[i][1], x + cw / 2, top + 370);
+  }
+  g.fillStyle = GOLD;
+  g.font = `500 38px ${SERIF}`;
+  g.fillText(`${dayMaster}日主 · ${counts}`, W / 2, 760);
+  g.fillStyle = PAPER;
+  g.font = `700 96px ${SERIF}`;
+  g.fillText(title, W / 2, 880);
+  g.fillStyle = 'rgba(239,229,207,0.85)';
+  g.font = `400 34px ${SERIF}`;
+  wrap(g, line, W / 2, 950, 820, 50, 3);
+  footerQr(g, shareUrl('/market#bazi'), '掃碼排你自己的八字');
+  return deliver(c, 'yuelao-bazi.png', `我的八字命盤 · ${title}`);
+}
+
 /**
  * 今日運勢卡：9:16 直圖（1080×1920），適合 IG 限時動態、LINE 背景。
  * kind 'tarot'：一張牌面；kind 'stick'：一張米紙籤。今日能量色當作光暈。

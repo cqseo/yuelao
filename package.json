@@ -38,6 +38,7 @@
     "test:spread": "tsx tools/test-spread.ts",
     "test:match": "tsx tools/test-match.ts",
     "test:love": "tsx tools/test-love.ts",
+    "test:bazi": "tsx tools/test-bazi.ts",
     "test:daily:db": "bash tools/run-daily-checkins.sh",
     "test:daily": "tsx tools/test-daily-checkin.ts",
     "test:hall:db": "bash tools/run-hall-offerings.sh",
