@@ -1,3 +1,4 @@
+import { loveIds } from '@yuelao/core/love';
 import { type MatchPerson, matchIds, signOf } from '@yuelao/core/match';
 import { Solar } from 'lunar-javascript';
 
@@ -40,4 +41,29 @@ export async function matchKey(
     .map((n) => n.toString(16).padStart(2, '0'))
     .join('');
   return `match:${matchIds(a, b)}|${hex}`;
+}
+
+/** 現在的流年（國曆年，立春前算前一年）。 */
+export function flowYear(now = new Date()): number {
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  return m < 2 || (m === 2 && now.getDate() < 4) ? y - 1 : y;
+}
+
+/** 個人姻緣盤的識別字串：love:<生肖>_<星座>_<流年>|<雜湊>。雜湊由生日＋情況＋問題算出。 */
+export async function loveKey(
+  you: string,
+  year: number,
+  sit: string,
+  question: string,
+): Promise<string | null> {
+  const a = personOf(you);
+  if (!a) return null;
+  const src = `${you}|love|${sit}|${question.replace(/\s+/g, '')}`;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(src));
+  const hex = [...new Uint8Array(buf)]
+    .slice(0, 8)
+    .map((n) => n.toString(16).padStart(2, '0'))
+    .join('');
+  return `love:${loveIds(a.zodiac, a.sign, year)}|${hex}`;
 }

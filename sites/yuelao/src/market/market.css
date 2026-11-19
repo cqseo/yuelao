@@ -2328,3 +2328,35 @@
     grid-template-columns: 1fr;
   }
 }
+
+.mk .fortune-form.one {
+  grid-template-columns: 1fr;
+}
+.mk .star-years {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+.mk .star-years li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem 0.4rem;
+  border: 1px solid var(--line);
+  text-align: center;
+}
+.mk .star-years b {
+  font-size: 1.05rem;
+  color: var(--paper);
+}
+.mk .star-years span {
+  font-size: 0.75rem;
+  color: var(--paper-70);
+}
+.mk .star-years em {
+  font-style: normal;
+  font-size: 0.875rem;
+  color: var(--gold);
+}

@@ -1,3 +1,4 @@
+import { LOVE_TITLE_TEXT, loveChart, loveLines, starsLabel, yearGanzhi } from '@yuelao/core/love';
 import {
   BRANCH,
   matchOf,
@@ -12,7 +13,7 @@ import {
 } from '@yuelao/core/match';
 import * as THREE from 'three';
 import { createNpc } from './npc.js';
-import { shareMatch } from './share.js';
+import { shareLove, shareMatch } from './share.js';
 import { audio, canvasTex, ease, textPlane, tween } from './util.js';
 import { SITS } from './yuelao.js';
 
@@ -33,7 +34,16 @@ const today = () => {
 };
 const loadMatch = () => import('../../ritual/match');
 
-// 七段和伺服器的寫法一一對應（MATCH_INSTRUCTIONS），改了要一起改
+// 七段和伺服器的寫法一一對應（MATCH_INSTRUCTIONS／LOVE_INSTRUCTIONS），改了要一起改
+const LOVE_SECTIONS = [
+  ['你的姻緣底色', '你在感情裡的樣子'],
+  ['你的桃花在哪裡', '什麼場合、什麼人容易帶來緣分'],
+  ['紅鸞天喜什麼時候到', '哪幾年姻緣比較會動'],
+  ['今年的感情運', '今年和你的生肖是什麼關係'],
+  ['和誰處得來', '合得來與要磨合的生肖、星座'],
+  ['對著你的問題', '這一節只寫你問的那件事'],
+  ['留給你的一句話', '師傅最後想對你說的'],
+];
 const DEEP_SECTIONS = [
   ['你們兩個湊在一起', '一句話說這一對的底色'],
   ['生肖怎麼看', '合沖落在日常相處裡是什麼樣子'],
@@ -208,40 +218,52 @@ export function createFortune(ui) {
   let them = '';
   let sit = 'dating';
   let question = '';
+  let mode = 'match'; // 'match' 合緣配對｜'love' 個人姻緣盤
   let result = null; // matchOf(...)
+  let chart = null; // loveChart(...)
   let key = '';
   let deepState = null;
   let deepRun = 0;
   let spin = 0;
   const api = ui.fortune;
   const sitWord = () => (SITS.find((x) => x.key === sit) || SITS[0]).word;
-  const deepTitle = () => '合緣配對．完整解讀';
+  const deepTitle = () => (mode === 'love' ? '個人姻緣盤．完整解讀' : '合緣配對．完整解讀');
+  const price = () => (mode === 'love' ? api?.lovePrice : api?.price);
+  const product = () => (mode === 'love' ? 'love_1' : 'match_1');
   const person = (p) =>
     `${BRANCH[p.zodiac - 1]}${ZODIAC[p.zodiac - 1]}．${SIGNS[p.sign - 1]}（${signElement(p.sign)}象）`;
 
   function form(note = '') {
     state = 'form';
     ui.panel(
-      `<h2>合一合</h2>
-       <p class="note small">填兩個人的國曆生日。生肖以立春換年；日期只在你這台手機或電腦裡算，不會送出。</p>
-       <div class="fortune-form">
-         <label><span>你的生日</span><input type="date" id="f-you" min="1901-01-01" max="2099-12-31" value="${esc(you)}"></label>
-         <label><span>對方的生日</span><input type="date" id="f-them" min="1901-01-01" max="2099-12-31" value="${esc(them)}"></label>
+      `<div class="chips decks">
+         <button type="button" data-a="mode:match" class="${mode === 'match' ? 'on' : ''}"><b>合緣配對</b><small>兩個人合不合</small></button>
+         <button type="button" data-a="mode:love" class="${mode === 'love' ? 'on' : ''}"><b>我的姻緣盤</b><small>桃花、紅鸞、今年感情運</small></button>
        </div>
-       <p class="kicker">你們現在的情況</p>
+       <p class="note small">${mode === 'love' ? '填你的國曆生日' : '填兩個人的國曆生日'}。生肖以立春換年；日期只在你這台手機或電腦裡算，不會送出。</p>
+       <div class="fortune-form${mode === 'love' ? ' one' : ''}">
+         <label><span>你的生日</span><input type="date" id="f-you" min="1901-01-01" max="2099-12-31" value="${esc(you)}"></label>
+         ${mode === 'love' ? '' : `<label><span>對方的生日</span><input type="date" id="f-them" min="1901-01-01" max="2099-12-31" value="${esc(them)}"></label>`}
+       </div>
+       <p class="kicker">${mode === 'love' ? '你現在的情況' : '你們現在的情況'}</p>
        <div class="chips sits">${SITS.map(
          (x) =>
            `<button type="button" data-a="sit:${x.key}" class="${x.key === sit ? 'on' : ''}">${x.word}</button>`,
        ).join('')}</div>
-       <label class="ask-q"><textarea id="f-q" maxlength="${Q_MAX}" rows="2" placeholder="想問的事（選填），例：我們會不會一直吵下去">${esc(question)}</textarea>
+       <label class="ask-q"><textarea id="f-q" maxlength="${Q_MAX}" rows="2" placeholder="想問的事（選填），例：${mode === 'love' ? '我什麼時候會遇到對的人' : '我們會不會一直吵下去'}">${esc(question)}</textarea>
          <span class="ask-meta"><span>完整解讀會針對這一句寫</span><span id="f-n">${[...question].length}/${Q_MAX}</span></span></label>
        ${note ? `<p class="note" role="status">${note}</p>` : ''}
-       <button class="seal" data-a="go">合一合</button>
-       <p class="note small">生肖星座合緣是文化習俗與自我反思，不代表現實預測。</p>`,
+       <button class="seal" data-a="go">${mode === 'love' ? '排一盤' : '合一合'}</button>
+       <p class="note small">生肖星座${mode === 'love' ? '姻緣' : '合緣'}是文化習俗與自我反思，不代表現實預測。</p>`,
       (a) => {
         read();
         if (a.startsWith('sit:')) {
           sit = a.slice(4);
+          return form();
+        }
+        if (a.startsWith('mode:')) {
+          mode = a.slice(5) === 'love' ? 'love' : 'match';
+          say(mode === 'love' ? '看你自己的姻緣，給我你的生日就好。' : '來合一合。把你和對方的生日給我。');
           return form();
         }
         if (a === 'go') void go();
@@ -265,6 +287,14 @@ export function createFortune(ui) {
 
   async function compute() {
     const m = await loadMatch();
+    if (mode === 'love') {
+      const me = m.personOf(you);
+      if (!me) return false;
+      const year = m.flowYear();
+      chart = loveChart(me.zodiac, me.sign, year);
+      key = (await m.loveKey(you, year, sit, question)) || '';
+      return !!key;
+    }
     const a = m.personOf(you);
     const b = m.personOf(them);
     if (!a || !b) return false;
@@ -274,7 +304,8 @@ export function createFortune(ui) {
   }
 
   async function go() {
-    if (!you || !them) return form('兩個人的生日都要填。');
+    if (!you) return form('先填你的生日。');
+    if (mode === 'match' && !them) return form('兩個人的生日都要填。');
     state = 'turning';
     ui.panel(`<p class="kicker">算命攤</p><p class="note" role="status">師傅正在撥羅盤……</p>`);
     say('我看看。');
@@ -283,18 +314,20 @@ export function createFortune(ui) {
       ok = await compute();
     } catch {}
     if (!ok) return form('這個日期算不了，請確認是 1901 到 2099 年間的真實日期。');
-    ui.emit?.('ritual_begin', { kind: 'match' });
+    ui.emit?.('ritual_begin', { kind: mode });
     audio.bell?.(392, 0.12, 2.5);
     spin = 9;
-    setTicket(0, ZODIAC[result.a.zodiac - 1]);
+    const [left, right] = tickets2();
+    setTicket(0, left);
     await sleep(500);
-    setTicket(1, ZODIAC[result.b.zodiac - 1]);
+    setTicket(1, right);
+    const target = mode === 'love' ? chart.taohua : result.b.zodiac;
     // 畫面在背景或很慢時動畫會停：最多等 2.5 秒就直接給結果
     await Promise.race([
       tween(
         1.6,
         (k) => {
-          needle.rotation.y = k * Math.PI * 6 + (result.b.zodiac - 1) * (Math.PI / 6);
+          needle.rotation.y = k * Math.PI * 6 + (target - 1) * (Math.PI / 6);
         },
         ease.out,
       ),
@@ -303,6 +336,120 @@ export function createFortune(ui) {
     spin = 0;
     audio.bell?.(523, 0.14, 3);
     show();
+  }
+  /** 桌上兩張紅帖：合緣是兩人的生肖；姻緣盤是你的生肖和桃花。 */
+  const tickets2 = () =>
+    mode === 'love'
+      ? [ZODIAC[chart.zodiac - 1], '桃']
+      : [ZODIAC[result.a.zodiac - 1], ZODIAC[result.b.zodiac - 1]];
+
+  function loveUnlockBlock() {
+    if (!api?.lovePrice) return '';
+    const q = [...question];
+    const asked = question
+      ? `你問「${q.length > 22 ? `${q.slice(0, 22).join('')}…` : question}」，現在是${sitWord()}。`
+      : `你現在是${sitWord()}。`;
+    const next = chart.years.find((y) => y.stars.includes('hongluan'));
+    const teaser = `${asked}你的桃花在${ZODIAC[chart.taohua - 1]}，${next ? `紅鸞在 ${next.year} 年` : '紅鸞也排出來了'}；${chart.year} ${yearGanzhi(chart.year)}年對你來說是「${chart.title}」。真正會讓你錯過緣分的，其實是……`;
+    return `<section class="unlock" id="unlock">
+        <h3>解鎖完整姻緣盤</h3>
+        <p class="deep-teaser">${esc(teaser)}</p>
+        <p class="unlock-note">上面是盤上排出來的位置。完整解讀把桃花、紅鸞、流年連起來，七段都寫你自己${question ? '和你問的那件事' : ''}。</p>
+        <button class="offer" id="deep-btn" data-a="deep">解鎖完整姻緣盤　${api.lovePrice}</button>
+        <p class="note small unlock-login" id="deep-login" hidden>需先登入（免費），登入完會回到這裡。</p>
+        <ol class="deep-list">${LOVE_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
+        <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
+      </section>`;
+  }
+
+  function showLove() {
+    if (state !== 'result' && state !== 'deep') ui.emit?.('reading_done', { kind: 'love' });
+    state = 'result';
+    const c = chart;
+    say(`${c.title}。${LOVE_TITLE_TEXT[c.title].split('。')[0]}。`);
+    const stars = c.years
+      .slice(0, 6)
+      .map(
+        (y) => `<li><b>${y.year}</b><span>${yearGanzhi(y.year)}</span><em>${starsLabel(y.stars)}</em></li>`,
+      )
+      .join('');
+    ui.panel(
+      `<div class="reading match">
+        <p class="asked">${question ? `問．${esc(question)}` : '我的姻緣盤'}<span>${sitWord()}</span></p>
+        ${api?.lovePrice ? `<button type="button" class="jump-unlock" data-a="jump">想看桃花、紅鸞、流年連起來怎麼走？完整解讀 ${api.lovePrice} ↓</button>` : ''}
+        <div class="match-pair">
+          <div><small>你</small><b>${ZODIAC[c.zodiac - 1]}</b><span>${esc(person(c))}</span></div>
+          <i aria-hidden="true">✿</i>
+          <div><small>桃花</small><b>${ZODIAC[c.taohua - 1]}</b><span>紅鸞 ${ZODIAC[c.hongluan - 1]}．天喜 ${ZODIAC[c.tianxi - 1]}</span></div>
+        </div>
+        <h3 class="match-title">${c.title}</h3>
+        <p>${c.year} ${yearGanzhi(c.year)}年：${LOVE_TITLE_TEXT[c.title]}</p>
+        ${loveLines(c)
+          .map((l) => `<article><p class="kicker">${l.label}</p><p>${l.text}</p></article>`)
+          .join('')}
+        <p class="kicker">接下來的星年</p>
+        <ul class="star-years">${stars}</ul>
+        <p class="note small">生肖以立春換年，桃花、紅鸞、天喜以生肖（年支）起，是簡化的民間算法。屬文化習俗與自我反思，不代表現實預測。</p>
+        ${loveUnlockBlock()}
+       </div>
+       <button type="button" class="share-btn" data-a="share">存成姻緣卡</button>
+       <div class="card-actions"><button class="seal" data-a="again">換人再排</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
+      onResult,
+      true,
+    );
+    ui.emit?.('offer_view', { product: 'love_1', source: 'bazi' });
+    refreshDeep();
+  }
+
+  function onResult(x) {
+    if (x === 'share' && mode === 'love') {
+      // 姻緣卡不放生日和問題，只放生肖、桃花、星年與總評
+      const c = chart;
+      void shareLove({
+        zodiac: ZODIAC[c.zodiac - 1],
+        sign: SIGNS[c.sign - 1],
+        taohua: ZODIAC[c.taohua - 1],
+        hongluan: ZODIAC[c.hongluan - 1],
+        tianxi: ZODIAC[c.tianxi - 1],
+        year: `${c.year} ${yearGanzhi(c.year)}年`,
+        title: c.title,
+        line: LOVE_TITLE_TEXT[c.title],
+      }).then((res) => {
+        ui.emit?.('share_image', { kind: 'love', result: res });
+        if (res === 'saved') say('姻緣卡存好了。');
+      });
+      return;
+    }
+    if (x === 'share') {
+      const r = result;
+      // 分享卡不放生日和問題，只放生肖、星座與總評
+      void shareMatch({
+        a: { zodiac: ZODIAC[r.a.zodiac - 1], sign: SIGNS[r.a.sign - 1] },
+        b: { zodiac: ZODIAC[r.b.zodiac - 1], sign: SIGNS[r.b.sign - 1] },
+        zodiacRel: ZODIAC_RELATION_NAME[r.zodiac],
+        signRel: SIGN_RELATION_NAME[r.sign],
+        title: r.title,
+        line: TITLE_TEXT[r.title],
+      }).then((res) => {
+        ui.emit?.('share_image', { kind: 'match', result: res });
+        if (res === 'saved') say('合緣卡存好了。');
+      });
+      return;
+    }
+    if (x === 'jump') {
+      document.getElementById('unlock')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (x === 'deep') {
+      if (deepState && deepState.state !== 'none') return openDeep();
+      state = 'deep';
+      ui.emit?.('unlock_click', { product: product() });
+      return void pay();
+    }
+    if (x === 'leave') return ui.leave();
+    question = '';
+    them = '';
+    form();
   }
 
   function unlockBlock() {
@@ -324,6 +471,7 @@ export function createFortune(ui) {
   }
 
   function show() {
+    if (mode === 'love') return showLove();
     if (state !== 'result' && state !== 'deep') ui.emit?.('reading_done', { kind: 'match' });
     state = 'result';
     const r = result;
@@ -346,37 +494,7 @@ export function createFortune(ui) {
        </div>
        <button type="button" class="share-btn" data-a="share">存成合緣卡</button>
        <div class="card-actions"><button class="seal" data-a="again">換一對再合</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
-      (x) => {
-        if (x === 'share') {
-          // 分享卡不放生日和問題，只放生肖、星座與總評
-          void shareMatch({
-            a: { zodiac: ZODIAC[r.a.zodiac - 1], sign: SIGNS[r.a.sign - 1] },
-            b: { zodiac: ZODIAC[r.b.zodiac - 1], sign: SIGNS[r.b.sign - 1] },
-            zodiacRel: ZODIAC_RELATION_NAME[r.zodiac],
-            signRel: SIGN_RELATION_NAME[r.sign],
-            title: r.title,
-            line: TITLE_TEXT[r.title],
-          }).then((res) => {
-            ui.emit?.('share_image', { kind: 'match', result: res });
-            if (res === 'saved') say('合緣卡存好了。');
-          });
-          return;
-        }
-        if (x === 'jump') {
-          document.getElementById('unlock')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          return;
-        }
-        if (x === 'deep') {
-          if (deepState && deepState.state !== 'none') return openDeep();
-          state = 'deep';
-          ui.emit?.('unlock_click', { product: 'match_1' });
-          return void pay();
-        }
-        if (x === 'leave') return ui.leave();
-        question = '';
-        them = '';
-        form();
-      },
+      onResult,
       true,
     );
     ui.emit?.('offer_view', { product: 'match_1', source: 'bazi' });
@@ -392,12 +510,15 @@ export function createFortune(ui) {
       deepState = r;
       const btn = document.getElementById('deep-btn');
       if (btn && r.state !== 'none')
-        btn.textContent = r.state === 'ready' ? '看完整合緣（已解鎖）' : '請師傅動筆（已解鎖）';
+        btn.textContent =
+          r.state === 'ready'
+            ? `看完整${mode === 'love' ? '姻緣盤' : '合緣'}（已解鎖）`
+            : '請師傅動筆（已解鎖）';
       const login = document.getElementById('deep-login');
       if (login) login.hidden = !r.guest;
     });
   }
-  const backToResult = `<button class="ghost" data-a="back">回到合緣結果</button>`;
+  const backToResult = `<button class="ghost" data-a="back">回到結果</button>`;
   const onBack = (a) => a === 'back' && show();
   function openDeep() {
     state = 'deep';
@@ -409,26 +530,27 @@ export function createFortune(ui) {
     ui.panel(`<p class="note" role="status">正在準備付款</p>`);
     const r = await api.buy(key);
     if (state !== 'deep') return;
-    const keep = (why) => api.save({ you, them, question, sit, day: today(), why });
+    const keep = (why) =>
+      api.save({ mode, you, them: mode === 'love' ? '' : them, question, sit, day: today(), why });
     if (r.state === 'redirect') {
       keep('pay');
       say('付完了回到這裡，我就動筆。');
       location.assign(r.url);
     } else if (r.state === 'login') {
       keep('login');
-      say('先登入，我才記得這是誰的合緣。');
+      say('先登入，我才記得這是誰的盤。');
       ui.panel(
         `<h2>登入後再請師傅動筆</h2>
-         <p class="note">登入完會回到算命攤，兩個人的生日只存在這台瀏覽器裡。</p>
+         <p class="note">登入完會回到算命攤，生日只存在這台瀏覽器裡。</p>
          <a class="seal linkbtn" href="/login">去登入</a>${backToResult}`,
         onBack,
       );
     } else if (r.state === 'owned') {
       startGenerate();
     } else {
-      say(r.state === 'closed' ? '完整合緣還沒開張，過些日子再來。' : '這會兒忙不過來，稍後再試一次。');
+      say(r.state === 'closed' ? '完整解讀還沒開張，過些日子再來。' : '這會兒忙不過來，稍後再試一次。');
       ui.panel(
-        `<p class="note">${r.state === 'closed' ? '付費的完整合緣尚未開放。免費結果照常可以看。' : '沒有扣款。可以稍後再試。'}</p>${backToResult}`,
+        `<p class="note">${r.state === 'closed' ? '付費的完整解讀尚未開放。免費結果照常可以看。' : '沒有扣款。可以稍後再試。'}</p>${backToResult}`,
         onBack,
       );
     }
@@ -461,7 +583,7 @@ export function createFortune(ui) {
   async function startGenerate() {
     const run = ++deepRun;
     state = 'deep';
-    say('我把你們兩個合起來看，稍候。');
+    say(mode === 'love' ? '我把你的桃花、紅鸞和流年連起來看，稍候。' : '我把你們兩個合起來看，稍候。');
     ui.panel(
       `<p class="kicker">${deepTitle()}</p><p class="note" role="status">師傅正在寫，大約半分鐘。</p>`,
     );
@@ -497,14 +619,14 @@ export function createFortune(ui) {
   }
   function showDeep(body) {
     state = 'deep';
-    ui.emit?.('deep_read', { product: 'match_1' });
+    ui.emit?.('deep_read', { product: product() });
     say('寫好了，慢慢看。');
     ui.panel(
       `<p class="kicker">${deepTitle()}</p>
-       <p class="asked deep-q">${esc(person(result.a))} × ${esc(person(result.b))}</p>
+       <p class="asked deep-q">${mode === 'love' ? `${esc(person(chart))}．${chart.year} ${yearGanzhi(chart.year)}年` : `${esc(person(result.a))} × ${esc(person(result.b))}`}</p>
        ${question ? `<p class="asked deep-q">問．${esc(question)}</p>` : ''}
        <div class="deep-body" id="deep-body"></div>
-       <p class="note small">生肖星座合緣供自我反思，不是預言。</p>
+       <p class="note small">生肖星座${mode === 'love' ? '姻緣' : '合緣'}供自我反思，不是預言。</p>
        ${api?.guest ? `<p class="note small guest-note">你現在是訪客身分。綁定信箱後，換手機或清掉瀏覽器資料也找得回來。</p><a class="seal linkbtn" href="${api.bindHref}">綁定信箱保存</a>` : ''}${backToResult}`,
       onBack,
       true,
@@ -546,14 +668,16 @@ export function createFortune(ui) {
       audio.bell?.(440, 0.12, 3);
       if (back) {
         // 付款／登入回來：用本機記下的生日重算同一份結果
+        mode = back.mode === 'love' ? 'love' : 'match';
         you = back.you;
         them = back.them;
         question = back.question;
         sit = back.sit;
         void compute().then((ok) => {
           if (!ok) return form();
-          setTicket(0, ZODIAC[result.a.zodiac - 1]);
-          setTicket(1, ZODIAC[result.b.zodiac - 1]);
+          const [left, right] = tickets2();
+          setTicket(0, left);
+          setTicket(1, right);
           if (back.why === 'pay' && api.cancelled) {
             show();
             say('沒付也不要緊，結果還在。');

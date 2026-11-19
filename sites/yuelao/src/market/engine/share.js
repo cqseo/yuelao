@@ -338,6 +338,53 @@ export async function shareMatch({ a, b, zodiacRel, signRel, title, line }) {
   return deliver(c, 'yuelao-match.png', `合緣配對 · ${title}`);
 }
 
+/** 算命攤．姻緣卡：你的生肖、桃花、紅鸞天喜與今年總評。不放生日、不放問題。 */
+export async function shareLove({ zodiac, sign, taohua, hongluan, tianxi, year, title, line }) {
+  await ready();
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  night(g);
+  g.textAlign = 'center';
+  g.fillStyle = GOLD;
+  g.font = `600 38px ${SERIF}`;
+  g.fillText('算命攤 · 我的姻緣盤', W / 2, 140);
+  const cw = 360;
+  const ch = 460;
+  const x = (W - cw) / 2;
+  const top = 200;
+  g.save();
+  g.shadowColor = 'rgba(0,0,0,0.6)';
+  g.shadowBlur = 30;
+  g.shadowOffsetY = 10;
+  g.fillStyle = RED;
+  g.fillRect(x, top, cw, ch);
+  g.restore();
+  g.strokeStyle = GOLD;
+  g.lineWidth = 4;
+  g.strokeRect(x + 16, top + 16, cw - 32, ch - 32);
+  g.fillStyle = '#f1d79a';
+  g.font = `700 230px ${SERIF}`;
+  g.fillText(zodiac, W / 2, top + 290);
+  g.font = `500 40px ${SERIF}`;
+  g.fillText(sign, W / 2, top + 390);
+  g.fillStyle = PAPER;
+  g.font = `500 40px ${SERIF}`;
+  g.fillText(`桃花 ${taohua} · 紅鸞 ${hongluan} · 天喜 ${tianxi}`, W / 2, 760);
+  g.fillStyle = GOLD;
+  g.font = `500 36px ${SERIF}`;
+  g.fillText(year, W / 2, 840);
+  g.fillStyle = PAPER;
+  g.font = `700 96px ${SERIF}`;
+  g.fillText(title, W / 2, 950);
+  g.fillStyle = 'rgba(239,229,207,0.85)';
+  g.font = `400 34px ${SERIF}`;
+  wrap(g, line, W / 2, 1020, 820, 50, 2);
+  footerQr(g, shareUrl('/market#bazi'), '掃碼排你自己的姻緣盤');
+  return deliver(c, 'yuelao-love.png', `我的姻緣盤 · ${title}`);
+}
+
 /**
  * 今日運勢卡：9:16 直圖（1080×1920），適合 IG 限時動態、LINE 背景。
  * kind 'tarot'：一張牌面；kind 'stick'：一張米紙籤。今日能量色當作光暈。

@@ -74,7 +74,9 @@ function Account() {
         ? t('塔羅完整解讀', '塔罗完整解读')
         : id === 'match_1'
           ? t('合緣配對完整解讀', '合缘配对完整解读')
-          : id === 'followup_1'
+          : id === 'love_1'
+            ? t('個人姻緣盤完整解讀', '个人姻缘盘完整解读')
+            : id === 'followup_1'
           ? t('追問月老（一次）', '追问月老（一次）')
           : /^pack_\d+$/.test(id)
             ? packName(Number(id.slice(5)))

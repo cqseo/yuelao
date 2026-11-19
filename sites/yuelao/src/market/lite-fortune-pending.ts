@@ -1,6 +1,7 @@
 /** 輕量算命攤去付款／登入前的記號。生日與問題只放 sessionStorage，不進網址、不進統計。 */
 export type LiteFortunePending = {
   liteFortune: true;
+  mode: 'match' | 'love';
   you: string;
   them: string;
   question: string;
@@ -20,8 +21,9 @@ function valid(x: unknown, now: number): x is LiteFortunePending {
     p.liteFortune === true &&
     typeof p.you === 'string' &&
     DATE.test(p.you) &&
+    (p.mode === 'match' || p.mode === 'love') &&
     typeof p.them === 'string' &&
-    DATE.test(p.them) &&
+    (p.mode === 'love' ? p.them === '' : DATE.test(p.them)) &&
     typeof p.question === 'string' &&
     p.question.length <= 100 &&
     typeof p.sit === 'string' &&

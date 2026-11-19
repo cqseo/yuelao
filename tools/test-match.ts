@@ -92,7 +92,7 @@ assert.equal(parseSpread(`match:13_03,07_11|${h}`), null);
 assert.equal(parseSpread(`match:01_00,07_11|${h}`), null);
 assert.equal(parseSpread(`match:01_03|${h}`), null);
 assert.equal(parseSpread(`match:01_03,07_11,02_02|${h}`), null);
-assert.equal(parseSpread(`bazi:01_03,07_11|${h}`), null, 'later phases are not live yet');
+assert.equal(parseSpread(`bazi:01_03,07_11|${h}`), null, 'phase 3 is not live yet');
 console.log('PASS: match keys are strictly shaped');
 
 // 付費提示
