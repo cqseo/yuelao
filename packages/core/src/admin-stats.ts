@@ -411,6 +411,75 @@ export function computeStats(input: StatsInput) {
     products.set(o.product_id, p);
   }
 
+  // 各玩法轉化（2026-11-19，算命攤上線後看哪一種值得做套餐）：每一欄都是不同訪客數，付款看訂單。
+  const PLAYS = [
+    { key: 'match', product: 'match_1', kinds: ['match'], room: 'bazi' },
+    { key: 'love', product: 'love_1', kinds: ['love'], room: 'bazi' },
+    { key: 'bazi', product: 'bazi_1', kinds: ['bazi'], room: 'bazi' },
+    { key: 'year', product: 'year_1', kinds: ['bazi'], room: 'bazi' },
+    { key: 'cai', product: 'cai_1', kinds: ['cai'], room: 'caishen' },
+    { key: 'tarot', product: 'spread_1', kinds: ['tarot', 'lnm'], room: 'tarot' },
+  ] as const;
+  const prop = (e: (typeof cur)[number], k: string) => String(e.props?.[k] ?? '');
+  const plays = PLAYS.map((pl) => {
+    const sets = {
+      result: new Set<string>(),
+      offer: new Set<string>(),
+      unlock: new Set<string>(),
+      share: new Set<string>(),
+      crossIn: new Set<string>(),
+    };
+    for (const e of cur) {
+      const kind = prop(e, 'kind');
+      const product = prop(e, 'product');
+      // 八字的年運另算一行：reading_done 帶 topic（2026-11-19 起）
+      const topicOk =
+        pl.key === 'year'
+          ? prop(e, 'topic') === 'year'
+          : pl.key === 'bazi'
+            ? prop(e, 'topic') !== 'year'
+            : true;
+      if (e.name === 'reading_done' && (pl.kinds as readonly string[]).includes(kind) && topicOk)
+        sets.result.add(e.vid);
+      if ((e.name === 'offer_view' || e.name === 'offer_seen') && product === pl.product)
+        sets.offer.add(e.vid);
+      if (e.name === 'unlock_click' && product === pl.product) sets.unlock.add(e.vid);
+      if (e.name === 'share_image' && (pl.kinds as readonly string[]).includes(kind) && topicOk)
+        sets.share.add(e.vid);
+      if (e.name === 'fortune_cross' && prop(e, 'to') === pl.key) sets.crossIn.add(e.vid);
+    }
+    const orders = paidCur.filter((o) => o.product_id === pl.product);
+    const buyers = new Map<string, number>();
+    for (const o of orders) buyers.set(o.user_id, (buyers.get(o.user_id) ?? 0) + 1);
+    return {
+      key: pl.key,
+      product: pl.product,
+      results: sets.result.size,
+      offers: sets.offer.size,
+      unlocks: sets.unlock.size,
+      paid: orders.length,
+      buyers: buyers.size,
+      /** 同一個帳號在區間內買了兩次以上：有這種人才值得做次數包。 */
+      repeatBuyers: [...buyers.values()].filter((n) => n > 1).length,
+      revenue: orders.filter((o) => o.currency.toUpperCase() === 'HKD').reduce((t, o) => t + net(o), 0),
+      shares: sets.share.size,
+      crossIn: sets.crossIn.size,
+    };
+  });
+  // 在算命攤看了兩種以上玩法的人（想做三合一套餐時看這個）
+  const fortuneKinds = new Map<string, Set<string>>();
+  for (const e of cur)
+    if (e.name === 'reading_done' && ['match', 'love', 'bazi'].includes(prop(e, 'kind'))) {
+      const set = fortuneKinds.get(e.vid) ?? new Set<string>();
+      set.add(prop(e, 'kind'));
+      fortuneKinds.set(e.vid, set);
+    }
+  const fortuneMulti = {
+    visitors: fortuneKinds.size,
+    twoOrMore: [...fortuneKinds.values()].filter((x) => x.size >= 2).length,
+    allThree: [...fortuneKinds.values()].filter((x) => x.size === 3).length,
+  };
+
   // 結帳：區間內建立的正式訂單，付了幾張、放棄幾張。
   const liveCur = liveOrders.filter((o) => inRange(Date.parse(o.created_at)));
   const checkoutStats = {
@@ -447,6 +516,8 @@ export function computeStats(input: StatsInput) {
     ops: input.ops ?? null,
     daily,
     funnel,
+    plays,
+    fortuneMulti,
     pages: distinctBy(
       pageViews,
       (e) => normalizePath(e.path),

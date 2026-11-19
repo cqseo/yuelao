@@ -490,6 +490,33 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
         </section>
       )}
 
+      {section === 'funnel' && stats.plays && (
+        <section className="admin-card">
+          <h2>各玩法转化（塔罗馆、算命摊、财神殿）</h2>
+          <p className="admin-muted">
+            每一栏是不同访客数，付款看订单。「重复购买」是同一个账号在这段时间买了两次以上：有这种人才值得做次数包。「互推进来」是从别的玩法结果页点过来的人。
+          </p>
+          <Table
+            head={['玩法', '看到结果', '看到价格', '点解锁', '付款', '重复购买', '收入', '分享', '互推进来']}
+            rows={stats.plays.map((p) => [
+              PLAY_LABELS[p.key] ?? p.key,
+              num(p.results),
+              num(p.offers),
+              num(p.unlocks),
+              `${num(p.paid)}（${num(p.buyers)} 人）`,
+              num(p.repeatBuyers),
+              money(p.revenue, 'HKD'),
+              num(p.shares),
+              p.key === 'tarot' ? '—' : num(p.crossIn),
+            ])}
+          />
+          <p className="admin-muted">
+            算命摊：{num(stats.fortuneMulti.visitors)} 人排过盘，其中 {num(stats.fortuneMulti.twoOrMore)} 人看了两种以上、
+            {num(stats.fortuneMulti.allThree)} 人三种都看。三种都看的人多，就值得做「算命摊三合一」。
+          </p>
+        </section>
+      )}
+
       {section === 'paths' && (
         <>
           <section className="admin-card">
@@ -1378,6 +1405,15 @@ function Bars({ items }: { items: { label: string; count: number }[] }) {
     </ul>
   );
 }
+
+const PLAY_LABELS: Record<string, string> = {
+  match: '合缘配对 HK$12',
+  love: '个人姻缘盘 HK$18',
+  bazi: '八字（感情/事业/财运）HK$28',
+  year: '八字年运 HK$38',
+  cai: '财神殿求财签 HK$12',
+  tarot: '塔罗完整解读 HK$18',
+};
 
 function Table({ head, rows }: { head: string[]; rows: string[][] }) {
   if (!rows.length) return <p className="admin-empty">暂无数据。</p>;
