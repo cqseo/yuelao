@@ -507,7 +507,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
               num(p.repeatBuyers),
               money(p.revenue, 'HKD'),
               num(p.shares),
-              p.key === 'tarot' ? '—' : num(p.crossIn),
+              p.key === 'tarot' || p.key === 'cai' ? '—' : num(p.crossIn),
             ])}
           />
           <p className="admin-muted">

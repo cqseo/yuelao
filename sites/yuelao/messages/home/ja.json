@@ -137,5 +137,9 @@
   "home_way_shake": "おみくじを振る",
   "home_market_room_wish": "願い池",
   "home_market_room_wish_desc": "願い事をひとこと書いて赤い糸を結び、願いの木に掛けます。ほかの人の願いに同じ願いを寄せることも。願い事にはログインが必要です。",
-  "home_seo_subtitle": "無料ポエ占い・月老おみくじ全100首・恋愛の解説"
+  "home_seo_subtitle": "無料ポエ占い・月老おみくじ全100首・恋愛の解説",
+  "home_nav_shops": "お店一覧",
+  "home_more_label": "ほかにも",
+  "home_more_bazi_hint": "相性・四柱・年運",
+  "home_more_caishen_hint": "金運みくじ"
 }

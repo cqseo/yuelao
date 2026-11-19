@@ -793,3 +793,50 @@
     transition: none;
   }
 }
+
+/* 首屏「還有」：新開的鋪子（2026-11-19） */
+.mh-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.6rem;
+  margin: 1.1rem 0 0;
+}
+.mh-more > span {
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
+  color: var(--paper-70);
+}
+.mh-more a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid rgba(220, 187, 124, 0.45);
+  border-radius: 999px;
+  background: rgba(7, 8, 18, 0.45);
+  color: var(--paper);
+  text-decoration: none;
+  backdrop-filter: blur(4px);
+}
+.mh-more a:hover,
+.mh-more a:focus-visible {
+  border-color: var(--gold);
+}
+.mh-more b {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.mh-more small {
+  font-size: 0.75rem;
+  color: var(--gold);
+}
+@media (max-width: 720px) {
+  .mh-nav-wide {
+    display: none !important;
+  }
+  .mh-nav {
+    overflow: visible;
+  }
+}
