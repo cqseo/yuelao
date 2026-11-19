@@ -15,7 +15,7 @@ export const Route = createFileRoute('/')({
       description: m.home_meta_description(),
       // Canonical 是單棵樹（P7：繁/簡同路徑切換，網址不帶語言）。
       path: localizeHref('/', { locale: getLocale() }),
-      image: `${site.url}/market/plaza.jpg`,
+      image: `${site.url}/og/home.jpg`,
       jsonLd: [
         {
           '@type': 'WebApplication',

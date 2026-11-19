@@ -12,23 +12,23 @@ const ROOMS: Record<string, { title: string; description: string; image: string 
   yuelao: {
     title: '月老殿．線上求籤擲筊',
     description: '走進3D月老殿搖籤、擲筊確認，讀籤詩與白話解讀。免費、免登入。',
-    image: '/market/yuelao.jpg',
+    image: '/og/yuelao.jpg',
   },
   tarot: {
     title: '塔羅館．三張牌',
     description: '寫下想問的事，抽三張塔羅或雷諾曼，免費看牌義。',
-    image: '/market/tarot.jpg',
+    image: '/og/tarot.jpg',
   },
   bazi: {
     title: '算命攤．合緣配對、姻緣盤、八字',
     description:
       '填生日（公曆、農曆都可以），看兩個人合不合、自己的桃花與紅鸞，或排八字看感情、事業、財運與年運。',
-    image: '/market/bazi.jpg',
+    image: '/og/bazi.jpg',
   },
   caishen: {
     title: '財神殿．求財籤',
     description: '上香、搖籤筒，求一支財運或事業的籤，免費看籤解。',
-    image: '/market/caishen.jpg',
+    image: '/og/caishen.jpg',
   },
 };
 
@@ -43,7 +43,7 @@ export const Route = createFileRoute('/market')({
         room && zh ? `${room.title}｜${tr(site.name)}` : m.common_market_meta_title({ name: tr(site.name) }),
       description: room && zh ? room.description : m.common_market_meta_description(),
       path: localizeHref('/market', { locale: getLocale() }),
-      image: `${site.url}${room?.image ?? '/market/plaza.jpg'}`,
+      image: `${site.url}${room?.image ?? '/og/market.jpg'}`,
     });
   },
   component: Market,

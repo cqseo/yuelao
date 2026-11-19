@@ -50,7 +50,7 @@ export const Route = createFileRoute('/sign/$id')({
       title: m.sign_meta_title({ no: tr(stick.no), grade: tr(stick.grade) }),
       description: m.sign_meta_description({ no: tr(stick.no), grade: tr(stick.grade), line: firstLine }),
       path,
-      image: `${site.url}/ritual/temple-fair.jpg`,
+      image: `${site.url}/og/sign.jpg`,
       jsonLd: [
         {
           '@type': 'BreadcrumbList',
