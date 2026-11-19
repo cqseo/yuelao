@@ -117,3 +117,48 @@ assert.match(successUrl, /\/market#bazi$/);
 assert.equal((await buy('love_1', k!)).status, 400);
 assert.equal((await buy('bazi_1', 'love:07_04_2026|0123456789abcdef')).status, 400);
 console.log('PASS: bazi_1 only buys a bazi chart and returns to the stall');
+
+// 主題（2026-11-19）：事業、財運、年運；舊的感情識別字串不變
+{
+  const { reportYear } = await import('../sites/yuelao/src/ritual/match');
+  assert.equal(reportYear(new Date(2026, 10, 19)), 2027, 'from October, the report is for next year');
+  assert.equal(reportYear(new Date(2027, 0, 20)), 2027, 'before 立春 it is still the coming year');
+  assert.equal(reportYear(new Date(2027, 5, 1)), 2027);
+  const love = baziOf('1990-07-10', 7, 'f', 2026)!;
+  assert.equal(baziIds(love), '6g,9h,2a,1h_2026_f', 'love keys keep the phase-3 shape');
+  const career = baziOf('1990-07-10', 7, 'f', 2026, 'career')!;
+  assert.equal(baziIds(career), '6g,9h,2a,1h_2026_f_c');
+  assert.equal(parseBaziIds('6g,9h,2a,1h_2026_f_c')?.topic, 'career');
+  assert.equal(parseBaziIds('6g,9h,2a,1h_2026_f_x'), null);
+  const cc = baziChart(career);
+  assert.deepEqual(cc.roles, { 比劫: 2, 印: 1, 食傷: 2, 財: 1, 官殺: 2 });
+  assert.equal(cc.title, '可擔大任');
+  assert.equal(baziChart({ ...career, topic: 'wealth' }).title, '才藝生財', '食傷 2 generates wealth');
+  const yr = baziChart(baziOf('1990-07-10', 7, 'f', 2027, 'year')!);
+  assert.equal(yr.flowRole, '比劫', '2027 丁 is fire like 丙');
+  assert.equal(yr.title, '同氣相求');
+  assert.equal(yr.flowToZodiac, '六合', '2027 未 and 午 combine');
+  assert.equal(yr.flowToDay, '六害', '未 and 子 harm');
+  for (const t of ['career', 'wealth', 'year'] as const)
+    assert.ok(baziLines(baziChart({ ...career, topic: t })).every((l) => l.text.length > 10));
+
+  const ky = await baziKey('1990-07-10', 7, 'f', 2027, 'single', '', 'year');
+  assert.match(ky ?? '', /^bazi:6g,9h,2a,1h_2027_f_y\|/);
+  const kc = await baziKey('1990-07-10', 7, 'f', 2026, 'single', '', 'career');
+  assert.notEqual(kc, await baziKey('1990-07-10', 7, 'f', 2026, 'single', '', 'love'));
+  const inY = parseSpreadGeneration({ spread: ky, locale: 'zh-Hant', consent: true, sit: 'single' })!;
+  const sentY = JSON.parse(spreadUserInput(inY));
+  assert.equal(sentY.chart.topic, '年運');
+  assert.equal(sentY.chart.thisYear.ganzhi, '丁未');
+  const { BAZI_YEAR_INSTRUCTIONS, BAZI_WEALTH_INSTRUCTIONS } = await import(
+    '../packages/core/src/spread-reading'
+  );
+  assert.match(BAZI_WEALTH_INSTRUCTIONS, /不提任何股票/);
+  assert.match(BAZI_YEAR_INSTRUCTIONS, /【上半年與下半年】/);
+
+  assert.equal((await buy('year_1', ky!)).status, 201, 'a year report is bought with year_1');
+  assert.equal((await buy('bazi_1', ky!)).status, 400, 'bazi_1 cannot buy a year report');
+  assert.equal((await buy('year_1', kc!)).status, 400, 'year_1 cannot buy a career reading');
+  assert.equal((await buy('bazi_1', kc!)).status, 201);
+  console.log('PASS: career, wealth and year topics; year_1 only buys the year report');
+}

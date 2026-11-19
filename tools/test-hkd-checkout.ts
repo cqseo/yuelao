@@ -10,6 +10,7 @@ const EXPECTED: Record<string, number> = {
   match_1: 1200,
   love_1: 1800,
   bazi_1: 2800,
+  year_1: 3800,
   followup_1: 800,
   incense_lotus: 1800,
   incense_aurora: 2800,

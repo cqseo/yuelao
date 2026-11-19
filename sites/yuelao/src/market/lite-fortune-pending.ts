@@ -4,6 +4,7 @@ export type LiteFortunePending = {
   mode: 'match' | 'love' | 'bazi';
   hour: number | null;
   gender: 'f' | 'm' | 'n';
+  topic: 'love' | 'career' | 'wealth' | 'year';
   you: string;
   them: string;
   question: string;
@@ -29,6 +30,7 @@ function valid(x: unknown, now: number): x is LiteFortunePending {
     (p.hour === null ||
       (typeof p.hour === 'number' && Number.isInteger(p.hour) && p.hour >= 0 && p.hour <= 11)) &&
     (p.gender === 'f' || p.gender === 'm' || p.gender === 'n') &&
+    (p.topic === 'love' || p.topic === 'career' || p.topic === 'wealth' || p.topic === 'year') &&
     typeof p.question === 'string' &&
     p.question.length <= 100 &&
     typeof p.sit === 'string' &&

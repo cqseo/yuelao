@@ -548,6 +548,7 @@ export function Market() {
     const matchProduct = findProduct(site, 'match_1');
     const loveProduct = findProduct(site, 'love_1');
     const baziProduct = findProduct(site, 'bazi_1');
+    const yearProduct = findProduct(site, 'year_1');
     const FORTUNE_PENDING = 'market-fortune-pending';
     const fortune = {
       get guest() {
@@ -558,9 +559,18 @@ export function Market() {
       price: matchProduct ? formatPrice(priceForLocale(matchProduct, locale), locale) : '',
       lovePrice: loveProduct ? formatPrice(priceForLocale(loveProduct, locale), locale) : '',
       baziPrice: baziProduct ? formatPrice(priceForLocale(baziProduct, locale), locale) : '',
+      yearPrice: yearProduct ? formatPrice(priceForLocale(yearProduct, locale), locale) : '',
       check: spreadApi.check,
       buy: (key: string) =>
-        checkout(key.startsWith('bazi:') ? 'bazi_1' : key.startsWith('love:') ? 'love_1' : 'match_1', {
+        checkout(
+          key.startsWith('bazi:')
+            ? /_y\|/.test(key)
+              ? 'year_1'
+              : 'bazi_1'
+            : key.startsWith('love:')
+              ? 'love_1'
+              : 'match_1',
+          {
           spread: key,
         }),
       generate: spreadApi.generate,
@@ -570,6 +580,7 @@ export function Market() {
         them: string;
         hour: number | null;
         gender: string;
+        topic?: string;
         question: string;
         sit: string;
         day: string;
@@ -603,6 +614,8 @@ export function Market() {
               mode: p.mode === 'love' || p.mode === 'bazi' ? p.mode : ('match' as const),
               hour: typeof p.hour === 'number' && p.hour >= 0 && p.hour <= 11 ? p.hour : null,
               gender: p.gender === 'f' || p.gender === 'm' ? p.gender : 'n',
+              topic:
+                p.topic === 'career' || p.topic === 'wealth' || p.topic === 'year' ? p.topic : ('love' as const),
               you: p.you,
               them: typeof p.them === 'string' ? p.them : '',
               question: p.question.slice(0, 100),

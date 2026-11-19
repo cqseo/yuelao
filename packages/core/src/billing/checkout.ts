@@ -1,10 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AccountUser } from '../auth';
 import { errorResponse, json } from '../http';
-import { checkoutProductForCurrency, findProduct, type Locale, type SiteConfig } from '../site';
 import { refForCheckout, refFromRequest } from '../partners';
 import { followupCheckoutBlock } from '../reading-followup';
-import { parseSpread } from '../spread';
+import { checkoutProductForCurrency, findProduct, type Locale, type SiteConfig } from '../site';
+import { parseSpread, spreadProductKind } from '../spread';
 import type { PaymentProvider } from './provider';
 
 export interface CheckoutSelection {
@@ -125,7 +125,7 @@ export async function createTestCheckout({
     return errorResponse(400, 'invalid_product_selection');
   }
   // 每個牌陣商品只收自己那一種：塔羅館的價錢買不到合緣配對，反之亦然。
-  const spreadDeck = selection.spread ? selection.spread.slice(0, selection.spread.indexOf(':')) : null;
+  const spreadDeck = selection.spread ? spreadProductKind(selection.spread) : null;
   if (product.kind === 'spread' && !(product.decks ?? ['tarot', 'lnm']).includes(spreadDeck as 'tarot')) {
     return errorResponse(400, 'invalid_product_selection');
   }
@@ -285,7 +285,10 @@ export async function createTestCheckout({
     product.kind === 'unlock'
       ? '/market#yuelao'
       : product.kind === 'spread'
-        ? spreadDeck === 'match' || spreadDeck === 'love' || spreadDeck === 'bazi'
+        ? spreadDeck === 'match' ||
+          spreadDeck === 'love' ||
+          spreadDeck === 'bazi' ||
+          spreadDeck === 'bazi-year'
           ? '/market#bazi'
           : '/market#tarot'
         : '/market';

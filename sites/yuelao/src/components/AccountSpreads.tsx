@@ -27,7 +27,14 @@ function describe(key: string): { kind: [string, string]; detail: string } {
     };
   if (p.deck === 'bazi')
     return {
-      kind: ['八字命盤', '八字命盘'],
+      kind:
+        p.topic === 'year'
+          ? [`${p.flow} 年運`, `${p.flow} 年运`]
+          : p.topic === 'career'
+            ? ['八字．事業', '八字．事业']
+            : p.topic === 'wealth'
+              ? ['八字．財運', '八字．财运']
+              : ['八字命盤', '八字命盘'],
       detail: `${[p.year, p.month, p.day].map(pillarName).join(' ')}${p.hour ? ` ${pillarName(p.hour)}` : ''}．${STEMS[p.day.stem]}${stemElement(p.day.stem)}日主`,
     };
   return {

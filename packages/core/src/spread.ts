@@ -171,3 +171,13 @@ export const SPREAD_POSITIONS: Record<SpreadDeck, readonly [string, string, stri
   tarot: ['過去', '現在', '未來'],
   lnm: ['起因', '過程', '走向'],
 };
+
+/** 這把識別字串該用哪一種商品買：塔羅館、算命攤各玩法；八字的年運另外算（bazi-year）。 */
+export function spreadProductKind(
+  key: string,
+): 'tarot' | 'lnm' | 'match' | 'love' | 'bazi' | 'bazi-year' | null {
+  const p = parseSpread(key);
+  if (!p) return null;
+  if (p.deck === 'bazi' && p.topic === 'year') return 'bazi-year';
+  return p.deck;
+}
