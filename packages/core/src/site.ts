@@ -15,6 +15,8 @@ interface ProductBase {
   prices: Record<Locale, Price>;
   /** Product IDs for providers that need pre-created products. Stripe uses inline prices and needs none. */
   refs?: Record<string, string>;
+  /** 下架：不再出現在畫面上、也不能再結帳；已經買到的照常可用（舊訂單、舊次數包靠 id 認）。 */
+  retired?: boolean;
 }
 
 export interface UnlockProduct extends ProductBase {
@@ -156,4 +158,32 @@ export function defineSite<const T extends SiteConfig>(config: T): T {
 
 export function findProduct(site: SiteConfig, productId: string): Product | undefined {
   return site.products.find((product) => product.id === productId);
+}
+
+/** 解鎖完整解籤可選的方案（單次＋上架中的次數包），附平均每次價格；畫面上的方案選單與「低至每次多少」都從這裡算。 */
+export interface SalePlan {
+  id: string;
+  kind: 'unlock' | 'pack';
+  uses: number;
+  price: Price;
+  /** 平均每次，最小貨幣單位（四捨五入到分）。 */
+  perUse: number;
+}
+export function salePlans(site: SiteConfig, locale: Locale): SalePlan[] {
+  const plans: SalePlan[] = [];
+  for (const product of site.products) {
+    if (product.retired) continue;
+    if (product.kind !== 'unlock' && product.kind !== 'pack') continue;
+    if (product.kind === 'unlock' && product.id !== 'unlock_1') continue;
+    const uses = product.kind === 'pack' ? product.uses : 1;
+    const price = priceForLocale(product, locale);
+    plans.push({ id: product.id, kind: product.kind, uses, price, perUse: Math.round(price.amount / uses) });
+  }
+  return plans.sort((a, b) => a.uses - b.uses);
+}
+
+/** 平均每次的價格：最多一位小數（HK$5.7、HK$7.6、HK$12），不寫成 HK$5.67。 */
+export function formatPerUse(amount: number, currency: string): string {
+  const symbol = CURRENCY_SYMBOL[currency] ?? `${currency} `;
+  return `${symbol}${(Math.round(amount / 10) / 10).toFixed(1).replace(/\.0$/, '')}`;
 }

@@ -9,6 +9,8 @@ export type LitePending = {
   category: OracleCategory;
   question: string;
   why: 'login' | 'pay';
+  /** 買的方案：次數包付完回來要先用一次解鎖這支籤。舊資料沒有這欄，當作單次。 */
+  plan?: string;
   at: number;
 };
 
@@ -24,6 +26,7 @@ function valid(raw: unknown, now: number): raw is LitePending {
     (x.category === 'him' || x.category === 'single' || x.category === 'reunion') &&
     (x.why === 'pay' || x.why === 'login') &&
     typeof x.question === 'string' && x.question.length <= 400 &&
+    (x.plan === undefined || (typeof x.plan === 'string' && /^(unlock_1|pack_\d+)$/.test(x.plan))) &&
     typeof x.at === 'number' &&
     x.at <= now + 60_000 && now - x.at <= MAX_AGE_MS;
 }
@@ -58,6 +61,7 @@ export function saveLitePending(
   category: OracleCategory,
   question: string,
   why: LitePending['why'],
+  plan = 'unlock_1',
 ): boolean {
   if (typeof window === 'undefined') return false;
   if (!Number.isInteger(stickId) || stickId < 1 || stickId > 100) return false;
@@ -68,6 +72,7 @@ export function saveLitePending(
       category,
       question: question.slice(0, 400),
       why,
+      plan,
       at: Date.now(),
     };
     sessionStorage.setItem(KEY, JSON.stringify(item));

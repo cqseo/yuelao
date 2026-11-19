@@ -185,3 +185,32 @@ const provider = (fail: boolean) =>
   );
   console.log('PASS: a customer id from the other Stripe mode is replaced and the checkout retried once');
 }
+
+// 2026-11-19：下架的舊次數包不能再結帳；新的次數包可以，而且訂單金額是新價
+for (const [productId, status] of [
+  ['pack_3', 410],
+  ['pack_8', 410],
+  ['pack_5', 201],
+  ['pack_12', 201],
+] as const) {
+  const { db, log } = fakeDb();
+  const res = await createTestCheckout({
+    request: new Request('https://yuelao.example/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ productId, currency: 'HKD', locale: 'zh-Hant', from: 'market' }),
+    }),
+    site,
+    provider: provider(false),
+    database: db,
+    user,
+    baseUrl: 'https://yuelao.example',
+  });
+  assert.equal(res.status, status, productId);
+  if (status === 201) {
+    const insert = log.find((e) => e.table === 'orders' && e.ops.some((o) => o[0] === 'insert'));
+    const row = insert?.ops.find((o) => o[0] === 'insert')?.[1][0] as { amount?: number; pack_uses?: number };
+    assert.deepEqual([row.amount, row.pack_uses], productId === 'pack_5' ? [3800, 5] : [6800, 12]);
+  }
+}
+console.log('PASS: retired packs cannot be bought; new packs charge the new price and grant their uses');

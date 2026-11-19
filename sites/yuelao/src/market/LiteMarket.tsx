@@ -3,7 +3,7 @@ import { GuestBindHint } from '~/components/GuestBindHint';
 import { track } from '~/lib/track';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import { STICKS, type Stick } from '~/ritual/sticks';
-import { liteCheck, liteCheckout, liteGenerate, litePrice, liteReadingUrl } from './lite-billing';
+import { liteCheck, liteCheckout, liteGenerate, litePlans, litePrice, liteReadingUrl, liteRedeem } from './lite-billing';
 import { saveLitePending, takeLitePending } from './lite-pending';
 import { shareVerdict } from './engine/share.js';
 import './lite-market.css';
@@ -55,6 +55,8 @@ const PAY: Record<string, {
   title: string; note: string; consent: string; buy: string; generate: string; view: string;
   checking: string; generating: string; pending: string; verify: string; owned: string;
   cancelled: string; failed: string; login: string; storage: string; pack: string;
+  /** 方案選單：單次／次數包（{0} 換成數字或價格）。 */
+  single: string; uses: string; per: string; popular: string; from: string; packNote: string;
   /** 付款鈕下方的一行：付款即同意條款（勾選同意改到生成解讀那一步）。 */
   agree: string;
   /** 追問月老的入口（付費解籤下面）。 */
@@ -70,6 +72,8 @@ const PAY: Record<string, {
     cancelled: '已取消付款，這支籤仍保留。', failed: '暫時無法核對或生成。若已付款，請先查看帳戶，勿重複付款。',
     login: '請先登入，回來後會接著這支籤。', storage: '瀏覽器未能保存求籤進度，為防付款後遺失記錄，請允許工作階段儲存。',
     pack: '已有問事包？去帳戶兌換',
+    single: '單次', uses: '{0} 次', per: '每次 {0}', popular: '最多人選', from: '低至 {0} 一次',
+    packNote: '次數包付完會先用一次解鎖這支籤，剩下的存在「我的」，次數不過期。',
     agree: '付款即表示同意服務條款與隱私說明。',
     followup: '還想問月老一句？',
   },
@@ -83,6 +87,8 @@ const PAY: Record<string, {
     cancelled: '已取消付款，这支签仍然保留。', failed: '暂时无法核对或生成。若已付款，请先查看账户，不要重复付款。',
     login: '请先登录，回来后继续这支签。', storage: '浏览器无法保存求签进度。请允许会话存储，以免付款返回后丢失记录。',
     pack: '已有问事包？前往账户兑换',
+    single: '单次', uses: '{0} 次', per: '每次 {0}', popular: '最多人选', from: '低至 {0} 一次',
+    packNote: '次数包付完会先用一次解锁这支签，剩下的存在「我的」，次数不过期。',
     agree: '付款即表示同意服务条款与隐私说明。',
     followup: '还想问月老一句？',
   },
@@ -96,6 +102,8 @@ const PAY: Record<string, {
     cancelled: 'Checkout cancelled. Your stick is still here.', failed: 'Cannot verify or generate right now. If you paid, check your account before buying again.',
     login: 'Sign in first, then return to this stick.', storage: 'Session storage is unavailable. Enable it to keep your reading across checkout.',
     pack: 'Already have a question pack? Redeem in your account',
+    single: 'Single', uses: '{0} readings', per: '{0} each', popular: 'Most popular', from: 'From {0} each',
+    packNote: 'A pack unlocks this stick first; the rest stay in your account and never expire.',
     agree: 'By paying you agree to the Terms and Privacy Policy.',
     followup: 'Ask Yue Lao one more question',
   },
@@ -109,6 +117,8 @@ const PAY: Record<string, {
     cancelled: 'お支払いをキャンセルしました。', failed: '一時的に確認できません。購入済みの場合は再購入しないでください。',
     login: 'ログイン後、このおみくじに戻ります。', storage: '決済後に戻るため、セッション保存を有効にしてください。',
     pack: '回数パックはアカウントから利用',
+    single: '1回', uses: '{0}回', per: '1回 {0}', popular: '人気', from: '1回 {0} から',
+    packNote: 'パックは購入後まずこのおみくじに1回使い、残りはアカウントに保存されます（期限なし）。',
     agree: 'お支払いにより利用規約とプライバシーポリシーに同意したものとみなします。',
     followup: '月下老人にもう一つ聞く',
   },
@@ -134,6 +144,11 @@ export function LiteMarket() {
   const resultRef = useRef<HTMLElement>(null);
   const offerRef = useRef<HTMLElement>(null);
   const price = litePrice();
+  const plans = litePlans();
+  const [plan, setPlan] = useState('unlock_1');
+  const [pendingPlan, setPendingPlan] = useState('unlock_1');
+  const fill = (tpl: string, v: string) => tpl.replace('{0}', v);
+  const fromPrice = plans.length > 1 ? plans.reduce((m, p) => (p.perUseAmount < m.perUseAmount ? p : m)).perUse : price;
 
   useEffect(() => {
     // The normal login + Stripe return URL is /market#yuelao. Restore the
@@ -148,6 +163,7 @@ export function LiteMarket() {
     if (pending) {
       setSituation(pending.category);
       setQuestion(pending.question);
+      if (pending.plan) setPendingPlan(pending.plan);
       setResult(STICKS[pending.stickId - 1] ?? null);
       setWaitingForPayment(pending.why === 'pay' && !cancelled);
       if (cancelled) setMessage(payC.cancelled);
@@ -179,13 +195,15 @@ export function LiteMarket() {
           setPayment('none');
           return;
         }
+        // 買的是次數包：包到了就先用一次解鎖這支籤（Stripe 通知到之前會回 none，繼續等）
+        if (pendingPlan !== 'unlock_1' && (await liteRedeem(id, situation)) === 'ok') continue;
         if (i < attempts - 1) await new Promise((r) => setTimeout(r, 2000));
       }
       if (!cancelled) setPayment('pending'); // Never offer a second charge after return.
     };
     void check();
     return () => { cancelled = true; };
-  }, [hydrated, result, situation, refresh, waitingForPayment]);
+  }, [hydrated, result, situation, refresh, waitingForPayment, pendingPlan]);
 
   const draw = () => {
     if (busy || waitingForPayment) return;
@@ -211,17 +229,17 @@ export function LiteMarket() {
     track('unlock_click', { product: 'unlock_1', lite: true });
     track('checkout_start', { product: 'unlock_1', from: 'market', lite: true });
     try {
-      const response = await liteCheckout(result.id, situation);
+      const response = await liteCheckout(result.id, situation, plan);
       if (response.state === 'login') {
         track('checkout_login_required', { product: 'unlock_1', lite: true });
-        if (!saveLitePending(result.id, situation, question, 'login')) {
+        if (!saveLitePending(result.id, situation, question, 'login', plan)) {
           setMessage(payC.storage);
           return;
         }
         window.location.assign(localizeHref('/login'));
       } else if (response.state === 'redirect') {
         track('checkout_session_created', { product: 'unlock_1', lite: true });
-        if (!saveLitePending(result.id, situation, question, 'pay')) {
+        if (!saveLitePending(result.id, situation, question, 'pay', plan)) {
           setMessage(payC.storage);
           return;
         }
@@ -389,7 +407,7 @@ export function LiteMarket() {
           {result && (
             <section ref={offerRef} className="lite-market__premium" aria-label={payC.title}>
               <h2>{payC.title}</h2>
-              <strong className="lite-market__price">{price}</strong>
+              <strong className="lite-market__price">{plans.length > 1 ? fill(payC.from, fromPrice) : price}</strong>
               <p>{payC.note}</p>
               {checking && <p role="status">{payment === 'generating' ? payC.generating : payC.checking}</p>}
               {payment === 'ready' && (
@@ -427,12 +445,27 @@ export function LiteMarket() {
               )}
               {canPurchase && (
                 <>
+                  {plans.length > 1 && (
+                    <fieldset className="lite-market__plans">
+                      <legend className="sr-only">{payC.title}</legend>
+                      {plans.map((p) => (
+                        <label key={p.id} className={`lite-market__plan${plan === p.id ? ' is-on' : ''}${p.popular ? ' is-popular' : ''}`}>
+                          <input type="radio" name="plan" value={p.id} checked={plan === p.id} onChange={() => setPlan(p.id)} />
+                          <b>{p.uses === 1 ? payC.single : fill(payC.uses, String(p.uses))}</b>
+                          <span>{p.price}</span>
+                          {p.uses > 1 && <small>{fill(payC.per, p.perUse)}</small>}
+                          {p.popular && <em>{payC.popular}</em>}
+                        </label>
+                      ))}
+                      {plan !== 'unlock_1' && <p className="lite-market__agree">{payC.packNote}</p>}
+                    </fieldset>
+                  )}
                   <button
                     className="lite-market__pay"
                     type="button"
                     disabled={busy || !price}
                     onClick={() => void buy()}
-                  >{`${payC.buy} · ${price}`}</button>
+                  >{`${payC.buy} · ${plans.find((p) => p.id === plan)?.price ?? price}`}</button>
                   <p className="lite-market__agree">
                     {payC.agree}{' '}
                     <a href={localizeHref('/terms')} target="_blank" rel="noopener noreferrer">Terms</a>
