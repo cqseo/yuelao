@@ -124,6 +124,11 @@ export async function createTestCheckout({
   if ((product.kind === 'spread') !== (selection.spread !== null)) {
     return errorResponse(400, 'invalid_product_selection');
   }
+  // 每個牌陣商品只收自己那一種：塔羅館的價錢買不到合緣配對，反之亦然。
+  const spreadDeck = selection.spread ? selection.spread.slice(0, selection.spread.indexOf(':')) : null;
+  if (product.kind === 'spread' && !(product.decks ?? ['tarot', 'lnm']).includes(spreadDeck as 'tarot')) {
+    return errorResponse(400, 'invalid_product_selection');
+  }
 
   // The Worker config is trusted, unlike any caller-provided Origin/returnUrl.
   const siteUrl = new URL(baseUrl);
@@ -277,7 +282,13 @@ export async function createTestCheckout({
   // Fixed paths only — never a caller-supplied URL.
   // 從集市發起的付款直接回集市（月老殿會自己向伺服器確認解鎖），不經過核實頁。
   const marketPath =
-    product.kind === 'unlock' ? '/market#yuelao' : product.kind === 'spread' ? '/market#tarot' : '/market';
+    product.kind === 'unlock'
+      ? '/market#yuelao'
+      : product.kind === 'spread'
+        ? spreadDeck === 'match'
+          ? '/market#bazi'
+          : '/market#tarot'
+        : '/market';
   const prefix = selection.ui ? `/${selection.ui}` : '';
   let returnUrl: URL;
   let cancelUrl: URL;

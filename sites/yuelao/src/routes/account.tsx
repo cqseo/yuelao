@@ -72,7 +72,9 @@ function Account() {
       ? t('完整解籤（單次）', '完整解签（单次）')
       : id === 'spread_1'
         ? t('塔羅完整解讀', '塔罗完整解读')
-        : id === 'followup_1'
+        : id === 'match_1'
+          ? t('合緣配對完整解讀', '合缘配对完整解读')
+          : id === 'followup_1'
           ? t('追問月老（一次）', '追问月老（一次）')
           : /^pack_\d+$/.test(id)
             ? packName(Number(id.slice(5)))

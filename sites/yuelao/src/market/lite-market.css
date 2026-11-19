@@ -384,3 +384,28 @@
   .lm__tube, .lm__out, .lm__card { animation: none; }
 }
 .lm__textlink { padding: 0; border: 0; background: none; color: var(--gold); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 44px; }
+
+/* 輕量算命攤．合緣配對（2026-11-19） */
+.lm__dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0 0.5rem; }
+.lm__dates label { display: grid; gap: 0.35rem; }
+.lm__dates input {
+  min-height: 2.9rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(220, 187, 124, 0.45);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--paper);
+  font: inherit;
+  font-size: 1rem;
+  color-scheme: dark;
+}
+.lm__dates input:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px rgba(220, 187, 124, 0.2); }
+.lm__pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 0.6rem; margin: 1rem 0; text-align: center; }
+.lm__pair > div { display: grid; gap: 0.25rem; padding: 1rem 0.5rem; border: 1px solid rgba(220, 187, 124, 0.5); border-radius: 6px; background: var(--red-deep); }
+.lm__pair small { font-size: 0.78rem; color: var(--paper-70); }
+.lm__pair b { font-size: 3rem; line-height: 1.1; color: var(--gold-hi); font-weight: 700; }
+.lm__pair span { font-size: 0.78rem; color: var(--paper); }
+.lm__pair > i { font-style: normal; font-size: 1.6rem; color: var(--gold); }
+@media (max-width: 360px) { .lm__dates { grid-template-columns: 1fr; } }
+.lm .lm__mtitle { margin: 0.5rem 0 0.25rem; color: var(--gold-hi); text-align: center; letter-spacing: 0.25em; }
+.lm .lm__qlabel { display: block; margin-top: 1.1rem; }

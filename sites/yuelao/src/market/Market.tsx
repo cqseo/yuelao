@@ -1,7 +1,9 @@
 import { findProduct, formatPerUse, formatPrice, type Product, priceForLocale, salePlans } from '@yuelao/core/site';
 import { useEffect, useRef, useState } from 'react';
 import { LiteMarket } from './LiteMarket';
+import { LiteFortune } from './LiteFortune';
 import { LiteTarot } from './LiteTarot';
+import { hasLiteFortunePending } from './lite-fortune-pending';
 import { hasLiteTarotPending } from './lite-tarot-pending';
 import { hasLitePending } from './lite-pending';
 import { guestCheckoutOn, isGuest, withGuest } from '~/lib/guest';
@@ -26,6 +28,7 @@ export function Market() {
   const stopRef = useRef<(() => void) | undefined>(undefined);
   const [lite, setLite] = useState(false);
   const [liteTarot, setLiteTarot] = useState(false);
+  const [liteFortune, setLiteFortune] = useState(false);
 
   // 手機頂欄選單：點選單外面就收起來
   useEffect(() => {
@@ -49,6 +52,13 @@ export function Market() {
     if (hasLiteTarotPending() || liteMode === 'tarot') {
       track('market_lite_manual', { source: 'fast_tarot' });
       setLiteTarot(true);
+      setLite(true);
+      return;
+    }
+    // 輕量算命攤付款／登入回來，或 ?lite=bazi：不開 3D，直接回輕量算命攤
+    if (hasLiteFortunePending() || liteMode === 'bazi') {
+      track('market_lite_manual', { source: 'fast_fortune' });
+      setLiteFortune(true);
       setLite(true);
       return;
     }
@@ -443,13 +453,7 @@ export function Market() {
     // 和月老殿一樣：金額、訂單、解鎖都在伺服器；這裡只問狀態、帶去付款、請伺服器動筆。
     const spreadProduct = findProduct(site, 'spread_1');
     const SPREAD_PENDING = 'market-spread-pending';
-    const spread = {
-      get guest() {
-        return isGuest();
-      },
-      bindHref,
-      cancelled: payCancelled,
-      price: spreadProduct ? formatPrice(priceForLocale(spreadProduct, locale), locale) : '',
+    const spreadApi = {
       async check(key: string) {
         try {
           const res = await authed(() =>
@@ -469,7 +473,6 @@ export function Market() {
         } catch {}
         return { state: 'none' as const };
       },
-      buy: (key: string) => checkout('spread_1', { spread: key }),
       async generate(key: string, question: string, sit: string) {
         try {
           const res = await authed(() =>
@@ -493,6 +496,17 @@ export function Market() {
           return 'failed' as const;
         }
       },
+    };
+    const spread = {
+      get guest() {
+        return isGuest();
+      },
+      bindHref,
+      cancelled: payCancelled,
+      price: spreadProduct ? formatPrice(priceForLocale(spreadProduct, locale), locale) : '',
+      check: spreadApi.check,
+      buy: (key: string) => checkout('spread_1', { spread: key }),
+      generate: spreadApi.generate,
       /** 去付款／登入前記下這一把牌（問題只存在本機，回來重算出同一組牌）。 */
       save(p: { deck: string; question: string; sit: string; day: string; why: 'pay' | 'login' }) {
         try {
@@ -519,6 +533,58 @@ export function Market() {
           )
             return {
               deck: p.deck,
+              question: p.question.slice(0, 100),
+              sit: p.sit,
+              day: p.day,
+              why: p.why === 'pay' ? ('pay' as const) : ('login' as const),
+            };
+        } catch {}
+        return null;
+      },
+    };
+
+    // 算命攤．合緣配對（付費完整解讀）：同一套牌陣解讀（識別字串 match:…，見 packages/core/src/match.ts）。
+    // 生日只在本機：去付款前存在 sessionStorage，回來重算同一個識別字串；不送進訂單。
+    const matchProduct = findProduct(site, 'match_1');
+    const FORTUNE_PENDING = 'market-fortune-pending';
+    const fortune = {
+      get guest() {
+        return isGuest();
+      },
+      bindHref,
+      cancelled: payCancelled,
+      price: matchProduct ? formatPrice(priceForLocale(matchProduct, locale), locale) : '',
+      check: spreadApi.check,
+      buy: (key: string) => checkout('match_1', { spread: key }),
+      generate: spreadApi.generate,
+      save(p: { you: string; them: string; question: string; sit: string; day: string; why: 'pay' | 'login' }) {
+        try {
+          sessionStorage.setItem(
+            FORTUNE_PENDING,
+            JSON.stringify({ ...p, question: p.question.slice(0, 100), at: Date.now() }),
+          );
+        } catch {}
+      },
+      take() {
+        try {
+          const raw = sessionStorage.getItem(FORTUNE_PENDING);
+          sessionStorage.removeItem(FORTUNE_PENDING);
+          const p = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+          const date = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+          if (
+            p &&
+            date(p.you) &&
+            date(p.them) &&
+            typeof p.question === 'string' &&
+            typeof p.sit === 'string' &&
+            typeof p.day === 'string' &&
+            /^\d{4}-\d{1,2}-\d{1,2}$/.test(p.day) &&
+            typeof p.at === 'number' &&
+            Date.now() - p.at < 45 * 60 * 1000
+          )
+            return {
+              you: p.you,
+              them: p.them,
               question: p.question.slice(0, 100),
               sit: p.sit,
               day: p.day,
@@ -565,6 +631,7 @@ export function Market() {
       if (gone) return;
       track('market_3d_failure', { reason });
       if (window.location.hash === '#tarot') setLiteTarot(true);
+      if (window.location.hash === '#bazi') setLiteFortune(true);
       stopRef.current?.();
       stopRef.current = undefined;
       setLite(true);
@@ -580,6 +647,7 @@ export function Market() {
         ask,
         deep,
         spread,
+        fortune,
         shop,
         wishes,
       });
@@ -593,7 +661,7 @@ export function Market() {
     };
   }, []);
 
-  if (lite) return liteTarot ? <LiteTarot /> : <LiteMarket />;
+  if (lite) return liteTarot ? <LiteTarot /> : liteFortune ? <LiteFortune /> : <LiteMarket />;
 
   return (
     <div className="mk" ref={root}>
@@ -685,6 +753,7 @@ export function Market() {
         <button type="button" className="ghost" onClick={() => {
           track('market_lite_manual');
           if (window.location.hash === '#tarot') setLiteTarot(true);
+          if (window.location.hash === '#bazi') setLiteFortune(true);
           stopRef.current?.();
           stopRef.current = undefined;
           setLite(true);

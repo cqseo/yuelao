@@ -287,6 +287,57 @@ export async function shareSpread({ deckName, cards }) {
   return deliver(c, 'yuelao-tarot.png', `塔羅館 · ${deckName}`);
 }
 
+/** 算命攤．合緣卡：兩個生肖大字、星座、關係與總評。不放生日、不放問題。 */
+export async function shareMatch({ a, b, zodiacRel, signRel, title, line }) {
+  await ready();
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  night(g);
+  g.textAlign = 'center';
+  g.fillStyle = GOLD;
+  g.font = `600 38px ${SERIF}`;
+  g.fillText('算命攤 · 合緣配對', W / 2, 140);
+  // 兩張紅帖
+  const cw = 300;
+  const ch = 420;
+  const top = 220;
+  [a, b].forEach((p, i) => {
+    const x = i ? W / 2 + 50 : W / 2 - 50 - cw;
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.6)';
+    g.shadowBlur = 30;
+    g.shadowOffsetY = 10;
+    g.fillStyle = RED;
+    g.fillRect(x, top, cw, ch);
+    g.restore();
+    g.strokeStyle = GOLD;
+    g.lineWidth = 4;
+    g.strokeRect(x + 16, top + 16, cw - 32, ch - 32);
+    g.fillStyle = '#f1d79a';
+    g.font = `700 200px ${SERIF}`;
+    g.fillText(p.zodiac, x + cw / 2, top + 270);
+    g.fillStyle = PAPER;
+    g.font = `600 40px ${SERIF}`;
+    g.fillText(p.sign, x + cw / 2, top + ch + 70);
+  });
+  g.fillStyle = GOLD;
+  g.font = `400 70px ${SERIF}`;
+  g.fillText('×', W / 2, top + 240);
+  g.fillStyle = PAPER;
+  g.font = `700 96px ${SERIF}`;
+  g.fillText(title, W / 2, 870);
+  g.fillStyle = GOLD;
+  g.font = `500 36px ${SERIF}`;
+  g.fillText(`生肖${zodiacRel} · 星座${signRel}`, W / 2, 940);
+  g.fillStyle = 'rgba(239,229,207,0.85)';
+  g.font = `400 34px ${SERIF}`;
+  wrap(g, line, W / 2, 1010, 820, 50, 2);
+  footerQr(g, shareUrl('/market#bazi'), '掃碼合一合你們兩個');
+  return deliver(c, 'yuelao-match.png', `合緣配對 · ${title}`);
+}
+
 /**
  * 今日運勢卡：9:16 直圖（1080×1920），適合 IG 限時動態、LINE 背景。
  * kind 'tarot'：一張牌面；kind 'stick'：一張米紙籤。今日能量色當作光暈。

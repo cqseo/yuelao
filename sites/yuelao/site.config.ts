@@ -32,6 +32,14 @@ export default defineSite({
       prices: hkd(1800),
     },
     {
+      // 算命攤．合緣配對的完整解讀（站長 2026-11-19 擬定 HK$12，上線前可改）。上線後 id 不改。
+      id: 'match_1',
+      kind: 'spread',
+      name: '合緣配對 · 完整解讀',
+      prices: hkd(1200),
+      decks: ['match'],
+    },
+    {
       // 追問月老：買過付費解籤後，就同一件事再問一句（站長 2026-11-18 定價 HK$8，一份解籤最多 3 次）。
       // 上線後 id 不改。
       id: 'followup_1',

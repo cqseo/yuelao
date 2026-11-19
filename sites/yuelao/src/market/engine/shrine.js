@@ -487,6 +487,122 @@ function furnishTarot({ g, mat, box, shadow, B, W, zBack }) {
 }
 
 /** 抄經閣：心經直幅、矮書案（宣紙、毛筆、硯台、燭台）、兩側書架、坐墊。 */
+/** 算命攤（2026-11-19）：後牆兩幅直聯、八卦牌匾；一張鋪紅布的卦桌，桌上羅盤、籤筒、兩盞燈。 */
+function furnishFortune({ g, mat, box, shadow, B, zBack }) {
+  const couplet = ['生肖合沖知緣分', '星辰流轉看相處'];
+  couplet.forEach((t, i) => {
+    const p = textPlane(t, 3.0, { vertical: true, bg: '#8a1a14', fg: '#f1d79a', size: 96, weight: 700 });
+    p.position.set(i ? -1.6 : 1.6, B + 2.4, zBack + 0.06);
+    g.add(p);
+  });
+  // 八卦：八邊形木牌，中間太極
+  const bagua = canvasTex(256, 256, (c, w, h) => {
+    c.fillStyle = '#2a1a10';
+    c.fillRect(0, 0, w, h);
+    c.translate(w / 2, h / 2);
+    c.strokeStyle = '#d9b46a';
+    c.lineWidth = 6;
+    for (let k = 0; k < 8; k++) {
+      c.save();
+      c.rotate((k * Math.PI) / 4);
+      for (let l = 0; l < 3; l++) {
+        const y = -96 + l * 14;
+        if ((k >> l) & 1) {
+          c.beginPath();
+          c.moveTo(-26, y);
+          c.lineTo(26, y);
+          c.stroke();
+        } else {
+          c.beginPath();
+          c.moveTo(-26, y);
+          c.lineTo(-6, y);
+          c.moveTo(6, y);
+          c.lineTo(26, y);
+          c.stroke();
+        }
+      }
+      c.restore();
+    }
+    c.fillStyle = '#f1e6cc';
+    c.beginPath();
+    c.arc(0, 0, 40, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = '#1a120b';
+    c.beginPath();
+    c.arc(0, 0, 40, -Math.PI / 2, Math.PI / 2);
+    c.arc(0, 20, 20, Math.PI / 2, -Math.PI / 2, true);
+    c.arc(0, -20, 20, Math.PI / 2, -Math.PI / 2);
+    c.fill();
+  });
+  const plaque = new THREE.Mesh(
+    new THREE.CircleGeometry(0.8, 8),
+    new THREE.MeshStandardMaterial({ map: bagua, roughness: 0.6 }),
+  );
+  plaque.rotation.z = Math.PI / 8;
+  plaque.position.set(0, B + 2.7, zBack + 0.07);
+  g.add(plaque);
+
+  const tz = zBack + 2.4;
+  const desk = new THREE.Group();
+  desk.add(shadow(box(2.4, 0.12, 1.1, mat.wood)).translateY(0.55));
+  const cloth = new THREE.Mesh(
+    new THREE.BoxGeometry(2.46, 0.5, 1.14),
+    new THREE.MeshStandardMaterial({ color: 0x8a1a14, roughness: 0.85 }),
+  );
+  cloth.position.y = 0.36;
+  desk.add(cloth);
+  // 羅盤
+  const compass = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.26, 0.28, 0.05, 32),
+    new THREE.MeshStandardMaterial({ map: bagua, color: 0xffe2a8, roughness: 0.4, metalness: 0.3 }),
+  );
+  compass.position.set(0, 0.64, 0.05);
+  // 籤筒
+  const tube = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.09, 0.08, 0.3, 14),
+    new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.7 }),
+  );
+  tube.position.set(0.8, 0.76, -0.15);
+  desk.add(compass, tube);
+  for (let k = 0; k < 7; k++) {
+    const st = new THREE.Mesh(
+      new THREE.BoxGeometry(0.018, 0.34, 0.006),
+      new THREE.MeshStandardMaterial({ color: 0xd9b46a, roughness: 0.6 }),
+    );
+    st.position.set(0.8 + Math.sin(k) * 0.04, 0.9, -0.15 + Math.cos(k * 1.7) * 0.04);
+    st.rotation.z = Math.sin(k * 2.3) * 0.12;
+    desk.add(st);
+  }
+  const flames = [];
+  for (const s of [-1, 1]) {
+    desk.add(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.12, 0.26, 10),
+        new THREE.MeshStandardMaterial({ color: 0xc21f1a, emissive: 0x5a0d08, roughness: 0.6 }),
+      )
+        .translateX(s * 1.05)
+        .translateY(0.75)
+        .translateZ(-0.3),
+    );
+    const f = glow(0xffb050, 0.35, 0.95);
+    f.position.set(s * 1.05, 0.92, -0.3);
+    desk.add(f);
+    flames.push(f);
+  }
+  desk.position.set(0, B, tz - 0.6);
+  desk.traverse((n) => {
+    n.userData.room = 'bazi';
+  });
+  g.add(desk);
+  // 客人坐的矮凳
+  g.add(
+    shadow(box(0.6, 0.4, 0.4, mat.wood))
+      .translateY(B + 0.2)
+      .translateZ(tz + 0.4),
+  );
+  return { god: desk, tz, cz: tz + 1.75, cushionsLocal: [], flames };
+}
+
 function furnishSutra({ g, mat, box, shadow, B, W, zBack }) {
   // 心經（玄奘譯，公版）直幅
   const lines = ['觀自在菩薩', '行深般若波羅蜜多時', '照見五蘊皆空', '度一切苦厄', '心無罣礙', '無有恐怖'];
@@ -978,7 +1094,14 @@ export function createShrine(o) {
     if (o.rack !== false) g.add(rack);
     return { god, tz, cz, cushionsLocal, flames, joss };
   }
-  const furnish = o.kind === 'tarot' ? furnishTarot : o.kind === 'sutra' ? furnishSutra : furnishAltar;
+  const furnish =
+    o.kind === 'tarot'
+      ? furnishTarot
+      : o.kind === 'sutra'
+        ? furnishSutra
+        : o.kind === 'bazi'
+          ? furnishFortune
+          : furnishAltar;
   const {
     god,
     tz,
