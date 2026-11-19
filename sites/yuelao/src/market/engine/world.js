@@ -17,7 +17,7 @@ export const ROOMS = [
   { id: 'bazi', name: '算命攤', sub: '合緣配對', open: true, tint: 0xff9a5a, cloth: '#8a1a14' },
   { id: 'sutra', name: '抄經閣', sub: '每日心箋', open: true, tint: 0xffd59a, cloth: '#3b2414' },
   { id: 'burn', name: '化寶爐', sub: '燒疏文', open: false },
-  { id: 'rent', name: '旺鋪招租', sub: '虛位以待', open: false, note: '虛位以待' },
+  { id: 'caishen', name: '財神殿', sub: '求財籤', open: true, tint: 0xffc060, cloth: '#a3201a' },
 ];
 
 const FACE = { S: 0, E: Math.PI / 2, N: Math.PI, W: -Math.PI / 2 };
@@ -490,7 +490,7 @@ export function createWorld(renderer, lowQuality) {
   const ring = [
     { x: -19, z: -13, sign: '塔羅館', banner: '三張牌陣', room: 'tarot', h: 4.1 },
     { x: -23, z: 0, sign: '抄經閣', banner: '籌備中', room: 'sutra', floors: 2, lit: false },
-    { x: -19, z: 13, sign: '旺鋪招租', banner: '虛位以待', room: 'rent', lit: false },
+    { x: -19, z: 13, sign: '財神殿', banner: '求財問事', room: 'caishen' },
     { x: 19, z: -13, sign: '月老殿', banner: '求籤問緣', room: 'yuelao', h: 4.1 },
     { x: 23, z: 0, sign: '算命攤', banner: '合緣配對', room: 'bazi', floors: 2 },
     { x: 19, z: 13, sign: '茶館', banner: '清茶細點' },
@@ -509,6 +509,12 @@ export function createWorld(renderer, lowQuality) {
         plaque: '塔羅館',
         outer: ['三張牌陣', '看見此刻'],
         prompt: '抽牌',
+      },
+      caishen: {
+        kind: 'caishen',
+        plaque: '財神殿',
+        outer: ['財源廣進', '求財問事'],
+        prompt: '求財',
       },
       bazi: {
         kind: 'bazi',

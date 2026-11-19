@@ -290,7 +290,9 @@ export async function createTestCheckout({
           spreadDeck === 'bazi' ||
           spreadDeck === 'bazi-year'
           ? '/market#bazi'
-          : '/market#tarot'
+          : spreadDeck === 'cai'
+            ? '/market#caishen'
+            : '/market#tarot'
         : '/market';
   const prefix = selection.ui ? `/${selection.ui}` : '';
   let returnUrl: URL;

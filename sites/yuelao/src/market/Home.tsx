@@ -46,6 +46,7 @@ const NAV = [
   { to: '/market#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
   { to: '/market#tarot', label: () => m.home_market_room_tarot(), hard: true },
   { to: '/market#bazi', label: () => m.home_market_room_bazi(), hard: true },
+  { to: '/market#caishen', label: () => m.home_market_room_caishen(), hard: true },
   { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true },
   { to: '/tests', label: () => m.home_market_nav_tests() },
 ];
@@ -68,6 +69,12 @@ const ROOMS = [
     name: () => m.home_market_room_bazi(),
     desc: () => m.home_market_room_bazi_desc(),
     hash: 'bazi',
+  },
+  {
+    img: '/market/caishen.jpg',
+    name: () => m.home_market_room_caishen(),
+    desc: () => m.home_market_room_caishen_desc(),
+    hash: 'caishen',
   },
   {
     img: '/market/hall.jpg',

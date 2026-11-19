@@ -432,6 +432,45 @@ export async function shareBazi({ pillars, dayMaster, counts, title, line }) {
   return deliver(c, 'yuelao-bazi.png', `我的八字命盤 · ${title}`);
 }
 
+/** 財神殿．籤圖：籤號、等第、籤詩、白話。不放問題。 */
+export async function shareCai({ no, grade, poem, topic, line }) {
+  await ready();
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  night(g);
+  g.textAlign = 'center';
+  g.fillStyle = GOLD;
+  g.font = `600 38px ${SERIF}`;
+  g.fillText(`財神殿 · 求${topic}`, W / 2, 140);
+  // 米紙籤
+  const x = 190;
+  const top = 200;
+  const w = W - 380;
+  const h = 760;
+  g.fillStyle = PAPER;
+  g.fillRect(x, top, w, h);
+  g.strokeStyle = RED;
+  g.lineWidth = 6;
+  g.strokeRect(x + 18, top + 18, w - 36, h - 36);
+  g.fillStyle = RED;
+  g.font = `700 64px ${SERIF}`;
+  g.fillText(`第 ${no} 籤`, W / 2, top + 120);
+  g.font = `600 44px ${SERIF}`;
+  g.fillText(grade, W / 2, top + 190);
+  g.fillStyle = INK;
+  g.font = `600 50px ${SERIF}`;
+  poem.forEach((l, i) => {
+    g.fillText(l, W / 2, top + 310 + i * 90);
+  });
+  g.fillStyle = PAPER;
+  g.font = `400 36px ${SERIF}`;
+  wrap(g, line, W / 2, top + h + 90, 820, 52, 2);
+  footerQr(g, shareUrl('/market#caishen'), '掃碼來財神殿求一支');
+  return deliver(c, 'yuelao-caishen.png', `財神殿 · 第 ${no} 籤`);
+}
+
 /**
  * 今日運勢卡：9:16 直圖（1080×1920），適合 IG 限時動態、LINE 背景。
  * kind 'tarot'：一張牌面；kind 'stick'：一張米紙籤。今日能量色當作光暈。

@@ -47,4 +47,10 @@ begin
   j := public.claim_spread_reading(a, 'bazi:6g,9h,2a,1h_2026_f|0123456789abcdef', 'zh-Hant');
   if j->>'state' <> 'not_unlocked' then raise exception 'bazi claim before payment: %', j; end if;
   raise notice 'PASS: bazi keys are accepted by orders and the claim RPC';
+
+  insert into public.orders(user_id,product_id,product_kind,amount,currency,status,locale,spread)
+    values (a,'cai_1','spread',1200,'HKD','pending','zh-Hant','cai:007_w|0123456789abcdef');
+  j := public.claim_spread_reading(a, 'cai:007_w|0123456789abcdef', 'zh-Hant');
+  if j->>'state' <> 'not_unlocked' then raise exception 'cai claim before payment: %', j; end if;
+  raise notice 'PASS: cai keys are accepted by orders and the claim RPC';
 end $$;

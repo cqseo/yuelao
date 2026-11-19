@@ -603,6 +603,120 @@ function furnishFortune({ g, mat, box, shadow, B, zBack }) {
   return { god: desk, tz, cz: tz + 1.75, cushionsLocal: [], flames };
 }
 
+/** 程序拼出的財神像：紅袍、金冠、長鬚，雙手捧元寶。財神殿內外共用。 */
+export function buildCaishen() {
+  const g = new THREE.Group();
+  const red = new THREE.MeshStandardMaterial({ color: 0xa3201a, roughness: 0.6 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xe0b85a, roughness: 0.3, metalness: 0.8 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xf0c9a8, roughness: 0.7 });
+  const black = new THREE.MeshStandardMaterial({ color: 0x1a1210, roughness: 0.8 });
+  const prof = [];
+  for (let i = 0; i <= 10; i++) {
+    const k = i / 10;
+    prof.push(new THREE.Vector2(0.32 + 0.4 * k ** 1.3, 1.5 - k * 1.5));
+  }
+  const robe = new THREE.Mesh(new THREE.LatheGeometry(prof, 24), red);
+  g.add(robe);
+  const belt = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.04, 8, 24), gold);
+  belt.rotation.x = Math.PI / 2;
+  belt.position.y = 0.95;
+  g.add(belt);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 16), skin);
+  head.position.y = 1.78;
+  g.add(head);
+  const beard = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.26, 12), black);
+  beard.rotation.x = Math.PI;
+  beard.position.set(0, 1.58, 0.2);
+  g.add(beard);
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.27, 0.24, 18), gold);
+  crown.position.y = 2.05;
+  g.add(crown);
+  for (const s of [-1, 1]) {
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.04), gold);
+    wing.position.set(s * 0.36, 2.02, 0);
+    wing.rotation.z = s * 0.25;
+    g.add(wing);
+  }
+  // 元寶：捧在腹前（兩端翹起的船形，不做球頂，免得看起來像一張臉）
+  const ingot = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.13, 0.1, 24, 1), gold);
+  base.scale.z = 0.55;
+  ingot.add(base);
+  for (const s of [-1, 1]) {
+    const lip = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), gold);
+    lip.scale.set(1, 0.6, 0.8);
+    lip.position.set(s * 0.17, 0.06, 0);
+    ingot.add(lip);
+  }
+  ingot.position.set(0, 0.92, 0.52);
+  g.add(ingot);
+  // 寬袖：兩條斜的紅袖從肩到元寶
+  for (const s of [-1, 1]) {
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.14, 0.6, 12), red);
+    sleeve.position.set(s * 0.32, 1.2, 0.3);
+    sleeve.rotation.set(0.7, 0, s * 0.5);
+    g.add(sleeve);
+  }
+  g.traverse((o) => {
+    if (o.isMesh) o.castShadow = true;
+  });
+  return g;
+}
+
+/** 財神殿（2026-11-19，原本的旺鋪招租）：後牆金字對聯、財神像、供桌上元寶與籤筒。 */
+function furnishCaishen({ g, mat, box, shadow, B, zBack }) {
+  ['財源廣進達三江', '生意興隆通四海'].forEach((t, i) => {
+    const p = textPlane(t, 3.0, { vertical: true, bg: '#8a1a14', fg: '#f1d79a', size: 96, weight: 700 });
+    p.position.set(i ? -1.9 : 1.9, B + 2.4, zBack + 0.06);
+    g.add(p);
+  });
+  const plaque = textPlane('財神殿', 0.6, { bg: '#2a1a10', fg: '#e8c56a', size: 110, weight: 700, border: '#e8c56a' });
+  plaque.position.set(0, B + 4.0, zBack + 0.07);
+  g.add(plaque);
+  const god = buildCaishen();
+  god.position.set(0, B + 0.55, zBack + 0.8);
+  g.add(god);
+  const tz = zBack + 2.4;
+  const desk = new THREE.Group();
+  desk.add(shadow(box(2.4, 0.12, 1.1, mat.wood)).translateY(0.55));
+  const cloth = new THREE.Mesh(
+    new THREE.BoxGeometry(2.44, 0.5, 1.14),
+    new THREE.MeshStandardMaterial({ color: 0xa3201a, roughness: 0.85 }),
+  );
+  cloth.position.y = 0.36;
+  desk.add(cloth);
+  const gold = new THREE.MeshStandardMaterial({ color: 0xe0b85a, roughness: 0.3, metalness: 0.8 });
+  for (const [dx, dz] of [
+    [-0.7, -0.1],
+    [-0.5, 0.15],
+    [-0.85, 0.2],
+  ]) {
+    const ing = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.08, 16), gold);
+    ing.scale.z = 0.6;
+    ing.position.set(dx, 0.66, dz);
+    desk.add(ing);
+  }
+  const tube = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.09, 0.08, 0.3, 14),
+    new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.7 }),
+  );
+  tube.position.set(0.7, 0.76, 0);
+  desk.add(tube);
+  const flames = [];
+  for (const s of [-1, 1]) {
+    const f = glow(0xffb050, 0.35, 0.95);
+    f.position.set(s * 1.05, 0.92, -0.3);
+    desk.add(f);
+    flames.push(f);
+  }
+  desk.position.set(0, B, tz - 0.6);
+  desk.traverse((n) => {
+    n.userData.room = 'caishen';
+  });
+  g.add(desk);
+  return { god: desk, tz, cz: tz + 1.75, cushionsLocal: [], flames };
+}
+
 function furnishSutra({ g, mat, box, shadow, B, W, zBack }) {
   // 心經（玄奘譯，公版）直幅
   const lines = ['觀自在菩薩', '行深般若波羅蜜多時', '照見五蘊皆空', '度一切苦厄', '心無罣礙', '無有恐怖'];
@@ -1101,7 +1215,9 @@ export function createShrine(o) {
         ? furnishSutra
         : o.kind === 'bazi'
           ? furnishFortune
-          : furnishAltar;
+          : o.kind === 'caishen'
+            ? furnishCaishen
+            : furnishAltar;
   const {
     god,
     tz,

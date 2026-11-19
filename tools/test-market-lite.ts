@@ -9,7 +9,8 @@ const yuelao = read('market/engine/yuelao.js');
 const lite = read('market/LiteMarket.tsx');
 
 assert.equal(STICKS.length, 100);
-assert.ok(market.includes('if (lite) return liteTarot ? <LiteTarot /> : liteFortune ? <LiteFortune /> : <LiteMarket />;'), 'lite tarot, lite fortune and lite sticks stay in the market route');
+assert.ok(/liteTarot \? <LiteTarot \/> : liteFortune \? <LiteFortune \/> : liteCai \? <LiteCaishen \/> : <LiteMarket \/>/.test(market), 'lite tarot, fortune, wealth shrine and sticks stay in the market route');
+assert.ok(market.includes("liteMode === 'cai'") && market.includes('hasLiteCaiPending()'), 'lite wealth shrine restores after payment');
 assert.ok(market.includes("liteMode === 'bazi'") && market.includes('hasLiteFortunePending()'), 'lite fortune restores after payment');
 assert.ok(market.includes("liteMode === '1'"), 'existing fast stick option remains available');
 assert.ok(market.includes("liteMode === 'tarot'"), '3D-free tarot route is supported');
