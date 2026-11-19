@@ -6,8 +6,11 @@ import { LISTED, prefixOf, stripPrefix, withPrefix } from './locale';
 
 const abs = (site: SiteConfig, path: string) => `${site.url}${path === '/' ? '' : path}`;
 
+/** 沒指定圖的頁面也要有分享圖（Threads、LINE、WhatsApp 等貼連結時才有預覽，2026-11-19）。 */
+const DEFAULT_IMAGE = '/market/plaza.jpg';
+
 export function pageHead(site: SiteConfig, page: PageMeta) {
-  const head = coreHead(site, page);
+  const head = coreHead(site, { ...page, image: page.image ?? `${site.url}${DEFAULT_IMAGE}` });
   if (page.noindex) return head;
   const base = stripPrefix(page.path);
   // 沒列出來的語言（泰、韓）不給搜尋引擎收錄，也不掛 hreflang

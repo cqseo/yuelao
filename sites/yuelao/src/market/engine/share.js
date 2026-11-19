@@ -66,6 +66,8 @@ export function shareUrl(path) {
   const origin = typeof location !== 'undefined' ? location.origin : 'https://yuexia.app';
   const u = new URL(path, origin);
   u.searchParams.set('from', 'share');
+  // 鋪子連結：爬蟲看不到 #hash，另帶 ?room= 讓預覽用那間鋪子的圖與標題（routes/market.tsx）
+  if (u.pathname === '/market' && u.hash) u.searchParams.set('room', u.hash.slice(1));
   return u.href;
 }
 
