@@ -17,7 +17,7 @@ assert.ok(market.includes("onBootFailure: () => activateLite('boot')"));
 assert.ok(market.includes("catch(() => activateLite('module'))"));
 assert.ok(engine.includes('opts.onBootFailure?.()'));
 assert.ok(!engine.includes('可以改用一般版求籤'));
-assert.ok(lite.includes("localizeHref('/sign/' + result.id)"), 'lite results must remain navigable');
+assert.ok(lite.includes('localizeHref(`/sign/${result.id}`)'), 'lite results must remain navigable');
 assert.ok(!lite.includes("localizeHref('/ritual')"), 'no separate ritual page');
 assert.ok(lite.includes("crypto.getRandomValues"), 'random stick is selected on device');
 for (const evt of ['ritual_begin', 'reading_done', 'quick_question_click']) {

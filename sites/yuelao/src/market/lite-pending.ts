@@ -11,6 +11,8 @@ export type LitePending = {
   why: 'login' | 'pay';
   /** 買的方案：次數包付完回來要先用一次解鎖這支籤。舊資料沒有這欄，當作單次。 */
   plan?: string;
+  /** 五種處境之一（快速版改版後才有；舊資料只有 category）。 */
+  sit?: string;
   at: number;
 };
 
@@ -27,6 +29,7 @@ function valid(raw: unknown, now: number): raw is LitePending {
     (x.why === 'pay' || x.why === 'login') &&
     typeof x.question === 'string' && x.question.length <= 400 &&
     (x.plan === undefined || (typeof x.plan === 'string' && /^(unlock_1|pack_\d+)$/.test(x.plan))) &&
+    (x.sit === undefined || (typeof x.sit === 'string' && /^(single|crush|dating|reunion|married)$/.test(x.sit))) &&
     typeof x.at === 'number' &&
     x.at <= now + 60_000 && now - x.at <= MAX_AGE_MS;
 }
@@ -62,6 +65,7 @@ export function saveLitePending(
   question: string,
   why: LitePending['why'],
   plan = 'unlock_1',
+  sit?: string,
 ): boolean {
   if (typeof window === 'undefined') return false;
   if (!Number.isInteger(stickId) || stickId < 1 || stickId > 100) return false;
@@ -73,6 +77,7 @@ export function saveLitePending(
       question: question.slice(0, 400),
       why,
       plan,
+      ...(sit ? { sit } : {}),
       at: Date.now(),
     };
     sessionStorage.setItem(KEY, JSON.stringify(item));

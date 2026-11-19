@@ -7,20 +7,20 @@ import { hasLitePending, saveLitePending, takeLitePending } from '../sites/yuela
 const original = findProduct(site, 'unlock_1');
 assert.ok(original, 'Use the existing, not a second payment product');
 for (const language of ['zh-Hant', 'zh-Hans'] as const) {
-  assert.deepEqual(priceForLocale(original, language), { amount: 1800, currency: 'HKD' });
-  assert.equal(formatPrice(priceForLocale(original, language), language), 'HK$18');
+  assert.deepEqual(priceForLocale(original, language), { amount: 1200, currency: 'HKD' });
+  assert.equal(formatPrice(priceForLocale(original, language), language), 'HK$12');
 }
 const lite = readFileSync('sites/yuelao/src/market/LiteMarket.tsx', 'utf8');
 const billing = readFileSync('sites/yuelao/src/market/lite-billing.ts', 'utf8');
 const market = readFileSync('sites/yuelao/src/market/Market.tsx', 'utf8');
-assert.ok(lite.includes('liteCheckout(result.id, situation)'), 'Buy the drawn stick/category');
+assert.ok(lite.includes('liteCheckout(result.id, category, plan)'), 'Buy the drawn stick/category (or a pack)');
 assert.ok(lite.includes('scrollIntoView'), 'after drawing, the result must be visible');
 assert.ok(lite.includes('IntersectionObserver'), 'premium impression requires viewport exposure');
 assert.ok(lite.includes("response.state === 'owned'"), 'Handle already owned without charging');
 assert.ok(lite.includes("payment === 'ready'"), 'Show purchased full text');
 assert.ok(lite.includes("payment === 'pending'"), 'Pending Stripe webhook must block a duplicate charge');
-assert.ok(lite.includes('liteGenerate(result.id, situation, question)'), 'Generate only after entitlement');
-assert.ok(lite.includes('disabled={!consent || busy || !price}'), 'Require explicit consent');
+assert.ok(lite.includes('liteGenerate(result.id, category, asked)'), 'Generate only after entitlement, with the situation');
+assert.ok(lite.includes('disabled={!consent || busy}'), 'Require explicit consent before generation');
 assert.ok(billing.includes("'/api/account/reading/generate'"));
 assert.ok(billing.includes("'/api/billing/checkout'"));
 assert.ok(billing.includes("'/api/account/status'"));
@@ -57,4 +57,9 @@ values.set('market-pending', JSON.stringify({
 }));
 assert.equal(hasLitePending(), false, 'Expire stale pending');
 assert.equal(takeLitePending(), null);
-console.log('PASS: HKD18 full unlock, no duplicate purchase, owned text, consent and lite return restoration.');
+// 快速版改版：處境一起存，回來接得上
+assert.equal(saveLitePending(12, 'him', '', 'pay', 'pack_5', 'crush'), true);
+const withSit = takeLitePending();
+assert.equal(withSit?.sit, 'crush');
+assert.equal(withSit?.plan, 'pack_5');
+console.log('PASS: HKD12 full unlock, no duplicate purchase, owned text, consent and lite return restoration.');
