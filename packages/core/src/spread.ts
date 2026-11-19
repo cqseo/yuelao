@@ -4,6 +4,7 @@
 //   match:01_03,05_11|<16 位十六進位>   算命攤．合緣配對：你的生肖_星座,對方的生肖_星座（見 match.ts）
 //   love:11_11_2026|<16 位十六進位>      算命攤．個人姻緣盤：生肖_星座_流年（見 love.ts）
 //   bazi:6g,9h,2a,xx_2026_f|<16 位十六進位>  算命攤．八字命盤：四柱_流年_性別（見 bazi.ts）
+//   cai:007_w|<16 位十六進位>               財神殿．求財籤：籤號（三位數）_主題（c 事業、w 財運）
 // 後面的雜湊由前端用「日期＋情況＋問題」算出；問題本身不送進訂單、不存。
 // 這裡只驗形狀與牌名合法（三張互不重複），不重新驗證抽牌結果——付錢的是使用者自己的這一組。
 
@@ -13,7 +14,7 @@ import { type MatchPerson, parseMatchIds } from './match';
 
 export type SpreadDeck = 'tarot' | 'lnm';
 /** 識別字串的前綴；付費解讀都走同一套表（spread_unlocks／spread_ai_readings）。 */
-export type SpreadKind = SpreadDeck | 'match' | 'love' | 'bazi';
+export type SpreadKind = SpreadDeck | 'match' | 'love' | 'bazi' | 'cai';
 
 const MAJOR = Array.from({ length: 22 }, (_, i) => String(i).padStart(2, '0'));
 const MINOR = ['Wands', 'Cups', 'Swords', 'Pentacles'].flatMap((s) =>
@@ -43,15 +44,29 @@ export interface BaziSpread extends BaziInput {
   key: string;
   deck: 'bazi';
 }
-export type ParsedSpread = CardSpread | MatchSpread | LoveSpread | BaziSpread;
+export interface CaiSpread {
+  key: string;
+  deck: 'cai';
+  /** 籤號 1–36（籤文在站點：sites/yuelao/src/ritual/caishen.ts）。 */
+  no: number;
+  topic: 'career' | 'wealth';
+}
+export type ParsedSpread = CardSpread | MatchSpread | LoveSpread | BaziSpread | CaiSpread;
+export const CAI_STICK_COUNT = 36;
 
 export function parseSpread(value: unknown): ParsedSpread | null {
   if (typeof value !== 'string' || value.length > 100) return null;
-  const m = /^(tarot|lnm|match|love|bazi):([A-Za-z0-9_~,]{5,80})\|([0-9a-f]{16})$/.exec(value);
+  const m = /^(tarot|lnm|match|love|bazi|cai):([A-Za-z0-9_~,]{5,80})\|([0-9a-f]{16})$/.exec(value);
   if (!m) return null;
   if (m[1] === 'match') {
     const pair = parseMatchIds(m[2]!);
     return pair ? { key: value, deck: 'match', ...pair } : null;
+  }
+  if (m[1] === 'cai') {
+    const c = /^(\d{3})_([cw])$/.exec(m[2]!);
+    const no = c ? Number(c[1]) : 0;
+    if (!c || no < 1 || no > CAI_STICK_COUNT) return null;
+    return { key: value, deck: 'cai', no, topic: c[2] === 'c' ? 'career' : 'wealth' };
   }
   if (m[1] === 'bazi') {
     const b = parseBaziIds(m[2]!);
@@ -171,3 +186,13 @@ export const SPREAD_POSITIONS: Record<SpreadDeck, readonly [string, string, stri
   tarot: ['過去', '現在', '未來'],
   lnm: ['起因', '過程', '走向'],
 };
+
+/** 這把識別字串該用哪一種商品買：塔羅館、算命攤各玩法；八字的年運另外算（bazi-year）。 */
+export function spreadProductKind(
+  key: string,
+): 'tarot' | 'lnm' | 'match' | 'love' | 'bazi' | 'bazi-year' | 'cai' | null {
+  const p = parseSpread(key);
+  if (!p) return null;
+  if (p.deck === 'bazi' && p.topic === 'year') return 'bazi-year';
+  return p.deck;
+}

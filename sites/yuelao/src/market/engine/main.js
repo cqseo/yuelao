@@ -24,6 +24,7 @@ import { createInteract } from './interact.js';
 import { createKoi } from './koi.js';
 import { createPlazaNet } from './plaza-net.js';
 import { createPool } from './pool.js';
+import { createCaishen } from './caishen.js';
 import { createFortune } from './fortune.js';
 import { createSutra } from './sutra.js';
 import { createTarot } from './tarot.js';
@@ -104,6 +105,7 @@ export function startMarket(root, opts = {}) {
     deep: opts.deep || null,
     spread: opts.spread || null,
     fortune: opts.fortune || null,
+    cai: opts.cai || null,
     leave: () => leaveRoom(),
     emit: (name, props) => emit(name, props),
   };
@@ -242,6 +244,7 @@ export function startMarket(root, opts = {}) {
     rooms.hall = createHall(ui);
     rooms.sutra = createSutra(ui);
     rooms.bazi = createFortune(ui);
+    rooms.caishen = createCaishen(ui);
     pool = createPool({ ui, world, api: opts.wishes || null, emit });
     void pool.refresh();
 
@@ -281,7 +284,7 @@ export function startMarket(root, opts = {}) {
       void enterMarket();
       return;
     }
-    // #street, #plaza, #yuelao, #ask, #tarot, #bazi, #hall, #sutra, #wish jump straight in (首頁的鋪子卡片也用這些)
+    // #street, #plaza, #yuelao, #ask, #tarot, #bazi, #caishen, #hall, #sutra, #wish jump straight in (首頁的鋪子卡片也用這些)
     const h = location.hash.slice(1);
     if (h) {
       menu.classList.remove('show');

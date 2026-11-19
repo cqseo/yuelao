@@ -54,6 +54,48 @@ const PRODUCTS = {
   love: findProduct(site, 'love_1'),
   bazi: findProduct(site, 'bazi_1'),
 };
+const YEAR_PRODUCT = findProduct(site, 'year_1');
+type Topic = 'love' | 'career' | 'wealth' | 'year';
+const TOPIC_SECTIONS: Record<Exclude<Topic, 'love'>, string[]> = {
+  career: [
+    '你的工作底色',
+    '適合的方向',
+    '貴人與助力',
+    '容易卡住的地方',
+    '今年的事業運',
+    '對著你的問題',
+    '留給你的一句話',
+  ],
+  wealth: [
+    '你的財運底色',
+    '賺錢的路子',
+    '守財與破財',
+    '貴人與合作',
+    '今年的財運',
+    '對著你的問題',
+    '留給你的一句話',
+  ],
+  year: [
+    '這一年的總體',
+    '事業',
+    '財運',
+    '感情',
+    '人際與貴人',
+    '上半年與下半年',
+    '對著你的問題',
+    '留給你的一句話',
+  ],
+};
+const TOPIC_WORDS: Record<Topic, [string, string]> = {
+  love: ['感情', '感情'],
+  career: ['事業', '事业'],
+  wealth: ['財運', '财运'],
+  year: ['年運', '年运'],
+};
+const nextYearLabel = () => {
+  const d = new Date();
+  return d.getMonth() + 1 >= 10 ? d.getFullYear() + 1 : d.getFullYear();
+};
 type Mode = 'match' | 'love' | 'bazi';
 const BAZI_SECTIONS = [
   '你的命盤底色',
@@ -116,6 +158,10 @@ export function LiteFortune() {
   const [bazi, setBazi] = useState<BaziChart | null>(null);
   const [hour, setHour] = useState<number | null>(null);
   const [gender, setGender] = useState<Gender>('n');
+  const [topic, setTopic] = useState<Topic>(() => {
+    const q = typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('topic');
+    return q === 'career' || q === 'wealth' || q === 'year' ? q : 'love';
+  });
   const [chart, setChart] = useState<LoveChart | null>(null);
   const [you, setYou] = useState('');
   const [keep, setKeep] = useState(false);
@@ -133,8 +179,10 @@ export function LiteFortune() {
   const [message, setMessage] = useState('');
   const [revision, setRevision] = useState(0);
   const resultRef = useRef<HTMLElement>(null);
-  const PRODUCT = PRODUCTS[mode];
-  const productId = mode === 'bazi' ? 'bazi_1' : mode === 'love' ? 'love_1' : 'match_1';
+  const PRODUCT = mode === 'bazi' && topic === 'year' ? YEAR_PRODUCT : PRODUCTS[mode];
+  const productId =
+    mode === 'bazi' ? (topic === 'year' ? 'year_1' : 'bazi_1') : mode === 'love' ? 'love_1' : 'match_1';
+  const wordsOfTopic = (x: Topic) => (hans ? TOPIC_WORDS[x][1] : TOPIC_WORDS[x][0]);
   const solo = mode !== 'match';
   const price = PRODUCT ? formatPrice(priceForLocale(PRODUCT, locale), locale) : '';
 
@@ -146,12 +194,13 @@ export function LiteFortune() {
     q: string,
     hr: number | null = hour,
     gd: Gender = gender,
+    tp: Topic = topic,
   ) {
     const m = await import('~/ritual/match');
     if (md === 'bazi') {
-      const flow = m.flowYear();
-      const input = m.baziOf(y, hr, gd, flow);
-      const k = input && (await m.baziKey(y, hr, gd, flow, s, q));
+      const flow = tp === 'year' ? m.reportYear() : m.flowYear();
+      const input = m.baziOf(y, hr, gd, flow, tp);
+      const k = input && (await m.baziKey(y, hr, gd, flow, s, q, tp));
       if (!input || !k) return false;
       setResult(null);
       setChart(null);
@@ -204,6 +253,7 @@ export function LiteFortune() {
     setMode(pending.mode);
     setHour(pending.hour);
     setGender(pending.gender);
+    setTopic(pending.topic);
     setYou(pending.you);
     setThem(pending.them);
     setSit(pending.sit);
@@ -217,6 +267,7 @@ export function LiteFortune() {
       pending.question,
       pending.hour,
       pending.gender,
+      pending.topic,
     );
   }, []);
 
@@ -309,7 +360,7 @@ export function LiteFortune() {
       else {
         keepBirthday(you, keep);
         track('ritual_begin', { kind: md, lite: true });
-        track('reading_done', { kind: md, lite: true });
+        track('reading_done', { kind: md, lite: true, ...(md === 'bazi' ? { topic } : {}) });
       }
     } catch {
       setNote(t('暫時算不了，請稍後再試。', '暂时算不了，请稍后再试。'));
@@ -326,6 +377,7 @@ export function LiteFortune() {
       them: mode === 'match' ? them : '',
       hour: mode === 'bazi' ? hour : null,
       gender: mode === 'bazi' ? gender : ('n' as const),
+      topic: mode === 'bazi' ? topic : ('love' as const),
       question,
       sit,
       day: today(),
@@ -537,6 +589,27 @@ export function LiteFortune() {
           </label>
           {mode === 'bazi' && (
             <fieldset className="lm__sits">
+              <legend className="lm__label">{t('看哪方面', '看哪方面')}</legend>
+              <div className="lm__chips">
+                {(['love', 'career', 'wealth', 'year'] as const).map((x) => (
+                  <button
+                    key={x}
+                    type="button"
+                    aria-pressed={topic === x}
+                    disabled={locked}
+                    onClick={() => {
+                      setTopic(x);
+                      if (shown) reset();
+                    }}
+                  >
+                    {x === 'year' ? `${nextYearLabel()}${wordsOfTopic(x)}` : wordsOfTopic(x)}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          {mode === 'bazi' && (
+            <fieldset className="lm__sits">
               <legend className="lm__label">{t('性別（看配偶星用）', '性别（看配偶星用）')}</legend>
               <div className="lm__chips">
                 {(
@@ -622,8 +695,8 @@ export function LiteFortune() {
           <p className="lm__fine">
             {mode === 'bazi'
               ? t(
-                  '八字命盤為簡化的傳統命理，屬文化參考與自我反思，不代表現實預測。',
-                  '八字命盘为简化的传统命理，属文化参考与自我反思，不代表现实预测。',
+                  '八字命盤為簡化的傳統命理，屬文化參考與自我反思，不代表現實預測，也不構成投資或職業建議。',
+                  '八字命盘为简化的传统命理，属文化参考与自我反思，不代表现实预测，也不构成投资或职业建议。',
                 )
               : mode === 'love'
                 ? t(
@@ -782,7 +855,9 @@ export function LiteFortune() {
           <section className="lm__deep" aria-labelledby="lf-deep">
             <h2 id="lf-deep">
               {mode === 'bazi'
-                ? t('完整八字命盤', '完整八字命盘')
+                ? topic === 'year'
+                  ? `${bazi?.flow ?? ''} ${t('年運完整報告', '年运完整报告')}`
+                  : `${t('完整八字', '完整八字')}${wordsOfTopic(topic)}`
                 : mode === 'love'
                   ? t('完整姻緣盤', '完整姻缘盘')
                   : t('完整合緣', '完整合缘')}
@@ -850,15 +925,28 @@ export function LiteFortune() {
             {access === 'none' && (
               <>
                 <p className="lm__teaser">
-                  {bazi
-                    ? `${STEMS[bazi.day.stem]}${bazi.dayMaster}日主${bazi.strength}，夫妻宮坐${ZHI[bazi.spousePalace]}${bazi.missing.length ? `，命裡缺${bazi.missing.join('、')}` : ''}。把這幾樣放在一起看，你在感情裡最常卡住的，其實是……`
-                    : chart
-                      ? `你的桃花在${ZODIAC[chart.taohua - 1]}；${chart.year} ${yearGanzhi(chart.year)}年對你來說是「${chart.title}」。把桃花、紅鸞、流年連起來看，真正會讓你錯過緣分的，其實是……`
-                      : result &&
-                        `${ZODIAC[result.a.zodiac - 1]}配${ZODIAC[result.b.zodiac - 1]}是${ZODIAC_RELATION_NAME[result.zodiac]}，${SIGNS[result.a.sign - 1]}配${SIGNS[result.b.sign - 1]}是${SIGN_RELATION_NAME[result.sign]}。放在一起看，你們最容易卡住的地方，其實是……`}
+                  {bazi && bazi.topic === 'career'
+                    ? `${STEMS[bazi.day.stem]}${bazi.dayMaster}日主${bazi.strength}，官殺 ${bazi.roles.官殺}、印 ${bazi.roles.印}、食傷 ${bazi.roles.食傷}。把這幾股力量放在一起看，你在工作上最該先調整的，其實是……`
+                    : bazi && bazi.topic === 'wealth'
+                      ? `${STEMS[bazi.day.stem]}${bazi.dayMaster}日主${bazi.strength}，財星 ${bazi.roles.財}、比劫 ${bazi.roles.比劫}。放在一起看，你的錢最容易漏掉的地方，其實是……`
+                      : bazi && bazi.topic === 'year'
+                        ? `${bazi.flow} 年對你的日主是「${bazi.flowRole}」，和生肖${bazi.flowToZodiac}。這一年最該把握的時機，其實是……`
+                        : bazi
+                          ? `${STEMS[bazi.day.stem]}${bazi.dayMaster}日主${bazi.strength}，夫妻宮坐${ZHI[bazi.spousePalace]}${bazi.missing.length ? `，命裡缺${bazi.missing.join('、')}` : ''}。把這幾樣放在一起看，你在感情裡最常卡住的，其實是……`
+                          : chart
+                            ? `你的桃花在${ZODIAC[chart.taohua - 1]}；${chart.year} ${yearGanzhi(chart.year)}年對你來說是「${chart.title}」。把桃花、紅鸞、流年連起來看，真正會讓你錯過緣分的，其實是……`
+                            : result &&
+                              `${ZODIAC[result.a.zodiac - 1]}配${ZODIAC[result.b.zodiac - 1]}是${ZODIAC_RELATION_NAME[result.zodiac]}，${SIGNS[result.a.sign - 1]}配${SIGNS[result.b.sign - 1]}是${SIGN_RELATION_NAME[result.sign]}。放在一起看，你們最容易卡住的地方，其實是……`}
                 </p>
                 <ol className="lm__sections">
-                  {(mode === 'bazi' ? BAZI_SECTIONS : mode === 'love' ? LOVE_SECTIONS : SECTIONS).map((s) => (
+                  {(mode === 'bazi'
+                    ? topic === 'love'
+                      ? BAZI_SECTIONS
+                      : TOPIC_SECTIONS[topic]
+                    : mode === 'love'
+                      ? LOVE_SECTIONS
+                      : SECTIONS
+                  ).map((s) => (
                     <li key={s}>{s}</li>
                   ))}
                 </ol>
@@ -868,7 +956,7 @@ export function LiteFortune() {
                   disabled={busy || !price}
                   onClick={() => void buy()}
                 >
-                  {`${mode === 'bazi' ? t('解鎖完整八字命盤', '解锁完整八字命盘') : mode === 'love' ? t('解鎖完整姻緣盤', '解锁完整姻缘盘') : t('解鎖完整合緣', '解锁完整合缘')} · ${price}`}
+                  {`${mode === 'bazi' ? (topic === 'year' ? t('解鎖完整年運報告', '解锁完整年运报告') : `${t('解鎖完整八字', '解锁完整八字')}${wordsOfTopic(topic)}`) : mode === 'love' ? t('解鎖完整姻緣盤', '解锁完整姻缘盘') : t('解鎖完整合緣', '解锁完整合缘')} · ${price}`}
                 </button>
                 <p className="lm__fine">
                   {t('付款即表示同意服務條款與隱私說明。', '付款即表示同意服务条款与隐私说明。')}{' '}

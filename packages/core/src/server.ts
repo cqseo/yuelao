@@ -47,6 +47,8 @@ function required(env: CoreEnv, name: 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECR
 export interface CoreOptions {
   /** 付費解籤用的籤內容，要和籤頁顯示的一致（站點提供；沒有就退回資料庫 sticks 表）。 */
   stickContext?: StickContextProvider;
+  /** 財神殿求財籤的籤內容（站點提供；和頁面顯示的一致）。沒有就不能生成求財籤解讀。 */
+  caiContext?: (no: number) => Record<string, unknown> | null;
 }
 
 export function createCore(site: SiteConfig, options: CoreOptions = {}) {
@@ -266,7 +268,7 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
       spreadGenerate: async (request: Request) => {
         const ctx = context();
         const user = await getAccountUser(request, ctx.env);
-        return generateSpreadReadingRequest(request, ctx.supabaseService, user, ctx.env);
+        return generateSpreadReadingRequest(request, ctx.supabaseService, user, ctx.env, options.caiContext);
       },
       snapshot: async (request: Request) => {
         const ctx = context();

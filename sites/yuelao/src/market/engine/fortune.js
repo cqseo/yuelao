@@ -55,6 +55,43 @@ const LOVE_SECTIONS = [
   ['對著你的問題', '這一節只寫你問的那件事'],
   ['留給你的一句話', '師傅最後想對你說的'],
 ];
+// 八字的另外三個主題（2026-11-19）；和伺服器的 BAZI_CAREER／WEALTH／YEAR_INSTRUCTIONS 一一對應
+const TOPIC_SECTIONS = {
+  career: [
+    ['你的工作底色', '落在工作上是什麼樣的人'],
+    ['適合的方向', '從十神看適合的工作型態'],
+    ['貴人與助力', '上司、同事、合作者怎麼相處'],
+    ['容易卡住的地方', '具體情境與調整'],
+    ['今年的事業運', '哪些事適合推、哪些先放'],
+    ['對著你的問題', '這一節只寫你問的那件事'],
+    ['留給你的一句話', '師傅最後想對你說的'],
+  ],
+  wealth: [
+    ['你的財運底色', '你和錢的關係'],
+    ['賺錢的路子', '比較順的進帳方式'],
+    ['守財與破財', '要留意的地方與守財習慣'],
+    ['貴人與合作', '什麼人幫你、什麼合作要小心'],
+    ['今年的財運', '開源還是守成'],
+    ['對著你的問題', '這一節只寫你問的那件事'],
+    ['留給你的一句話', '師傅最後想對你說的'],
+  ],
+  year: [
+    ['這一年的總體', '這一年的主題'],
+    ['事業', '機會與壓力'],
+    ['財運', '進帳與開銷的節奏'],
+    ['感情', '依你現在的情況'],
+    ['人際與貴人', '助力與要小心的人'],
+    ['上半年與下半年', '各自的重點'],
+    ['對著你的問題', '這一節只寫你問的那件事'],
+    ['留給你的一句話', '師傅最後想對你說的'],
+  ],
+};
+const TOPICS = [
+  ['love', '感情'],
+  ['career', '事業'],
+  ['wealth', '財運'],
+  ['year', '年運'],
+];
 const BAZI_SECTIONS = [
   ['你的命盤底色', '日主與強弱，落在感情裡是什麼樣的人'],
   ['五行的偏與缺', '多的帶來什麼、缺的怎麼補'],
@@ -87,6 +124,12 @@ function readDate(id) {
   const [y, m, d] = [get('y'), get('m'), get('d')];
   return y && m && d ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : '';
 }
+const TOPIC_WORD = { love: '感情', career: '事業', wealth: '財運', year: '年運' };
+/** 年運看哪一年：10 月起看下一年（和 ritual/match.ts 的 reportYear 一致）。 */
+const yearLabel = () => {
+  const d = new Date();
+  return d.getMonth() + 1 >= 10 ? d.getFullYear() + 1 : d.getFullYear();
+};
 const HOURS = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'].map(
   (z, i) => `${z}時 ${String((i * 2 + 23) % 24).padStart(2, '0')}–${String(i * 2 + 1).padStart(2, '0')}`,
 );
@@ -269,6 +312,7 @@ export function createFortune(ui) {
   let hour = null; // 時辰 0–11，不知道是 null
   let gender = 'n'; // 'f'｜'m'｜'n'（不說）
   let bazi = null; // baziChart(...)
+  let topic = 'love'; // 八字看哪方面：love｜career｜wealth｜year
   let result = null; // matchOf(...)
   let chart = null; // loveChart(...)
   let key = '';
@@ -278,8 +322,16 @@ export function createFortune(ui) {
   const api = ui.fortune;
   const sitWord = () => (SITS.find((x) => x.key === sit) || SITS[0]).word;
   const deepTitle = () =>
-    mode === 'bazi' ? '八字命盤．完整解讀' : mode === 'love' ? '個人姻緣盤．完整解讀' : '合緣配對．完整解讀';
-  const product = () => (mode === 'bazi' ? 'bazi_1' : mode === 'love' ? 'love_1' : 'match_1');
+    mode === 'bazi'
+      ? topic === 'year'
+        ? `${bazi?.flow ?? ''} 年運．完整報告`
+        : `八字${topic === 'career' ? '事業' : topic === 'wealth' ? '財運' : '命盤'}．完整解讀`
+      : mode === 'love'
+        ? '個人姻緣盤．完整解讀'
+        : '合緣配對．完整解讀';
+  const product = () =>
+    mode === 'bazi' ? (topic === 'year' ? 'year_1' : 'bazi_1') : mode === 'love' ? 'love_1' : 'match_1';
+  const baziPrice = () => (topic === 'year' ? api?.yearPrice : api?.baziPrice);
   const solo = () => mode !== 'match';
   const person = (p) =>
     `${BRANCH[p.zodiac - 1]}${ZODIAC[p.zodiac - 1]}．${SIGNS[p.sign - 1]}（${signElement(p.sign)}象）`;
@@ -290,8 +342,16 @@ export function createFortune(ui) {
       `<div class="chips decks">
          <button type="button" data-a="mode:match" class="${mode === 'match' ? 'on' : ''}"><b>合緣配對</b><small>兩個人合不合</small></button>
          <button type="button" data-a="mode:love" class="${mode === 'love' ? 'on' : ''}"><b>我的姻緣盤</b><small>桃花、紅鸞、今年感情運</small></button>
-         <button type="button" data-a="mode:bazi" class="${mode === 'bazi' ? 'on' : ''}"><b>八字命盤</b><small>四柱五行、夫妻宮</small></button>
+         <button type="button" data-a="mode:bazi" class="${mode === 'bazi' ? 'on' : ''}"><b>八字命盤</b><small>感情、事業、財運、年運</small></button>
        </div>
+       ${
+         mode === 'bazi'
+           ? `<p class="kicker">看哪方面</p><div class="chips sits">${TOPICS.map(
+               ([k, w]) =>
+                 `<button type="button" data-a="t:${k}" class="${topic === k ? 'on' : ''}">${k === 'year' ? `${yearLabel()}年運` : w}</button>`,
+             ).join('')}</div>`
+           : ''
+       }
        <p class="note small">${solo() ? '填你的國曆生日' : '填兩個人的國曆生日'}${mode === 'bazi' ? '，知道出生時辰更準' : ''}。生肖以立春換年；日期只在你這台手機或電腦裡算，不會送出。</p>
        <div class="fortune-form${mode === 'love' ? ' one' : ''}">
          ${dateFields('f-you', you, '你的生日')}
@@ -331,6 +391,10 @@ export function createFortune(ui) {
         read();
         if (a.startsWith('sit:')) {
           sit = a.slice(4);
+          return form();
+        }
+        if (a.startsWith('t:')) {
+          topic = a.slice(2);
           return form();
         }
         if (a.startsWith('g:')) {
@@ -377,11 +441,11 @@ export function createFortune(ui) {
   async function compute() {
     const m = await loadMatch();
     if (mode === 'bazi') {
-      const flow = m.flowYear();
-      const input = m.baziOf(you, hour, gender, flow);
+      const flow = topic === 'year' ? m.reportYear() : m.flowYear();
+      const input = m.baziOf(you, hour, gender, flow, topic);
       if (!input) return false;
       bazi = baziChart(input);
-      key = (await m.baziKey(you, hour, gender, flow, sit, question)) || '';
+      key = (await m.baziKey(you, hour, gender, flow, sit, question, topic)) || '';
       return !!key;
     }
     if (mode === 'love') {
@@ -503,25 +567,39 @@ export function createFortune(ui) {
   }
 
   function baziUnlockBlock() {
-    if (!api?.baziPrice) return '';
+    const price = baziPrice();
+    if (!price) return '';
+    const sections = topic === 'love' ? BAZI_SECTIONS : TOPIC_SECTIONS[topic];
     const q = [...question];
     const asked = question
       ? `你問「${q.length > 22 ? `${q.slice(0, 22).join('')}…` : question}」，現在是${sitWord()}。`
       : `你現在是${sitWord()}。`;
-    const teaser = `${asked}${STEMS[bazi.day.stem]}${bazi.dayMaster}日主${bazi.strength}，夫妻宮坐${BRANCH[bazi.spousePalace]}${bazi.missing.length ? `，命裡缺${bazi.missing.join('、')}` : ''}。把這幾樣放在一起看，你在感情裡最常卡住的，其實是……`;
+    const head = `${asked}${STEMS[bazi.day.stem]}${bazi.dayMaster}日主${bazi.strength}`;
+    const teaser =
+      topic === 'career'
+        ? `${head}，官殺 ${bazi.roles.官殺}、印 ${bazi.roles.印}、食傷 ${bazi.roles.食傷}。把這幾股力量放在一起看，你在工作上最該先調整的，其實是……`
+        : topic === 'wealth'
+          ? `${head}，財星 ${bazi.roles.財}、比劫 ${bazi.roles.比劫}。放在一起看，你的錢最容易漏掉的地方，其實是……`
+          : topic === 'year'
+            ? `${head}，${bazi.flow} ${yearGanzhi(bazi.flow)}年對你是「${bazi.flowRole}」，生肖${bazi.flowToZodiac}。這一年最該把握的時機，其實是……`
+            : `${head}，夫妻宮坐${BRANCH[bazi.spousePalace]}${bazi.missing.length ? `，命裡缺${bazi.missing.join('、')}` : ''}。把這幾樣放在一起看，你在感情裡最常卡住的，其實是……`;
+    const what =
+      topic === 'year'
+        ? `完整${bazi.flow}年運`
+        : `完整八字${topic === 'career' ? '事業' : topic === 'wealth' ? '財運' : '命盤'}`;
     return `<section class="unlock" id="unlock">
-        <h3>解鎖完整八字命盤</h3>
+        <h3>解鎖${what}</h3>
         <p class="deep-teaser">${esc(teaser)}</p>
-        <p class="unlock-note">上面是盤上排出來的位置。完整解讀把日主、五行、夫妻宮、桃花和流年連起來，七段都寫你自己${question ? '和你問的那件事' : ''}。</p>
-        <button class="offer" id="deep-btn" data-a="deep">解鎖完整八字命盤　${api.baziPrice}</button>
+        <p class="unlock-note">上面是盤上排出來的位置。完整解讀把它們連起來，${sections.length} 段都寫你自己${question ? '和你問的那件事' : ''}。${topic === 'wealth' || topic === 'career' || topic === 'year' ? '不構成投資或職業建議。' : ''}</p>
+        <button class="offer" id="deep-btn" data-a="deep">解鎖${what}　${price}</button>
         <p class="note small unlock-login" id="deep-login" hidden>需先登入（免費），登入完會回到這裡。</p>
-        <ol class="deep-list">${BAZI_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
+        <ol class="deep-list">${sections.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
         <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
       </section>`;
   }
 
   function showBazi() {
-    if (state !== 'result' && state !== 'deep') ui.emit?.('reading_done', { kind: 'bazi' });
+    if (state !== 'result' && state !== 'deep') ui.emit?.('reading_done', { kind: 'bazi', topic });
     state = 'result';
     const c = bazi;
     say(`${STEMS[c.day.stem]}${c.dayMaster}日主，${c.title}。`);
@@ -547,8 +625,8 @@ export function createFortune(ui) {
     ).join('');
     ui.panel(
       `<div class="reading match">
-        <p class="asked">${question ? `問．${esc(question)}` : '我的八字命盤'}<span>${sitWord()}</span></p>
-        ${api?.baziPrice ? `<button type="button" class="jump-unlock" data-a="jump">想看日主、夫妻宮、流年連起來怎麼說？完整解讀 ${api.baziPrice} ↓</button>` : ''}
+        <p class="asked">${question ? `問．${esc(question)}` : topic === 'year' ? `我的 ${c.flow} 年運` : `我的八字．${TOPIC_WORD[topic]}`}<span>${sitWord()}</span></p>
+        ${baziPrice() ? `<button type="button" class="jump-unlock" data-a="jump">想看完整${topic === 'year' ? '年運報告' : '解讀'}？${baziPrice()} ↓</button>` : ''}
         <div class="pillars">${cols}</div>
         <h3 class="match-title">${c.title}</h3>
         <p>${BAZI_TITLE_TEXT[c.title]}</p>
@@ -556,7 +634,7 @@ export function createFortune(ui) {
         ${baziLines(c)
           .map((l) => `<article><p class="kicker">${l.label}</p><p>${l.text}</p></article>`)
           .join('')}
-        <p class="note small">四柱以立春換年、節氣換月；強弱與配偶星是簡化看法，沒有排大運。屬傳統命理的文化參考與自我反思，不代表現實預測。</p>
+        <p class="note small">四柱以立春換年、節氣換月；強弱與十神是簡化看法，沒有排大運。屬傳統命理的文化參考與自我反思，不代表現實預測${topic === 'love' ? '' : '，也不構成投資或職業建議'}。</p>
         ${baziUnlockBlock()}
        </div>
        <button type="button" class="share-btn" data-a="share">存成命盤卡</button>
@@ -565,7 +643,7 @@ export function createFortune(ui) {
       onResult,
       true,
     );
-    ui.emit?.('offer_view', { product: 'bazi_1', source: 'bazi' });
+    ui.emit?.('offer_view', { product: product(), source: 'bazi' });
     refreshDeep();
   }
 
@@ -744,6 +822,7 @@ export function createFortune(ui) {
         you,
         them: mode === 'match' ? them : '',
         hour: mode === 'bazi' ? hour : null,
+        topic: mode === 'bazi' ? topic : 'love',
         gender: mode === 'bazi' ? gender : 'n',
         question,
         sit,
@@ -894,6 +973,7 @@ export function createFortune(ui) {
         // 付款／登入回來：用本機記下的生日重算同一份結果
         mode = back.mode === 'love' || back.mode === 'bazi' ? back.mode : 'match';
         hour = back.hour ?? null;
+        topic = back.topic || 'love';
         gender = back.gender || 'n';
         you = back.you;
         them = back.them;

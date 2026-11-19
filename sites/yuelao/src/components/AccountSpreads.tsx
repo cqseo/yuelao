@@ -6,6 +6,7 @@ import { uiPrefix } from '~/i18n/locale';
 import { tr } from '~/i18n/ui';
 import { track } from '~/lib/track';
 import { liteRequest } from '~/market/lite-billing';
+import { caiStickByNo } from '~/ritual/caishen';
 
 // 帳戶頁：塔羅館、算命攤買過的完整解讀（2026-11-19）。以前只能回原處填一樣的資料才找得回來；
 // 現在直接列在這裡。已付款但還沒生成的，可以在這裡請伺服器動筆（問題沒存，所以不針對問題寫）。
@@ -27,9 +28,23 @@ function describe(key: string): { kind: [string, string]; detail: string } {
     };
   if (p.deck === 'bazi')
     return {
-      kind: ['八字命盤', '八字命盘'],
+      kind:
+        p.topic === 'year'
+          ? [`${p.flow} 年運`, `${p.flow} 年运`]
+          : p.topic === 'career'
+            ? ['八字．事業', '八字．事业']
+            : p.topic === 'wealth'
+              ? ['八字．財運', '八字．财运']
+              : ['八字命盤', '八字命盘'],
       detail: `${[p.year, p.month, p.day].map(pillarName).join(' ')}${p.hour ? ` ${pillarName(p.hour)}` : ''}．${STEMS[p.day.stem]}${stemElement(p.day.stem)}日主`,
     };
+  if (p.deck === 'cai') {
+    const st = caiStickByNo(p.no);
+    return {
+      kind: p.topic === 'career' ? ['求財籤．事業', '求财签．事业'] : ['求財籤．財運', '求财签．财运'],
+      detail: st ? `第 ${st.no} 籤．${st.grade}` : `第 ${p.no} 籤`,
+    };
+  }
   return {
     kind: p.deck === 'lnm' ? ['雷諾曼', '雷诺曼'] : ['塔羅', '塔罗'],
     detail: p.cards.map((c) => `${cardName(p.deck, c.id)}${c.reversed ? '（逆）' : ''}`).join('、'),

@@ -2485,3 +2485,40 @@
   font-size: 0.75rem;
   color: var(--paper-70);
 }
+
+/* 財神殿．求財籤（2026-11-19） */
+.mk .cai-stick {
+  padding: 1rem 1rem 1.1rem;
+  border: 1px solid rgba(220, 187, 124, 0.5);
+  background: #efe5cf;
+  color: #2a1d14;
+  text-align: center;
+}
+.mk .cai-stick .kicker {
+  color: #a8291f;
+}
+.mk .cai-stick h3 {
+  margin: 0.25rem 0 0.5rem;
+  color: #a8291f;
+}
+.mk .cai-stick h3 small {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+}
+.mk .cai-poem {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.9;
+  letter-spacing: 0.08em;
+}
+
+.mk .reading .cai-stick p,
+.mk .reading .cai-stick .cai-poem {
+  color: #2a1d14;
+}
+.mk .reading .cai-stick .kicker,
+.mk .reading .cai-stick h3,
+.mk .reading .cai-stick h3 small {
+  color: #a8291f;
+}

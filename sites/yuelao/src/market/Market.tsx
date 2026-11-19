@@ -1,8 +1,10 @@
 import { findProduct, formatPerUse, formatPrice, type Product, priceForLocale, salePlans } from '@yuelao/core/site';
 import { useEffect, useRef, useState } from 'react';
 import { LiteMarket } from './LiteMarket';
+import { LiteCaishen } from './LiteCaishen';
 import { LiteFortune } from './LiteFortune';
 import { LiteTarot } from './LiteTarot';
+import { hasLiteCaiPending } from './lite-cai-pending';
 import { hasLiteFortunePending } from './lite-fortune-pending';
 import { hasLiteTarotPending } from './lite-tarot-pending';
 import { hasLitePending } from './lite-pending';
@@ -29,6 +31,7 @@ export function Market() {
   const [lite, setLite] = useState(false);
   const [liteTarot, setLiteTarot] = useState(false);
   const [liteFortune, setLiteFortune] = useState(false);
+  const [liteCai, setLiteCai] = useState(false);
 
   // 手機頂欄選單：點選單外面就收起來
   useEffect(() => {
@@ -52,6 +55,13 @@ export function Market() {
     if (hasLiteTarotPending() || liteMode === 'tarot') {
       track('market_lite_manual', { source: 'fast_tarot' });
       setLiteTarot(true);
+      setLite(true);
+      return;
+    }
+    // 輕量財神殿付款／登入回來，或 ?lite=cai
+    if (hasLiteCaiPending() || liteMode === 'cai') {
+      track('market_lite_manual', { source: 'fast_cai' });
+      setLiteCai(true);
       setLite(true);
       return;
     }
@@ -548,6 +558,7 @@ export function Market() {
     const matchProduct = findProduct(site, 'match_1');
     const loveProduct = findProduct(site, 'love_1');
     const baziProduct = findProduct(site, 'bazi_1');
+    const yearProduct = findProduct(site, 'year_1');
     const FORTUNE_PENDING = 'market-fortune-pending';
     const fortune = {
       get guest() {
@@ -558,9 +569,18 @@ export function Market() {
       price: matchProduct ? formatPrice(priceForLocale(matchProduct, locale), locale) : '',
       lovePrice: loveProduct ? formatPrice(priceForLocale(loveProduct, locale), locale) : '',
       baziPrice: baziProduct ? formatPrice(priceForLocale(baziProduct, locale), locale) : '',
+      yearPrice: yearProduct ? formatPrice(priceForLocale(yearProduct, locale), locale) : '',
       check: spreadApi.check,
       buy: (key: string) =>
-        checkout(key.startsWith('bazi:') ? 'bazi_1' : key.startsWith('love:') ? 'love_1' : 'match_1', {
+        checkout(
+          key.startsWith('bazi:')
+            ? /_y\|/.test(key)
+              ? 'year_1'
+              : 'bazi_1'
+            : key.startsWith('love:')
+              ? 'love_1'
+              : 'match_1',
+          {
           spread: key,
         }),
       generate: spreadApi.generate,
@@ -570,6 +590,7 @@ export function Market() {
         them: string;
         hour: number | null;
         gender: string;
+        topic?: string;
         question: string;
         sit: string;
         day: string;
@@ -603,10 +624,61 @@ export function Market() {
               mode: p.mode === 'love' || p.mode === 'bazi' ? p.mode : ('match' as const),
               hour: typeof p.hour === 'number' && p.hour >= 0 && p.hour <= 11 ? p.hour : null,
               gender: p.gender === 'f' || p.gender === 'm' ? p.gender : 'n',
+              topic:
+                p.topic === 'career' || p.topic === 'wealth' || p.topic === 'year' ? p.topic : ('love' as const),
               you: p.you,
               them: typeof p.them === 'string' ? p.them : '',
               question: p.question.slice(0, 100),
               sit: p.sit,
+              day: p.day,
+              why: p.why === 'pay' ? ('pay' as const) : ('login' as const),
+            };
+        } catch {}
+        return null;
+      },
+    };
+
+    // 財神殿．求財籤（付費完整解籤 cai_1）：識別字串 cai:<籤號>_<c|w>|<雜湊>；問題只存本機。
+    const caiProduct = findProduct(site, 'cai_1');
+    const CAI_PENDING = 'market-cai-pending';
+    const cai = {
+      get guest() {
+        return isGuest();
+      },
+      bindHref,
+      cancelled: payCancelled,
+      price: caiProduct ? formatPrice(priceForLocale(caiProduct, locale), locale) : '',
+      check: spreadApi.check,
+      buy: (key: string) => checkout('cai_1', { spread: key }),
+      generate: spreadApi.generate,
+      save(p: { no: number; topic: 'career' | 'wealth'; question: string; sit: string; day: string; why: 'pay' | 'login' }) {
+        try {
+          sessionStorage.setItem(CAI_PENDING, JSON.stringify({ ...p, question: p.question.slice(0, 100), at: Date.now() }));
+        } catch {}
+      },
+      take() {
+        try {
+          const raw = sessionStorage.getItem(CAI_PENDING);
+          sessionStorage.removeItem(CAI_PENDING);
+          const p = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+          if (
+            p &&
+            typeof p.no === 'number' &&
+            Number.isInteger(p.no) &&
+            p.no >= 1 &&
+            p.no <= 36 &&
+            (p.topic === 'career' || p.topic === 'wealth') &&
+            typeof p.question === 'string' &&
+            typeof p.day === 'string' &&
+            /^\d{4}-\d{1,2}-\d{1,2}$/.test(p.day) &&
+            typeof p.at === 'number' &&
+            Date.now() - p.at < 45 * 60 * 1000
+          )
+            return {
+              no: p.no,
+              topic: p.topic,
+              question: p.question.slice(0, 100),
+              sit: '',
               day: p.day,
               why: p.why === 'pay' ? ('pay' as const) : ('login' as const),
             };
@@ -652,6 +724,7 @@ export function Market() {
       track('market_3d_failure', { reason });
       if (window.location.hash === '#tarot') setLiteTarot(true);
       if (window.location.hash === '#bazi') setLiteFortune(true);
+      if (window.location.hash === '#caishen') setLiteCai(true);
       stopRef.current?.();
       stopRef.current = undefined;
       setLite(true);
@@ -668,6 +741,7 @@ export function Market() {
         deep,
         spread,
         fortune,
+        cai,
         shop,
         wishes,
       });
@@ -681,7 +755,8 @@ export function Market() {
     };
   }, []);
 
-  if (lite) return liteTarot ? <LiteTarot /> : liteFortune ? <LiteFortune /> : <LiteMarket />;
+  if (lite)
+    return liteTarot ? <LiteTarot /> : liteFortune ? <LiteFortune /> : liteCai ? <LiteCaishen /> : <LiteMarket />;
 
   return (
     <div className="mk" ref={root}>
@@ -774,6 +849,7 @@ export function Market() {
           track('market_lite_manual');
           if (window.location.hash === '#tarot') setLiteTarot(true);
           if (window.location.hash === '#bazi') setLiteFortune(true);
+      if (window.location.hash === '#caishen') setLiteCai(true);
           stopRef.current?.();
           stopRef.current = undefined;
           setLite(true);

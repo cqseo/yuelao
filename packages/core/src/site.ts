@@ -43,7 +43,7 @@ export interface ItemProduct extends ProductBase {
 export interface SpreadProduct extends ProductBase {
   kind: 'spread';
   /** 這個商品收哪一種識別字串（spread.ts 的前綴）；沒寫就是塔羅館的 tarot、lnm。 */
-  decks?: readonly ('tarot' | 'lnm' | 'match' | 'love' | 'bazi')[];
+  decks?: readonly ('tarot' | 'lnm' | 'match' | 'love' | 'bazi' | 'bazi-year' | 'cai')[];
 }
 
 /** 追問月老一次：針對一份已買的解籤再問一句；一份最多 3 次（reading-followup.ts）。 */
