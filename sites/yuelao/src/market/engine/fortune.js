@@ -22,6 +22,7 @@ import {
   ZODIAC_RELATION_TEXT,
 } from '@yuelao/core/match';
 import * as THREE from 'three';
+import { keepBirthday, loadBirthday } from '../../ritual/birthday';
 import { createNpc } from './npc.js';
 import { shareBazi, shareLove, shareMatch } from './share.js';
 import { audio, canvasTex, ease, textPlane, tween } from './util.js';
@@ -63,6 +64,29 @@ const BAZI_SECTIONS = [
   ['對著你的問題', '這一節只寫你問的那件事'],
   ['留給你的一句話', '師傅最後想對你說的'],
 ];
+const THIS_YEAR = new Date().getFullYear();
+/** 生日用年、月、日三個下拉：安卓的日期選擇器預設停在今天，往回翻幾十年很累。 */
+function dateFields(id, value, label) {
+  const [y, m, d] = (value || '--').split('-');
+  const opts = (from, to, cur, unit, step = 1) => {
+    const out = [];
+    for (let v = from; step > 0 ? v <= to : v >= to; v += step)
+      out.push(`<option value="${v}"${Number(cur) === v ? ' selected' : ''}>${v}${unit}</option>`);
+    return out.join('');
+  };
+  return `<fieldset class="dsel" id="${id}"><legend>${label}</legend>
+    <select data-p="y" aria-label="${label}．年"><option value="">年</option>${opts(THIS_YEAR, 1930, y, '', -1)}</select>
+    <select data-p="m" aria-label="${label}．月"><option value="">月</option>${opts(1, 12, m, '月')}</select>
+    <select data-p="d" aria-label="${label}．日"><option value="">日</option>${opts(1, 31, d, '日')}</select>
+  </fieldset>`;
+}
+function readDate(id) {
+  const box = document.getElementById(id);
+  if (!box) return null;
+  const get = (p) => box.querySelector(`[data-p="${p}"]`)?.value || '';
+  const [y, m, d] = [get('y'), get('m'), get('d')];
+  return y && m && d ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : '';
+}
 const HOURS = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'].map(
   (z, i) => `${z}時 ${String((i * 2 + 23) % 24).padStart(2, '0')}–${String(i * 2 + 1).padStart(2, '0')}`,
 );
@@ -240,6 +264,7 @@ export function createFortune(ui) {
   let them = '';
   let sit = 'dating';
   let question = '';
+  let keep = false; // 在這台裝置記住我的生日
   let mode = 'match'; // 'match' 合緣配對｜'love' 個人姻緣盤｜'bazi' 八字命盤
   let hour = null; // 時辰 0–11，不知道是 null
   let gender = 'n'; // 'f'｜'m'｜'n'（不說）
@@ -269,8 +294,8 @@ export function createFortune(ui) {
        </div>
        <p class="note small">${solo() ? '填你的國曆生日' : '填兩個人的國曆生日'}${mode === 'bazi' ? '，知道出生時辰更準' : ''}。生肖以立春換年；日期只在你這台手機或電腦裡算，不會送出。</p>
        <div class="fortune-form${mode === 'love' ? ' one' : ''}">
-         <label><span>你的生日</span><input type="date" id="f-you" min="1901-01-01" max="2099-12-31" value="${esc(you)}"></label>
-         ${mode === 'match' ? `<label><span>對方的生日</span><input type="date" id="f-them" min="1901-01-01" max="2099-12-31" value="${esc(them)}"></label>` : ''}
+         ${dateFields('f-you', you, '你的生日')}
+         ${mode === 'match' ? dateFields('f-them', them, '對方的生日') : ''}
          ${
            mode === 'bazi'
              ? `<label><span>出生時辰</span><select id="f-hour"><option value="">不知道</option>${HOURS.map((h, i) => `<option value="${i}"${hour === i ? ' selected' : ''}>${h}</option>`).join('')}</select></label>`
@@ -291,6 +316,7 @@ export function createFortune(ui) {
                .join('')}</div>`
            : ''
        }
+       <label class="keep-bd"><input type="checkbox" id="f-keep"${keep ? ' checked' : ''}> 在這台裝置記住我的生日（只存在本機，取消勾選就刪除）</label>
        <p class="kicker">${solo() ? '你現在的情況' : '你們現在的情況'}</p>
        <div class="chips sits">${SITS.map(
          (x) =>
@@ -336,8 +362,12 @@ export function createFortune(ui) {
       };
   }
   function read() {
-    you = document.getElementById('f-you')?.value || you;
-    them = document.getElementById('f-them')?.value || them;
+    const y = readDate('f-you');
+    if (y !== null) you = y;
+    const th = readDate('f-them');
+    if (th !== null) them = th;
+    const k = document.getElementById('f-keep');
+    if (k) keep = k.checked;
     const hs = document.getElementById('f-hour');
     if (hs) hour = hs.value === '' ? null : Number(hs.value);
     const ta = document.getElementById('f-q');
@@ -380,7 +410,8 @@ export function createFortune(ui) {
     try {
       ok = await compute();
     } catch {}
-    if (!ok) return form('這個日期算不了，請確認是 1901 到 2099 年間的真實日期。');
+    if (!ok) return form('這個日期算不了，請確認日期是真的存在（例如沒有 2 月 30 日）。');
+    keepBirthday(you, keep);
     ui.emit?.('ritual_begin', { kind: mode });
     audio.bell?.(392, 0.12, 2.5);
     spin = 9;
@@ -462,6 +493,7 @@ export function createFortune(ui) {
         ${loveUnlockBlock()}
        </div>
        <button type="button" class="share-btn" data-a="share">存成姻緣卡</button>
+       ${crossSell()}
        <div class="card-actions"><button class="seal" data-a="again">換人再排</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       onResult,
       true,
@@ -528,6 +560,7 @@ export function createFortune(ui) {
         ${baziUnlockBlock()}
        </div>
        <button type="button" class="share-btn" data-a="share">存成命盤卡</button>
+       ${crossSell()}
        <div class="card-actions"><button class="seal" data-a="again">換人再排</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       onResult,
       true,
@@ -536,7 +569,31 @@ export function createFortune(ui) {
     refreshDeep();
   }
 
+  /** 結果下面推另外兩種玩法；你的生日已經填好，不用再填。 */
+  function crossSell() {
+    const items = [
+      ['love', '看你自己的姻緣盤', '桃花、紅鸞、今年感情運'],
+      ['bazi', '排你的八字命盤', '四柱五行、夫妻宮'],
+      ['match', '和他合一合', '填對方生日，看合不合'],
+    ].filter(([m]) => m !== mode);
+    return `<div class="cross-sell"><p class="kicker">生日已經填好，也可以看看</p>${items
+      .map(([m, t, d]) => `<button type="button" data-a="to:${m}"><b>${t}</b><small>${d}</small></button>`)
+      .join('')}</div>`;
+  }
+
   function onResult(x) {
+    if (x.startsWith('to:')) {
+      const next = x.slice(3);
+      mode = next === 'love' || next === 'bazi' ? next : 'match';
+      ui.emit?.('fortune_cross', { to: mode });
+      question = '';
+      if (mode === 'match') {
+        them = '';
+        say('把對方的生日給我。');
+        return form();
+      }
+      return void go();
+    }
     if (x === 'share' && mode === 'bazi') {
       const c = bazi;
       void shareBazi({
@@ -643,6 +700,7 @@ export function createFortune(ui) {
         ${unlockBlock()}
        </div>
        <button type="button" class="share-btn" data-a="share">存成合緣卡</button>
+       ${crossSell()}
        <div class="card-actions"><button class="seal" data-a="again">換一對再合</button><button class="ghost" data-a="leave">回到廣場</button></div>`,
       onResult,
       true,
@@ -859,6 +917,11 @@ export function createFortune(ui) {
       }
       setTicket(0, '帖');
       setTicket(1, '帖');
+      const saved = loadBirthday();
+      if (saved && !you) {
+        you = saved;
+        keep = true;
+      }
       form();
       say('來合一合。把你和對方的生日給我。');
     },

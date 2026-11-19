@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
+import { type AccountSpread, AccountSpreads } from '~/components/AccountSpreads';
 import { FollowUpHint } from '~/components/FollowUpHint';
 import { GuestBind } from '~/components/GuestBind';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
@@ -53,6 +54,7 @@ type AccountData = {
   orders: Order[];
   packs: Pack[];
   unlocks: Unlock[];
+  spreads?: AccountSpread[];
   billingTestEnabled: boolean;
   aiTestEnabled: boolean;
 };
@@ -421,6 +423,7 @@ function Account() {
               </ul>
             )}
           </section>
+          <AccountSpreads items={data.spreads ?? []} zh={zh} />
           <p className="account-privacy">
             {t(
               '已購資料僅在完成身分驗證後顯示。若支付結果仍在處理，請勿重複付款。',

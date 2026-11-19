@@ -37,10 +37,14 @@ import { contentLocale, uiPrefix } from '~/i18n/locale';
 import { withGuest } from '~/lib/guest';
 import { track } from '~/lib/track';
 import { localizeHref } from '~/paraglide/runtime.js';
+import { keepBirthday, loadBirthday } from '~/ritual/birthday';
 import site from '../../site.config';
+import { DateSelect } from './DateSelect';
 import { liteRequest } from './lite-billing';
 import { saveLiteFortunePending, takeLiteFortunePending } from './lite-fortune-pending';
 import './lite-market.css';
+
+const DATE_WORDS = { y: '年', m: '月', d: '日' };
 
 // 輕量算命攤．合緣配對：3D 載不起來、或從輕量版付款回來時用。
 // 和 3D 算命攤同一套伺服器（/api/account/spread、/api/billing/checkout 的 match_1）。生日只在本機。
@@ -114,6 +118,7 @@ export function LiteFortune() {
   const [gender, setGender] = useState<Gender>('n');
   const [chart, setChart] = useState<LoveChart | null>(null);
   const [you, setYou] = useState('');
+  const [keep, setKeep] = useState(false);
   const [them, setThem] = useState('');
   const [sit, setSit] = useState('dating');
   const [question, setQuestion] = useState('');
@@ -188,7 +193,14 @@ export function LiteFortune() {
       window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
       setMessage(t('已取消付款，沒有扣款。', '已取消付款，没有扣款。'));
     }
-    if (!pending) return;
+    if (!pending) {
+      const saved = loadBirthday();
+      if (saved) {
+        setYou(saved);
+        setKeep(true);
+      }
+      return;
+    }
     setMode(pending.mode);
     setHour(pending.hour);
     setGender(pending.gender);
@@ -277,26 +289,27 @@ export function LiteFortune() {
     setMessage('');
   };
 
-  async function go() {
+  async function go(md: Mode = mode, asked: string = question) {
     if (busy || waiting) return;
     setNote('');
     if (!you) return setNote(t('先填你的生日。', '先填你的生日。'));
-    if (mode === 'match' && !them) return setNote(t('兩個人的生日都要填。', '两个人的生日都要填。'));
+    if (md === 'match' && !them) return setNote(t('兩個人的生日都要填。', '两个人的生日都要填。'));
     setBusy(true);
     try {
-      const q = question.replace(/\s+/g, ' ').trim().slice(0, 100);
+      const q = asked.replace(/\s+/g, ' ').trim().slice(0, 100);
       setQuestion(q);
-      const ok = await compute(mode, you, them, sit, q);
+      const ok = await compute(md, you, them, sit, q);
       if (!ok)
         setNote(
           t(
-            '這個日期算不了，請確認是 1901 到 2099 年間的真實日期。',
-            '这个日期算不了，请确认是 1901 到 2099 年间的真实日期。',
+            '這個日期算不了，請確認日期真的存在（例如沒有 2 月 30 日）。',
+            '这个日期算不了，请确认日期真的存在（例如没有 2 月 30 日）。',
           ),
         );
       else {
-        track('ritual_begin', { kind: mode, lite: true });
-        track('reading_done', { kind: mode, lite: true });
+        keepBirthday(you, keep);
+        track('ritual_begin', { kind: md, lite: true });
+        track('reading_done', { kind: md, lite: true });
       }
     } catch {
       setNote(t('暫時算不了，請稍後再試。', '暂时算不了，请稍后再试。'));
@@ -465,35 +478,27 @@ export function LiteFortune() {
                   )}
           </p>
           <div className={mode === 'love' ? 'lm__dates is-one' : 'lm__dates'}>
-            <label>
-              <span className="lm__label">{t('你的生日', '你的生日')}</span>
-              <input
-                type="date"
-                min="1901-01-01"
-                max="2099-12-31"
-                value={you}
+            <DateSelect
+              label={t('你的生日', '你的生日')}
+              value={you}
+              words={DATE_WORDS}
+              disabled={locked}
+              onChange={(v) => {
+                setYou(v);
+                if (shown) reset();
+              }}
+            />
+            {mode === 'match' && (
+              <DateSelect
+                label={t('對方的生日', '对方的生日')}
+                value={them}
+                words={DATE_WORDS}
                 disabled={locked}
-                onChange={(e) => {
-                  setYou(e.target.value);
+                onChange={(v) => {
+                  setThem(v);
                   if (shown) reset();
                 }}
               />
-            </label>
-            {mode === 'match' && (
-              <label>
-                <span className="lm__label">{t('對方的生日', '对方的生日')}</span>
-                <input
-                  type="date"
-                  min="1901-01-01"
-                  max="2099-12-31"
-                  value={them}
-                  disabled={locked}
-                  onChange={(e) => {
-                    setThem(e.target.value);
-                    if (shown) reset();
-                  }}
-                />
-              </label>
             )}
             {mode === 'bazi' && (
               <label>
@@ -516,6 +521,20 @@ export function LiteFortune() {
               </label>
             )}
           </div>
+          <label className="lm__keep">
+            <input
+              type="checkbox"
+              checked={keep}
+              disabled={locked}
+              onChange={(e) => setKeep(e.target.checked)}
+            />
+            <span>
+              {t(
+                '在這台裝置記住我的生日（只存在本機，取消勾選就刪除）',
+                '在这台设备记住我的生日（只存在本机，取消勾选就删除）',
+              )}
+            </span>
+          </label>
           {mode === 'bazi' && (
             <fieldset className="lm__sits">
               <legend className="lm__label">{t('性別（看配偶星用）', '性别（看配偶星用）')}</legend>
@@ -883,6 +902,43 @@ export function LiteFortune() {
                 {message}
               </p>
             )}
+          </section>
+        )}
+
+        {shown && !locked && (
+          <section className="lm__cross" aria-label={t('其他玩法', '其他玩法')}>
+            <p className="lm__label">{t('生日已經填好，也可以看看', '生日已经填好，也可以看看')}</p>
+            {(
+              [
+                [
+                  'love',
+                  t('看你自己的姻緣盤', '看你自己的姻缘盘'),
+                  t('桃花、紅鸞、今年感情運', '桃花、红鸾、今年感情运'),
+                ],
+                ['bazi', t('排你的八字命盤', '排你的八字命盘'), t('四柱五行、夫妻宮', '四柱五行、夫妻宫')],
+                ['match', t('和他合一合', '和他合一合'), t('填對方生日，看合不合', '填对方生日，看合不合')],
+              ] as const
+            )
+              .filter(([m]) => m !== mode)
+              .map(([m, title, desc]) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    track('fortune_cross', { to: m, lite: true });
+                    setMode(m);
+                    reset();
+                    setQuestion('');
+                    if (m === 'match') {
+                      setThem('');
+                      document.getElementById('lf-title')?.scrollIntoView({ block: 'start' });
+                    } else void go(m, '');
+                  }}
+                >
+                  <b>{title}</b>
+                  <small>{desc}</small>
+                </button>
+              ))}
           </section>
         )}
 

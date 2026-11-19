@@ -31,6 +31,7 @@ assert.deepEqual(c.missing, []);
 assert.deepEqual(c.spouseStars, ['水'], 'female: 官殺 is what controls the day master');
 assert.equal(c.spouseStarCount, 2);
 assert.equal(c.title, '熱烈真誠');
+assert.equal(c.strength, '中和', '未 holds 丁 and 乙 that help 丙; 月令 weighs double');
 assert.equal(c.flowRole, '比劫', '2026 丙 is fire, same as 丙 day master');
 assert.equal(roleOf('木', '水'), '印');
 assert.equal(roleOf('木', '火'), '食傷');

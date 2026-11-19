@@ -3709,3 +3709,40 @@ html:not(:lang(zh)) body * {
 #bind.account-panel {
   margin-bottom: 1.5rem;
 }
+
+/* 帳戶頁：塔羅館、算命攤的完整解讀（2026-11-19） */
+.account-spreads {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.account-spreads li {
+  border-top: 1px solid rgba(201, 162, 39, 0.24);
+  padding: 0.75rem 0;
+}
+.account-spreads summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.91rem;
+}
+.account-spreads summary span {
+  overflow-wrap: anywhere;
+}
+.account-spreads summary small {
+  margin-left: auto;
+  opacity: 0.6;
+}
+.account-spread-body p {
+  margin: 0.75rem 0 0;
+  line-height: 1.85;
+}
+.account-spread-body b {
+  display: block;
+  color: var(--color-gold-soft);
+}
+.account-spread-pending {
+  margin-top: 0.75rem;
+}

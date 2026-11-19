@@ -386,7 +386,7 @@
 .lm__textlink { padding: 0; border: 0; background: none; color: var(--gold); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 44px; }
 
 /* 輕量算命攤．合緣配對（2026-11-19） */
-.lm__dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0 0.5rem; }
+.lm__dates { display: grid; grid-template-columns: 1fr; gap: 0.75rem; margin: 1rem 0 0.5rem; }
 .lm__dates label { display: grid; gap: 0.35rem; }
 .lm__dates input {
   min-height: 2.9rem;
@@ -437,3 +437,24 @@
 .lm__elements li { display: grid; grid-template-columns: 1.6rem 1fr 1.6rem; align-items: center; gap: 0.5rem; }
 .lm__elements i { display: block; height: 0.5rem; min-width: 2px; border-radius: 3px; background: var(--gold); }
 .lm__elements b { text-align: right; font-weight: 400; color: var(--paper-70); }
+.lm__dsel { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 0.35rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+.lm__dsel legend { grid-column: 1 / -1; padding: 0; margin-bottom: 0.35rem; }
+.lm__dsel select {
+  min-width: 0;
+  min-height: 2.9rem;
+  padding: 0.5rem 0.4rem;
+  border: 1px solid rgba(220, 187, 124, 0.45);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--paper);
+  font: inherit;
+  font-size: 1rem;
+  color-scheme: dark;
+}
+.lm__dsel select:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px rgba(220, 187, 124, 0.2); }
+.lm__keep { display: flex; gap: 0.5rem; align-items: flex-start; margin: 0.25rem 0 0.75rem; font-size: 0.8rem; line-height: 1.5; color: var(--paper-70); }
+.lm__keep input { margin-top: 0.2rem; accent-color: var(--gold); }
+.lm__cross { display: grid; gap: 0.5rem; margin: 1.5rem 0 0; }
+.lm__cross button { display: grid; gap: 0.15rem; padding: 0.8rem 1rem; border: 1px solid rgba(220, 187, 124, 0.4); border-radius: 6px; background: transparent; color: var(--paper); font: inherit; text-align: left; cursor: pointer; }
+.lm__cross button:hover, .lm__cross button:focus-visible { border-color: var(--gold); }
+.lm__cross small { font-size: 0.8rem; color: var(--paper-70); }

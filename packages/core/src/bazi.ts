@@ -16,6 +16,22 @@ export const stemElement = (s: number): Element5 => ELEMENTS[Math.floor(s / 2)]!
 const BRANCH_EL: Element5[] = ['水', '土', '木', '木', '土', '火', '火', '土', '金', '金', '土', '水'];
 export const branchElement = (b: number): Element5 => BRANCH_EL[b]!;
 const isYang = (s: number) => s % 2 === 0;
+/** 地支藏干（天干編號）：本氣在前。 */
+const HIDDEN: number[][] = [
+  [9], // 子：癸
+  [5, 9, 7], // 丑：己癸辛
+  [0, 2, 4], // 寅：甲丙戊
+  [1], // 卯：乙
+  [4, 1, 9], // 辰：戊乙癸
+  [2, 6, 4], // 巳：丙庚戊
+  [3, 5], // 午：丁己
+  [5, 3, 1], // 未：己丁乙
+  [6, 8, 4], // 申：庚壬戊
+  [7], // 酉：辛
+  [4, 7, 3], // 戌：戊辛丁
+  [8, 0], // 亥：壬甲
+];
+const HIDDEN_WEIGHTS = [[1], [0.7, 0.3], [0.6, 0.3, 0.1]];
 
 const idx = (e: Element5) => ELEMENTS.indexOf(e);
 /** a 生 b？（木生火、火生土、土生金、金生水、水生木） */
@@ -79,14 +95,26 @@ export function baziChart(input: BaziInput): BaziChart {
     counts[branchElement(p.branch)] += 1;
   }
   const dayMaster = stemElement(input.day.stem);
-  // 強弱（簡化）：同我與生我的字數，月支（得令）多算一次；超過一半偏強、少於三成偏弱
-  const total = pillars.length * 2 + 1;
-  const supportOf = (e: Element5) => (e === dayMaster || generates(e, dayMaster) ? 1 : 0);
+  // 強弱（簡化，2026-11-19 細化）：日干以外的天干各算 1；地支照藏干加權（本氣、中氣、餘氣），
+  // 月支（月令）權重加倍。幫身（同我、生我）的份量占比 ≥ 0.55 偏強、< 0.35 偏弱，其餘中和。
   let support = 0;
-  for (const p of pillars) support += supportOf(stemElement(p.stem)) + supportOf(branchElement(p.branch));
-  support += supportOf(branchElement(input.month.branch));
+  let total = 0;
+  const helps = (e: Element5) => e === dayMaster || generates(e, dayMaster);
+  for (const p of pillars) {
+    if (p !== input.day) {
+      total += 1;
+      if (helps(stemElement(p.stem))) support += 1;
+    }
+    const w = p === input.month ? 2 : 1;
+    const hidden = HIDDEN[p.branch]!;
+    const weights = HIDDEN_WEIGHTS[hidden.length - 1]!;
+    hidden.forEach((stem, i) => {
+      total += w * weights[i]!;
+      if (helps(stemElement(stem))) support += w * weights[i]!;
+    });
+  }
   const ratio = support / total;
-  const strength: Strength = ratio > 0.5 ? '偏強' : ratio < 0.34 ? '偏弱' : '中和';
+  const strength: Strength = ratio >= 0.55 ? '偏強' : ratio < 0.35 ? '偏弱' : '中和';
   const official = ELEMENTS.find((e) => controls(e, dayMaster))!;
   const wealth = ELEMENTS.find((e) => controls(dayMaster, e))!;
   const spouseStars =
