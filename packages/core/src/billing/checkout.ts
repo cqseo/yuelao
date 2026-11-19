@@ -112,6 +112,7 @@ export async function createTestCheckout({
   if (!selection) return errorResponse(400, 'invalid_product_selection');
   const product = findProduct(site, selection.productId);
   if (!product) return errorResponse(404, 'unknown_product');
+  if (product.retired) return errorResponse(410, 'product_retired');
   const checkoutProduct = checkoutProductForCurrency(product, selection.currency);
   if (!checkoutProduct) return errorResponse(400, 'unsupported_currency');
   if (checkoutProduct.kind === 'subscription') return errorResponse(400, 'subscription_unavailable');

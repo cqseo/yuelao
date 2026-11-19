@@ -622,18 +622,23 @@ export function createYuelao(ui) {
         <h3>解鎖完整解籤</h3>
         <p class="deep-teaser">${esc(teaser)}</p>
         <p class="unlock-note">約一千字，寫好存在「我的」，日後隨時能看；讀完還能就這件事追問月老。</p>
-        <button class="offer" id="deep-btn" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>
+        <button class="offer" id="deep-btn" data-a="deep">${offerLabel()}</button>
         <ol class="deep-list">${DEEP_SECTIONS.map(([t, d], i) => `<li><b><i>${String(i + 1).padStart(2, '0')}</i>${t}</b><span>${d}</span></li>`).join('')}</ol>
         ${yuelaoSampleHtml()}
         <p class="note small">付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
       </section>`;
   }
   /** 判詞正下方的一顆解鎖鈕（站長 2026-11-18：原本的解鎖區塊在白話與說明之後，手機上要滑好幾屏才看得到價錢）。 */
+  /** 解鎖鈕上的字：有次數包就寫「低至每次多少」（站長 2026-11-19，參考占了么），沒有就寫單次價。 */
+  function offerLabel() {
+    const from = ui.deep?.from;
+    return from && ui.deep?.plans?.length > 1 ? `解鎖完整解籤　低至 ${from} 一次` : `解鎖完整解籤　${ui.deep.price}`;
+  }
   function inlineOffer() {
     if (!ui.deep?.price) return '';
     return `<div class="offer-inline-wrap">
-        <button class="offer offer-inline" data-a="deep">解鎖完整解籤　${ui.deep.price}</button>
-        <p class="note small">七段只寫你問的這件事，寫好存在「我的」</p>
+        <button class="offer offer-inline" data-a="deep">${offerLabel()}</button>
+        <p class="note small">七段只寫你問的這件事，寫好存在「我的」　<a href="#" data-a="sample">先看一份範例</a></p>
       </div>`;
   }
   /** 解鎖鈕真的出現在螢幕上才記一次 offer_seen（offer_view 是面板一打開就記，不代表看到了價錢）。 */
@@ -716,14 +721,24 @@ export function createYuelao(ui) {
           });
           return;
         }
+        if (a === 'sample') {
+          // 打開判詞下方的範例並捲過去
+          const d = document.querySelector('#card .deep-sample');
+          if (d) {
+            d.open = true;
+            d.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            ui.emit?.('sample_open', { from: 'inline' });
+          }
+          return;
+        }
         ui.card('');
         if (a === 'deep') {
-          // 已經解鎖過就直接看／動筆；沒有就直接去付款（說明都在判詞下方，不另開一頁）
+          // 已經解鎖過就直接看／動筆；沒有就在原地選方案（單次或次數包）
           if (deepState && deepState.state !== 'none') openDeep();
           else {
             state = 'deep';
             ui.emit?.('unlock_click', { product: 'unlock_1' });
-            void pay();
+            void showPlans();
           }
         } else if (a === 'leave') ui.leave();
         else showPick();
@@ -743,9 +758,9 @@ export function createYuelao(ui) {
     ui.deep.check(id, cat).then((r) => {
       if (state !== 'verdict' || stick.id !== id) return;
       deepState = r;
-      const b = document.getElementById('deep-btn');
-      if (b && r.state !== 'none')
-        b.textContent = r.state === 'ready' ? '看完整解籤（已解鎖）' : '請月老動筆（已解鎖）';
+      if (r.state !== 'none')
+        for (const b of document.querySelectorAll('#card .offer[data-a="deep"]'))
+          b.textContent = r.state === 'ready' ? '看完整解籤（已解鎖）' : '請月老動筆（已解鎖）';
     });
   }
   const backToCard = `<button class="ghost" data-a="card">回到判詞</button>`;
@@ -780,17 +795,60 @@ export function createYuelao(ui) {
     ['三天內可以做的一步', '一件小到今天就能開始的事'],
     ['留給你的一句話', '月老最後想對你說的'],
   ];
-  async function pay() {
+  /** 選方案（原地、不換頁）：單次、次數包；手上還有次數包就多一個「用問事包解鎖」。 */
+  async function showPlans() {
+    const plans = ui.deep?.plans || [];
+    if (plans.length < 2) return pay('unlock_1');
+    say('一次解一支，或者多備幾次，往後想問別的事也能用。');
+    const row = (p) =>
+      `<button class="plan${p.popular ? ' popular' : ''}" data-a="plan:${p.id}">
+         ${p.popular ? '<em>最多人選</em>' : ''}
+         <b>${p.uses === 1 ? '單次' : `${p.uses} 次`}</b>
+         <span>${p.price}</span>
+         <small>${p.uses === 1 ? '只解這一支' : `每次 ${p.perUse}，次數不過期`}</small>
+       </button>`;
+    const html = (uses) =>
+      `<p class="kicker">${stick.no}　解鎖完整解籤</p>
+       ${uses > 0 ? `<button class="seal" data-a="redeem">用問事包解鎖（還有 ${uses} 次）</button>` : ''}
+       <div class="plans">${plans.map(row).join('')}</div>
+       <p class="note small">次數包付完會先用一次解鎖這支籤，剩下的存在「我的」，之後任何一支籤都能用。付款即表示同意<a href="/terms" target="_blank" rel="noopener">服務條款</a>與<a href="/privacy" target="_blank" rel="noopener">隱私說明</a>。</p>
+       ${backToCard}`;
+    const onPick = (a) => {
+      if (a === 'card') return verdict();
+      if (a === 'redeem') return void useCredit();
+      if (a.startsWith('plan:')) {
+        const id = a.slice(5);
+        ui.emit?.('plan_pick', { product: id });
+        return void pay(id);
+      }
+    };
+    ui.panel(html(0), onPick);
+    // 手上已有次數：補上「用問事包解鎖」
+    const uses = await ui.deep.packUses?.();
+    if (uses > 0 && state === 'deep') ui.panel(html(uses), onPick);
+  }
+  /** 用手上的次數包解鎖這支籤，接著動筆。 */
+  async function useCredit() {
+    say('我翻翻簿子。');
+    ui.panel(`<p class="note" role="status">正在用問事包解鎖</p>`);
+    const r = await ui.deep.redeem(stick.id, cat);
+    if (state !== 'deep') return;
+    if (r === 'ok') return startGenerate(draftQ);
+    say(r === 'none' ? '問事包用完了。' : '這會兒忙不過來，稍後再試一次。');
+    return showPlans();
+  }
+
+  async function pay(plan = 'unlock_1') {
     say('稍等，我看看簿子。');
     ui.panel(`<p class="note" role="status">正在準備付款</p>`);
-    const r = await ui.deep.buy(stick.id, cat);
+    const r = await ui.deep.buy(stick.id, cat, plan);
     if (state !== 'deep') return;
     if (r.state === 'redirect') {
-      ui.deep.save(stick.id, cat, 'pay', draftQ);
+      ui.deep.save(stick.id, cat, 'pay', draftQ, plan);
       say('隨我來。付完了回到這裡，我就動筆。');
       location.assign(r.url);
     } else if (r.state === 'login') {
-      ui.deep.save(stick.id, cat, 'login', draftQ);
+      ui.deep.save(stick.id, cat, 'login', draftQ, plan);
       say('先登入，我才記得這支籤是誰求的。');
       ui.panel(
         `<h2>登入後再請月老動筆</h2>
@@ -810,7 +868,7 @@ export function createYuelao(ui) {
   }
 
   /** 付款回來：等伺服器確認解鎖（Stripe 通知通常幾秒內到），確認了就直接動筆。 */
-  async function waitPaid(question) {
+  async function waitPaid(question, plan = 'unlock_1') {
     const run = ++deepRun;
     state = 'deep';
     say('你回來了。我核對一下簿子。');
@@ -824,6 +882,12 @@ export function createYuelao(ui) {
       if (run !== deepRun || state !== 'deep') return;
       if (r.state === 'ready') return showDeep(r.body);
       if (r.state === 'unlocked') return startGenerate(question);
+      // 買的是次數包：包到了就先用一次解鎖這支籤（Stripe 通知到之前會回 none，繼續等）
+      if (plan !== 'unlock_1') {
+        const used = await ui.deep.redeem(stick.id, cat);
+        if (run !== deepRun || state !== 'deep') return;
+        if (used === 'ok') return startGenerate(question);
+      }
       await sleep(2000);
       if (run !== deepRun || state !== 'deep') return;
     }
@@ -832,7 +896,7 @@ export function createYuelao(ui) {
       `<p class="kicker">${stick.no}　完整解籤</p>
        <p class="note">付款確認還沒到。不用重新付款，等一下再查；確認後解讀也會出現在「我的」。</p>
        <button class="seal" data-a="again">再查一次</button>${backToCard}`,
-      (a) => (a === 'again' ? void waitPaid(question) : a === 'card' && verdict()),
+      (a) => (a === 'again' ? void waitPaid(question, plan) : a === 'card' && verdict()),
     );
   }
 
@@ -944,7 +1008,7 @@ export function createYuelao(ui) {
         if (back.why === 'pay') {
           // 付完款回來：不先秀判詞卡，直接等確認、動筆
           ui.card('');
-          void waitPaid(draftQ);
+          void waitPaid(draftQ, back.plan || 'unlock_1');
           return;
         }
         verdict();

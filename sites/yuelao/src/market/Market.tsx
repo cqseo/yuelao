@@ -1,4 +1,4 @@
-import { findProduct, formatPrice, type Product, priceForLocale } from '@yuelao/core/site';
+import { findProduct, formatPerUse, formatPrice, type Product, priceForLocale, salePlans } from '@yuelao/core/site';
 import { useEffect, useRef, useState } from 'react';
 import { LiteMarket } from './LiteMarket';
 import { LiteTarot } from './LiteTarot';
@@ -267,6 +267,22 @@ export function Market() {
       bindHref,
       cancelled: payCancelled,
       price: unlock ? formatPrice(priceForLocale(unlock, locale), locale) : '',
+      /**
+       * 解鎖方案（站長 2026-11-19，參考占了么）：單次＋次數包。按鈕寫「低至每次多少」，點了在原地選方案。
+       * popular：標「最多人選」的那一個。
+       */
+      plans: salePlans(site, locale).map((p) => ({
+        id: p.id,
+        uses: p.uses,
+        price: formatPrice(p.price, locale),
+        perUse: formatPerUse(p.perUse, p.price.currency),
+        popular: p.id === 'pack_5',
+      })),
+      get from() {
+        const plans = salePlans(site, locale);
+        const low = plans.reduce((m, p) => (p.perUse < m.perUse ? p : m), plans[0]!);
+        return low ? formatPerUse(low.perUse, low.price.currency) : '';
+      },
       page: (stickId: number, category: string) =>
         localizeHref(`/account/reading?stickId=${stickId}&category=${category}&locale=${locale}`),
       /** ready：已解鎖且內文已生成；unlocked：已解鎖、內文待領取；none：尚未購買或未登入。 */
@@ -296,8 +312,53 @@ export function Market() {
         }
         return { state: 'none' as const };
       },
-      buy(stickId: number, category: string) {
+      /** 買單次（指定這支籤）或次數包（付完回來用一次解鎖這支籤，見 redeem）。 */
+      buy(stickId: number, category: string, productId = 'unlock_1') {
+        if (productId !== 'unlock_1') return checkout(productId);
         return checkout('unlock_1', { stickId, category });
+      },
+      /** 次數包還剩幾次（沒登入或查不到就是 0）。 */
+      async packUses() {
+        try {
+          const res = await authed(() =>
+            fetch('/api/account/status', { credentials: 'same-origin', cache: 'no-store' }),
+          );
+          if (!res.ok) return 0;
+          const a = (await res.json()) as { packs?: { remaining_uses?: number }[] };
+          return (a.packs ?? []).reduce((n, p) => n + Math.max(0, p.remaining_uses ?? 0), 0);
+        } catch {
+          return 0;
+        }
+      },
+      /** 用次數包的一次解鎖這支籤。ok：解鎖了；none：沒有可用次數；failed：其他錯誤。 */
+      async redeem(stickId: number, category: string) {
+        try {
+          const res = await authed(() =>
+            fetch('/api/account/status', { credentials: 'same-origin', cache: 'no-store' }),
+          );
+          if (!res.ok) return 'failed' as const;
+          const a = (await res.json()) as { packs?: { id: string; remaining_uses?: number; created_at?: string }[] };
+          const pack = (a.packs ?? [])
+            .filter((p) => (p.remaining_uses ?? 0) > 0)
+            .sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)))[0];
+          if (!pack) return 'none' as const;
+          const r = await authed(() =>
+            fetch('/api/account/redeem', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ packId: pack.id, stickId, category, locale }),
+            }),
+          );
+          if (r.ok) {
+            track('pack_redeem', { from: 'market' });
+            return 'ok' as const;
+          }
+          // 409：這支籤已經解鎖過（不扣次數）——當作成功，接著去讀
+          return r.status === 409 ? ('ok' as const) : ('failed' as const);
+        } catch {
+          return 'failed' as const;
+        }
       },
       /**
        * 請伺服器生成這支籤的深度解讀（已付款才會成功）。付款前已在面板上告知問題會送至 AI 服務，
@@ -327,11 +388,12 @@ export function Market() {
         }
       },
       /** why：'pay' 去付款、'login' 去登入。question 只存在本機，生成後就清掉。 */
-      save(stickId: number, category: string, why: 'pay' | 'login' = 'login', question = '') {
+      /** plan：買的是哪個方案（次數包付完回來要先用一次解鎖這支籤）。 */
+      save(stickId: number, category: string, why: 'pay' | 'login' = 'login', question = '', plan = 'unlock_1') {
         try {
           sessionStorage.setItem(
             PENDING,
-            JSON.stringify({ stickId, category, why, question: question.slice(0, 400), at: Date.now() }),
+            JSON.stringify({ stickId, category, why, question: question.slice(0, 400), plan, at: Date.now() }),
           );
         } catch {}
       },
@@ -346,6 +408,7 @@ export function Market() {
                 category?: unknown;
                 why?: unknown;
                 question?: unknown;
+                plan?: unknown;
                 at?: unknown;
               })
             : null;
@@ -369,6 +432,7 @@ export function Market() {
                     ? ('ritual' as const)
                     : ('login' as const),
               question: typeof p.question === 'string' ? p.question.slice(0, 400) : '',
+              plan: typeof p.plan === 'string' && /^(unlock_1|pack_\d+)$/.test(p.plan) ? p.plan : 'unlock_1',
             };
         } catch {}
         return null;

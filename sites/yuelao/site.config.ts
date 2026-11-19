@@ -2,7 +2,7 @@ import { defineSite } from '@yuelao/core/site';
 
 // Prices use fixed HKD minor units; HK$18 = 1800.
 // Both Traditional and Simplified visitors pay in HKD; no FX conversion at checkout.
-// Restore historical HKD tiers: single HK$18, pack 3 HK$48, pack 8 HK$108.
+// 2026-11-19 起：單次 HK$12；次數包 5 次 HK$38、12 次 HK$68（舊 3 次 HK$48、8 次 HK$108 下架）。
 // Tarot single HK$18; incense HK$18/HK$28, pending final price approval.
 // Historical USD orders keep their original currency and entitlements.
 const hkd = (amount: number) => ({
@@ -18,10 +18,11 @@ export default defineSite({
   defaultLocale: 'zh-Hant',
   products: [
     {
+      // 站長 2026-11-19：HK$18 → HK$12（同行占了么單次約 ¥9.9）。已付的舊訂單照原價記錄。
       id: 'unlock_1',
       kind: 'unlock',
       name: '深度解讀 · 單次解鎖',
-      prices: hkd(1800),
+      prices: hkd(1200),
     },
     {
       // 塔羅館（塔羅／雷諾曼三張）的完整解讀，單次購買；不扣次數包。
@@ -52,12 +53,29 @@ export default defineSite({
       name: '七彩極光香',
       prices: hkd(2800),
     },
+    // 次數包（站長 2026-11-19 改版）：5 次 HK$38（最多人選）、12 次 HK$68。
+    // 舊的 3 次／8 次包下架但保留 id，已經買到的次數照常可用。
+    {
+      id: 'pack_5',
+      kind: 'pack',
+      name: '問事包 · 5 次',
+      uses: 5,
+      prices: hkd(3800),
+    },
+    {
+      id: 'pack_12',
+      kind: 'pack',
+      name: '問事包 · 12 次',
+      uses: 12,
+      prices: hkd(6800),
+    },
     {
       id: 'pack_3',
       kind: 'pack',
       name: '問事包 · 3 次',
       uses: 3,
       prices: hkd(4800),
+      retired: true,
     },
     {
       id: 'pack_8',
@@ -65,6 +83,7 @@ export default defineSite({
       name: '問事包 · 8 次',
       uses: 8,
       prices: hkd(10800),
+      retired: true,
     },
   ],
   supportEmail: 'support@yuexia.app',

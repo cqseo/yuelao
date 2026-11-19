@@ -1543,6 +1543,64 @@
 .mk .unlock .offer:hover {
   background: linear-gradient(#efd58a, #d2ad55);
 }
+/* 解鎖方案（單次／次數包）：原地選，最多人選的那一格金框加標籤 */
+.mk .plans {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0.8rem;
+}
+.mk .plan {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0.15rem 1rem;
+  width: 100%;
+  min-height: 64px;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(220, 187, 124, 0.35);
+  border-radius: 4px;
+  background: rgba(220, 187, 124, 0.06);
+  color: var(--paper, #efe5cf);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mk .plan b {
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+.mk .plan span {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gold, #dcbb7c);
+}
+.mk .plan small {
+  grid-column: 1 / -1;
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+.mk .plan.popular {
+  border-color: var(--gold, #dcbb7c);
+  background: rgba(220, 187, 124, 0.14);
+}
+.mk .plan em {
+  position: absolute;
+  top: -0.6rem;
+  right: 0.8rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: 3px;
+  background: linear-gradient(#e6c97a, #c9a24a);
+  color: #1d1408;
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 700;
+}
+.mk .plan:focus-visible {
+  outline: 3px solid var(--gold, #dcbb7c);
+  outline-offset: 2px;
+}
+
 /* 判詞正下方的解鎖鈕：跟解鎖區塊同一個金色，判詞讀完就看得到價錢 */
 .mk .offer-inline-wrap {
   display: grid;

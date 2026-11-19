@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { FollowUpHint } from '~/components/FollowUpHint';
 import { GuestBind } from '~/components/GuestBind';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
-import { tr } from '~/i18n/ui';
+import { tr, trf } from '~/i18n/ui';
 import { track } from '~/lib/track';
 import { localizeHref } from '~/paraglide/runtime.js';
 import site from '../../site.config';
@@ -65,15 +65,17 @@ function Account() {
   const zh = contentLocale() === 'zh-Hans';
   const t = (hant: string, hans: string) => (zh ? hans : tr(hant));
   // 訂單與解鎖紀錄顯示給人看的名稱，不露出內部代號
+  const packName = (uses: number) =>
+    zh ? `问事包 · ${uses} 次` : trf('問事包 · {0} 次', String(uses));
   const productName = (id: string) =>
     id === 'unlock_1'
       ? t('完整解籤（單次）', '完整解签（单次）')
       : id === 'spread_1'
         ? t('塔羅完整解讀', '塔罗完整解读')
-        : id === 'pack_3'
-          ? t('問事三次包', '问事三次包')
-          : id === 'pack_8'
-            ? t('問事八次包', '问事八次包')
+        : id === 'followup_1'
+          ? t('追問月老（一次）', '追问月老（一次）')
+          : /^pack_\d+$/.test(id)
+            ? packName(Number(id.slice(5)))
             : id;
   const categoryName = (c: string) =>
     c === 'him'
@@ -281,15 +283,13 @@ function Account() {
             </p>
             <div className="account-offers">
               {site.products
-                .filter((product) => product.kind === 'pack')
+                .filter((product) => product.kind === 'pack' && !('retired' in product && product.retired))
                 .map((product) => {
                   const price = Object.values(product.prices).find((p) => p.currency === currency);
                   return (
                     <div className="account-offer" key={product.id}>
                       <h3>
-                        {product.id === 'pack_3'
-                          ? t('問事三次包', '问事三次包')
-                          : t('問事八次包', '问事八次包')}
+                        {product.kind === 'pack' ? packName(product.uses) : product.name}
                       </h3>
                       <strong>{price ? money(price.amount, currency) : '—'}</strong>
                       <button

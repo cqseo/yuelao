@@ -1,4 +1,4 @@
-import { findProduct, formatPrice, priceForLocale } from '@yuelao/core/site';
+import { findProduct, formatPerUse, formatPrice, priceForLocale, salePlans } from '@yuelao/core/site';
 import { withGuest } from '~/lib/guest';
 import { contentLocale, uiPrefix } from '~/i18n/locale';
 import site from '../../site.config';
@@ -16,6 +16,40 @@ const product = findProduct(site, 'unlock_1');
 
 export function litePrice(): string {
   return product ? formatPrice(priceForLocale(product, contentLocale()), contentLocale()) : '';
+}
+
+/** 解鎖方案（單次＋次數包），與 3D 月老殿同一份（site.config 的 salePlans）。 */
+export function litePlans() {
+  const locale = contentLocale();
+  return salePlans(site, locale).map((p) => ({
+    id: p.id,
+    uses: p.uses,
+    price: formatPrice(p.price, locale),
+    perUse: formatPerUse(p.perUse, p.price.currency),
+    perUseAmount: p.perUse,
+    popular: p.id === 'pack_5',
+  }));
+}
+
+/** 用次數包的一次解鎖這支籤。ok：解鎖了（或本來就解鎖）；none：沒有可用次數；failed：其他。 */
+export async function liteRedeem(stickId: number, category: OracleCategory): Promise<'ok' | 'none' | 'failed'> {
+  try {
+    const res = await liteRequest('/api/account/status');
+    if (!res.ok) return 'failed';
+    const a = (await res.json()) as { packs?: { id: string; remaining_uses?: number; created_at?: string }[] };
+    const pack = (a.packs ?? [])
+      .filter((p) => (p.remaining_uses ?? 0) > 0)
+      .sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)))[0];
+    if (!pack) return 'none';
+    const r = await liteRequest('/api/account/redeem', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ packId: pack.id, stickId, category, locale: contentLocale() }),
+    });
+    return r.ok || r.status === 409 ? 'ok' : 'failed';
+  } catch {
+    return 'failed';
+  }
 }
 
 export function liteReadingUrl(stickId: number, category: OracleCategory): string {
@@ -62,8 +96,13 @@ export async function liteCheck(stickId: number, category: OracleCategory): Prom
 }
 
 /** Product amount is always selected on the trusted server. Never send price/amount. */
-export async function liteCheckout(stickId: number, category: OracleCategory): Promise<LiteCheckout> {
-  if (!product) return { state: 'closed' };
+export async function liteCheckout(
+  stickId: number,
+  category: OracleCategory,
+  productId = 'unlock_1',
+): Promise<LiteCheckout> {
+  const chosen = findProduct(site, productId);
+  if (!product || !chosen) return { state: 'closed' };
   try {
     const locale = contentLocale();
     // 沒登入：先給一個訪客帳號再結帳（lib/guest.ts）
@@ -71,13 +110,13 @@ export async function liteCheckout(stickId: number, category: OracleCategory): P
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        productId: 'unlock_1',
-        currency: priceForLocale(product, locale).currency,
+        productId,
+        currency: priceForLocale(chosen, locale).currency,
         locale,
         ui: uiPrefix(),
         from: 'market',
-        stickId,
-        category,
+        // 次數包不指定籤：付完回來再用一次解鎖這支（liteRedeem）
+        ...(productId === 'unlock_1' ? { stickId, category } : {}),
       }),
     }));
     if (res.status === 401) return { state: 'login' };
