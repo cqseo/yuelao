@@ -2360,3 +2360,70 @@
   font-size: 0.875rem;
   color: var(--gold);
 }
+
+.mk .fortune-form select {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: rgba(7, 8, 18, 0.5);
+  font: inherit;
+  font-size: 1rem;
+  color: var(--paper);
+  color-scheme: dark;
+}
+.mk .pillars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  margin: 0.75rem 0 0.25rem;
+  text-align: center;
+}
+.mk .pillars > div {
+  display: grid;
+  padding: 0.5rem 0.25rem;
+  border: 1px solid var(--line);
+}
+.mk .pillars > div.me {
+  border-color: var(--gold);
+  background: #5a140e;
+}
+.mk .pillars small {
+  font-size: 0.75rem;
+  color: var(--paper-70);
+}
+.mk .pillars b {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  color: #f1d79a;
+}
+.mk .pillars i {
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--paper-50);
+}
+.mk .elements {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+.mk .elements li {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr 1.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.mk .elements i {
+  display: block;
+  height: 0.5rem;
+  min-width: 2px;
+  background: var(--gold);
+}
+.mk .elements b {
+  text-align: right;
+  color: var(--paper-70);
+  font-weight: 400;
+}

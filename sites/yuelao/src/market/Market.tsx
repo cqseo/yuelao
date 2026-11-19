@@ -547,6 +547,7 @@ export function Market() {
     // 生日只在本機：去付款前存在 sessionStorage，回來重算同一個識別字串；不送進訂單。
     const matchProduct = findProduct(site, 'match_1');
     const loveProduct = findProduct(site, 'love_1');
+    const baziProduct = findProduct(site, 'bazi_1');
     const FORTUNE_PENDING = 'market-fortune-pending';
     const fortune = {
       get guest() {
@@ -556,13 +557,19 @@ export function Market() {
       cancelled: payCancelled,
       price: matchProduct ? formatPrice(priceForLocale(matchProduct, locale), locale) : '',
       lovePrice: loveProduct ? formatPrice(priceForLocale(loveProduct, locale), locale) : '',
+      baziPrice: baziProduct ? formatPrice(priceForLocale(baziProduct, locale), locale) : '',
       check: spreadApi.check,
-      buy: (key: string) => checkout(key.startsWith('love:') ? 'love_1' : 'match_1', { spread: key }),
+      buy: (key: string) =>
+        checkout(key.startsWith('bazi:') ? 'bazi_1' : key.startsWith('love:') ? 'love_1' : 'match_1', {
+          spread: key,
+        }),
       generate: spreadApi.generate,
       save(p: {
-        mode: 'match' | 'love';
+        mode: 'match' | 'love' | 'bazi';
         you: string;
         them: string;
+        hour: number | null;
+        gender: string;
         question: string;
         sit: string;
         day: string;
@@ -584,7 +591,7 @@ export function Market() {
           if (
             p &&
             date(p.you) &&
-            (p.mode === 'love' || date(p.them)) &&
+            (p.mode === 'love' || p.mode === 'bazi' || date(p.them)) &&
             typeof p.question === 'string' &&
             typeof p.sit === 'string' &&
             typeof p.day === 'string' &&
@@ -593,7 +600,9 @@ export function Market() {
             Date.now() - p.at < 45 * 60 * 1000
           )
             return {
-              mode: p.mode === 'love' ? ('love' as const) : ('match' as const),
+              mode: p.mode === 'love' || p.mode === 'bazi' ? p.mode : ('match' as const),
+              hour: typeof p.hour === 'number' && p.hour >= 0 && p.hour <= 11 ? p.hour : null,
+              gender: p.gender === 'f' || p.gender === 'm' ? p.gender : 'n',
               you: p.you,
               them: typeof p.them === 'string' ? p.them : '',
               question: p.question.slice(0, 100),

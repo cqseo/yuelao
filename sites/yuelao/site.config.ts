@@ -48,6 +48,14 @@ export default defineSite({
       decks: ['love'],
     },
     {
+      // 算命攤．八字命盤（感情）的完整解讀（站長 2026-11-19 擬定 HK$28，上線前可改）。上線後 id 不改。
+      id: 'bazi_1',
+      kind: 'spread',
+      name: '八字命盤 · 完整解讀',
+      prices: hkd(2800),
+      decks: ['bazi'],
+    },
+    {
       // 追問月老：買過付費解籤後，就同一件事再問一句（站長 2026-11-18 定價 HK$8，一份解籤最多 3 次）。
       // 上線後 id 不改。
       id: 'followup_1',
