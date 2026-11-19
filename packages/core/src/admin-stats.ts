@@ -417,6 +417,7 @@ export function computeStats(input: StatsInput) {
     { key: 'love', product: 'love_1', kinds: ['love'], room: 'bazi' },
     { key: 'bazi', product: 'bazi_1', kinds: ['bazi'], room: 'bazi' },
     { key: 'year', product: 'year_1', kinds: ['bazi'], room: 'bazi' },
+    { key: 'cai', product: 'cai_1', kinds: ['cai'], room: 'caishen' },
     { key: 'tarot', product: 'spread_1', kinds: ['tarot', 'lnm'], room: 'tarot' },
   ] as const;
   const prop = (e: (typeof cur)[number], k: string) => String(e.props?.[k] ?? '');

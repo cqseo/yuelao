@@ -492,7 +492,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
 
       {section === 'funnel' && stats.plays && (
         <section className="admin-card">
-          <h2>各玩法转化（塔罗馆、算命摊）</h2>
+          <h2>各玩法转化（塔罗馆、算命摊、财神殿）</h2>
           <p className="admin-muted">
             每一栏是不同访客数，付款看订单。「重复购买」是同一个账号在这段时间买了两次以上：有这种人才值得做次数包。「互推进来」是从别的玩法结果页点过来的人。
           </p>
@@ -1411,6 +1411,7 @@ const PLAY_LABELS: Record<string, string> = {
   love: '个人姻缘盘 HK$18',
   bazi: '八字（感情/事业/财运）HK$28',
   year: '八字年运 HK$38',
+  cai: '财神殿求财签 HK$12',
   tarot: '塔罗完整解读 HK$18',
 };
 
