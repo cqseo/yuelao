@@ -416,6 +416,7 @@ export function computeStats(input: StatsInput) {
     { key: 'match', product: 'match_1', kinds: ['match'], room: 'bazi' },
     { key: 'love', product: 'love_1', kinds: ['love'], room: 'bazi' },
     { key: 'bazi', product: 'bazi_1', kinds: ['bazi'], room: 'bazi' },
+    { key: 'year', product: 'year_1', kinds: ['bazi'], room: 'bazi' },
     { key: 'tarot', product: 'spread_1', kinds: ['tarot', 'lnm'], room: 'tarot' },
   ] as const;
   const prop = (e: (typeof cur)[number], k: string) => String(e.props?.[k] ?? '');
@@ -430,11 +431,20 @@ export function computeStats(input: StatsInput) {
     for (const e of cur) {
       const kind = prop(e, 'kind');
       const product = prop(e, 'product');
-      if (e.name === 'reading_done' && (pl.kinds as readonly string[]).includes(kind)) sets.result.add(e.vid);
+      // 八字的年運另算一行：reading_done 帶 topic（2026-11-19 起）
+      const topicOk =
+        pl.key === 'year'
+          ? prop(e, 'topic') === 'year'
+          : pl.key === 'bazi'
+            ? prop(e, 'topic') !== 'year'
+            : true;
+      if (e.name === 'reading_done' && (pl.kinds as readonly string[]).includes(kind) && topicOk)
+        sets.result.add(e.vid);
       if ((e.name === 'offer_view' || e.name === 'offer_seen') && product === pl.product)
         sets.offer.add(e.vid);
       if (e.name === 'unlock_click' && product === pl.product) sets.unlock.add(e.vid);
-      if (e.name === 'share_image' && (pl.kinds as readonly string[]).includes(kind)) sets.share.add(e.vid);
+      if (e.name === 'share_image' && (pl.kinds as readonly string[]).includes(kind) && topicOk)
+        sets.share.add(e.vid);
       if (e.name === 'fortune_cross' && prop(e, 'to') === pl.key) sets.crossIn.add(e.vid);
     }
     const orders = paidCur.filter((o) => o.product_id === pl.product);

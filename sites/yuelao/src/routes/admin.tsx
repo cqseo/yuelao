@@ -1409,7 +1409,8 @@ function Bars({ items }: { items: { label: string; count: number }[] }) {
 const PLAY_LABELS: Record<string, string> = {
   match: '合缘配对 HK$12',
   love: '个人姻缘盘 HK$18',
-  bazi: '八字命盘 HK$28',
+  bazi: '八字（感情/事业/财运）HK$28',
+  year: '八字年运 HK$38',
   tarot: '塔罗完整解读 HK$18',
 };
 
