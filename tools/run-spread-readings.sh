@@ -25,4 +25,5 @@ for f in $(ls supabase/migrations | sort); do
   docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < "supabase/migrations/$f" >/dev/null
 done
 docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < tools/test-spread-readings.sql
+docker exec -i "$name" psql -v ON_ERROR_STOP=1 -U postgres < tools/test-fortune-spreads.sql
 echo 'ALL OFFLINE SPREAD READING TESTS PASSED'

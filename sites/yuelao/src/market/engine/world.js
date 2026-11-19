@@ -14,7 +14,7 @@ export const ROOMS = [
   { id: 'yuelao', name: '月老殿', sub: '求籤問緣', open: true, tint: 0xffb060, cloth: '#7b161b' },
   { id: 'tarot', name: '塔羅館', sub: '三張牌陣', open: true, tint: 0xa98bff, cloth: '#2a1b55' },
   { id: 'hall', name: '大殿', sub: '多人同拜', open: true, tint: 0xffc070, cloth: '#5a1612' },
-  { id: 'bazi', name: '算命攤', sub: '八字命盤', open: false },
+  { id: 'bazi', name: '算命攤', sub: '合緣配對', open: true, tint: 0xff9a5a, cloth: '#8a1a14' },
   { id: 'sutra', name: '抄經閣', sub: '每日心箋', open: true, tint: 0xffd59a, cloth: '#3b2414' },
   { id: 'burn', name: '化寶爐', sub: '燒疏文', open: false },
   { id: 'rent', name: '旺鋪招租', sub: '虛位以待', open: false, note: '虛位以待' },
@@ -492,7 +492,7 @@ export function createWorld(renderer, lowQuality) {
     { x: -23, z: 0, sign: '抄經閣', banner: '籌備中', room: 'sutra', floors: 2, lit: false },
     { x: -19, z: 13, sign: '旺鋪招租', banner: '虛位以待', room: 'rent', lit: false },
     { x: 19, z: -13, sign: '月老殿', banner: '求籤問緣', room: 'yuelao', h: 4.1 },
-    { x: 23, z: 0, sign: '算命攤', banner: '籌備中', room: 'bazi', floors: 2, lit: false },
+    { x: 23, z: 0, sign: '算命攤', banner: '合緣配對', room: 'bazi', floors: 2 },
     { x: 19, z: 13, sign: '茶館', banner: '清茶細點' },
   ];
   let shrine = null; // 可以直接走進去的月老殿
@@ -509,6 +509,12 @@ export function createWorld(renderer, lowQuality) {
         plaque: '塔羅館',
         outer: ['三張牌陣', '看見此刻'],
         prompt: '抽牌',
+      },
+      bazi: {
+        kind: 'bazi',
+        plaque: '算命攤',
+        outer: ['生肖星座', '合緣配對'],
+        prompt: '合緣',
       },
       sutra: {
         kind: 'sutra',
