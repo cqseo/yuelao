@@ -217,3 +217,74 @@ console.log('PASS: stats aggregate visitors, live orders, funnel, paths and jour
   assert.ok(!fromDatacenter(13335) && !fromDatacenter(36183) && !fromDatacenter(3462) && !fromDatacenter(undefined));
   console.log('PASS: datacenter networks are left out of analytics, private relay is not');
 }
+
+// 各玩法轉化：算命攤三種玩法分開算；同一帳號買兩次算重複購買
+{
+  const e = (vid: string, min: number, name: string, props: Record<string, string>) => ({
+    at: t(min),
+    vid,
+    sid: `s_${vid}`,
+    user_id: null,
+    name,
+    path: '/market',
+    props,
+    referrer: null,
+    device: 'mobile',
+    country: 'HK',
+    locale: 'zh-Hant',
+  });
+  const order = (id: string, user: string, product: string, amount: number) => ({
+    id,
+    user_id: user,
+    product_id: product,
+    amount,
+    currency: 'HKD',
+    status: 'paid',
+    checkout_ref: `cs_live_${id}`,
+    created_at: t(20),
+    paid_at: t(19),
+  });
+  const s2 = computeStats({
+    days: 7,
+    now,
+    events: [
+      e('v1_aaaaaaaa', 40, 'reading_done', { kind: 'match' }),
+      e('v1_aaaaaaaa', 39, 'offer_view', { product: 'match_1' }),
+      e('v1_aaaaaaaa', 38, 'unlock_click', { product: 'match_1' }),
+      e('v1_aaaaaaaa', 37, 'fortune_cross', { to: 'love' }),
+      e('v1_aaaaaaaa', 36, 'reading_done', { kind: 'love' }),
+      e('v1_aaaaaaaa', 35, 'reading_done', { kind: 'bazi' }),
+      e('v2_bbbbbbbb', 30, 'reading_done', { kind: 'match' }),
+      e('v2_bbbbbbbb', 29, 'share_image', { kind: 'match' }),
+      e('v3_cccccccc', 30, 'reading_done', { kind: 'tarot' }),
+    ],
+    orders: [
+      order('m1', 'u1', 'match_1', 1200),
+      order('m2', 'u1', 'match_1', 1200),
+      order('b1', 'u2', 'bazi_1', 2800),
+    ],
+    refunds: new Map(),
+    profiles: [],
+    totalUsers: 3,
+    eventsTruncated: false,
+  });
+  const play = (k: string) => s2.plays.find((p) => p.key === k)!;
+  assert.deepEqual(
+    [
+      play('match').results,
+      play('match').offers,
+      play('match').unlocks,
+      play('match').paid,
+      play('match').buyers,
+    ],
+    [2, 1, 1, 2, 1],
+  );
+  assert.equal(play('match').repeatBuyers, 1);
+  assert.equal(play('match').revenue, 2400);
+  assert.equal(play('match').shares, 1);
+  assert.equal(play('love').crossIn, 1);
+  assert.equal(play('bazi').paid, 1);
+  assert.equal(play('tarot').results, 1);
+  assert.deepEqual(s2.fortuneMulti, { visitors: 2, twoOrMore: 1, allThree: 1 });
+  console.log('PASS: per-play conversion splits the stall and the tarot parlor, and spots repeat buyers');
+}
