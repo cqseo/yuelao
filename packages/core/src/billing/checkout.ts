@@ -285,7 +285,7 @@ export async function createTestCheckout({
     product.kind === 'unlock'
       ? '/market#yuelao'
       : product.kind === 'spread'
-        ? spreadDeck === 'match'
+        ? spreadDeck === 'match' || spreadDeck === 'love'
           ? '/market#bazi'
           : '/market#tarot'
         : '/market';

@@ -35,4 +35,10 @@ begin
   exception when check_violation then failed := true; end;
   if not failed then raise exception 'unknown prefix order accepted'; end if;
   raise notice 'PASS: unknown prefixes are still rejected';
+
+  insert into public.orders(user_id,product_id,product_kind,amount,currency,status,locale,spread)
+    values (a,'love_1','spread',1800,'HKD','pending','zh-Hant','love:07_04_2026|0123456789abcdef');
+  j := public.claim_spread_reading(a, 'love:07_04_2026|0123456789abcdef', 'zh-Hant');
+  if j->>'state' <> 'not_unlocked' then raise exception 'love claim before payment: %', j; end if;
+  raise notice 'PASS: love keys are accepted by orders and the claim RPC';
 end $$;

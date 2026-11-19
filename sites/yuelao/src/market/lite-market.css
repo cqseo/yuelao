@@ -409,3 +409,10 @@
 @media (max-width: 360px) { .lm__dates { grid-template-columns: 1fr; } }
 .lm .lm__mtitle { margin: 0.5rem 0 0.25rem; color: var(--gold-hi); text-align: center; letter-spacing: 0.25em; }
 .lm .lm__qlabel { display: block; margin-top: 1.1rem; }
+.lm__dates.is-one { grid-template-columns: 1fr; }
+.lm__modes { margin: 0.25rem 0 0.75rem; }
+.lm__years { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.lm__years li { display: grid; gap: 0.1rem; padding: 0.5rem 0.3rem; border: 1px solid rgba(220, 187, 124, 0.35); border-radius: 6px; text-align: center; }
+.lm__years b { color: var(--paper); }
+.lm__years span { font-size: 0.75rem; color: var(--paper-70); }
+.lm__years em { font-style: normal; font-size: 0.85rem; color: var(--gold); }

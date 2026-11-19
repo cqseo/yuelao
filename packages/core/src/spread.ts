@@ -2,14 +2,16 @@
 //   tarot:Cups_02,06~,04|<16 位十六進位>   ~ = 逆位
 //   lnm:15,19,07|<16 位十六進位>
 //   match:01_03,05_11|<16 位十六進位>   算命攤．合緣配對：你的生肖_星座,對方的生肖_星座（見 match.ts）
+//   love:11_11_2026|<16 位十六進位>      算命攤．個人姻緣盤：生肖_星座_流年（見 love.ts）
 // 後面的雜湊由前端用「日期＋情況＋問題」算出；問題本身不送進訂單、不存。
 // 這裡只驗形狀與牌名合法（三張互不重複），不重新驗證抽牌結果——付錢的是使用者自己的這一組。
 
+import { parseLoveIds } from './love';
 import { type MatchPerson, parseMatchIds } from './match';
 
 export type SpreadDeck = 'tarot' | 'lnm';
 /** 識別字串的前綴；付費解讀都走同一套表（spread_unlocks／spread_ai_readings）。 */
-export type SpreadKind = SpreadDeck | 'match';
+export type SpreadKind = SpreadDeck | 'match' | 'love';
 
 const MAJOR = Array.from({ length: 22 }, (_, i) => String(i).padStart(2, '0'));
 const MINOR = ['Wands', 'Cups', 'Swords', 'Pentacles'].flatMap((s) =>
@@ -28,15 +30,26 @@ export interface MatchSpread {
   a: MatchPerson;
   b: MatchPerson;
 }
-export type ParsedSpread = CardSpread | MatchSpread;
+export interface LoveSpread {
+  key: string;
+  deck: 'love';
+  zodiac: number;
+  sign: number;
+  year: number;
+}
+export type ParsedSpread = CardSpread | MatchSpread | LoveSpread;
 
 export function parseSpread(value: unknown): ParsedSpread | null {
   if (typeof value !== 'string' || value.length > 100) return null;
-  const m = /^(tarot|lnm|match):([A-Za-z0-9_~,]{5,80})\|([0-9a-f]{16})$/.exec(value);
+  const m = /^(tarot|lnm|match|love):([A-Za-z0-9_~,]{5,80})\|([0-9a-f]{16})$/.exec(value);
   if (!m) return null;
   if (m[1] === 'match') {
     const pair = parseMatchIds(m[2]!);
     return pair ? { key: value, deck: 'match', ...pair } : null;
+  }
+  if (m[1] === 'love') {
+    const me = parseLoveIds(m[2]!);
+    return me ? { key: value, deck: 'love', ...me } : null;
   }
   const deck = m[1] as SpreadDeck;
   const parts = m[2]!.split(',');

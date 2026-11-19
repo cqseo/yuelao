@@ -45,6 +45,7 @@ const NAV = [
   // 首頁主導覽直接進入沉浸式 3D 殿堂；輕量模式僅由明確標示的快速入口開啟。
   { to: '/market#yuelao', label: () => m.home_market_nav_ritual(), hard: true },
   { to: '/market#tarot', label: () => m.home_market_room_tarot(), hard: true },
+  { to: '/market#bazi', label: () => m.home_market_room_bazi(), hard: true },
   { to: '/market#sutra', label: () => m.home_market_nav_daily(), hard: true },
   { to: '/tests', label: () => m.home_market_nav_tests() },
 ];
@@ -61,6 +62,12 @@ const ROOMS = [
     name: () => m.home_market_room_tarot(),
     desc: () => m.home_market_room_tarot_desc(),
     hash: 'tarot',
+  },
+  {
+    img: '/market/bazi.jpg',
+    name: () => m.home_market_room_bazi(),
+    desc: () => m.home_market_room_bazi_desc(),
+    hash: 'bazi',
   },
   {
     img: '/market/hall.jpg',

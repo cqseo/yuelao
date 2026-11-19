@@ -546,6 +546,7 @@ export function Market() {
     // 算命攤．合緣配對（付費完整解讀）：同一套牌陣解讀（識別字串 match:…，見 packages/core/src/match.ts）。
     // 生日只在本機：去付款前存在 sessionStorage，回來重算同一個識別字串；不送進訂單。
     const matchProduct = findProduct(site, 'match_1');
+    const loveProduct = findProduct(site, 'love_1');
     const FORTUNE_PENDING = 'market-fortune-pending';
     const fortune = {
       get guest() {
@@ -554,10 +555,19 @@ export function Market() {
       bindHref,
       cancelled: payCancelled,
       price: matchProduct ? formatPrice(priceForLocale(matchProduct, locale), locale) : '',
+      lovePrice: loveProduct ? formatPrice(priceForLocale(loveProduct, locale), locale) : '',
       check: spreadApi.check,
-      buy: (key: string) => checkout('match_1', { spread: key }),
+      buy: (key: string) => checkout(key.startsWith('love:') ? 'love_1' : 'match_1', { spread: key }),
       generate: spreadApi.generate,
-      save(p: { you: string; them: string; question: string; sit: string; day: string; why: 'pay' | 'login' }) {
+      save(p: {
+        mode: 'match' | 'love';
+        you: string;
+        them: string;
+        question: string;
+        sit: string;
+        day: string;
+        why: 'pay' | 'login';
+      }) {
         try {
           sessionStorage.setItem(
             FORTUNE_PENDING,
@@ -574,7 +584,7 @@ export function Market() {
           if (
             p &&
             date(p.you) &&
-            date(p.them) &&
+            (p.mode === 'love' || date(p.them)) &&
             typeof p.question === 'string' &&
             typeof p.sit === 'string' &&
             typeof p.day === 'string' &&
@@ -583,8 +593,9 @@ export function Market() {
             Date.now() - p.at < 45 * 60 * 1000
           )
             return {
+              mode: p.mode === 'love' ? ('love' as const) : ('match' as const),
               you: p.you,
-              them: p.them,
+              them: typeof p.them === 'string' ? p.them : '',
               question: p.question.slice(0, 100),
               sit: p.sit,
               day: p.day,
