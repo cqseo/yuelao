@@ -79,7 +79,7 @@ const mockFetch: typeof fetch = async (url, options) => {
   const body = JSON.parse(options?.body as string);
   assert.equal(body.store, false);
   assert.equal(body.model, 'test-model');
-  assert.equal(body.max_output_tokens, 2400);
+  assert.equal(body.max_output_tokens, 4096);
   assert.equal(body.input.includes(input.question), true);
   assert.equal(typeof body.instructions, 'string');
   assert.equal(body.instructions.includes('不診斷'), true);
@@ -135,7 +135,7 @@ const relayFetch: typeof fetch = async (url, options) => {
   );
   const body = JSON.parse(options?.body as string);
   assert.equal(body.model, 'gpt-4o-mini');
-  assert.equal(body.max_tokens, 2400);
+  assert.equal(body.max_tokens, 4096);
   assert.equal(body.messages[0].role, 'system');
   assert.equal(body.messages[0].content.includes('不診斷'), true);
   assert.equal(body.messages[1].content.includes(input.question), true);
