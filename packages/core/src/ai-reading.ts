@@ -299,6 +299,7 @@ export async function generateWithOpenAI(
 const TUNINGS: Record<string, Record<string, unknown>> = {
   'thinking-off': { thinking: { type: 'disabled' } },
   'effort-low': { reasoning_effort: 'low' },
+  'effort-high': { reasoning_effort: 'high' },
 };
 export const tuningBody = (name: unknown): Record<string, unknown> =>
   typeof name === 'string' && Object.hasOwn(TUNINGS, name) ? (TUNINGS[name] as Record<string, unknown>) : {};
@@ -687,20 +688,26 @@ export async function generatePaidReadingRequest(
  * 站長預覽可以換模型比較（2026-11-20）：engine 只收白名單；對應的測試令牌沒設就回錯，不會退回正式模型。
  * 正式解讀一律用 OPENAI_MODEL，不受影響。
  */
-const PREVIEW_ENGINES = {
+const PREVIEW_ENGINES: Record<
+  string,
+  { model: string; key: 'TEST_KEY_HAIKU' | 'TEST_KEY_GEMINI' | 'TEST_KEY_DEEPSEEK'; baseUrl?: string }
+> = {
   haiku: { model: 'claude-haiku-4-5', key: 'TEST_KEY_HAIKU' },
   gemini: { model: 'gemini-3.8-flash', key: 'TEST_KEY_GEMINI' },
-} as const;
+  // DeepSeek 官方（2026-11-21）：中轉站會丟掉推理設定，官方才吃得到 thinking／reasoning_effort
+  deepseek: { model: 'deepseek-flash', key: 'TEST_KEY_DEEPSEEK', baseUrl: 'https://api.deepseek.com' },
+};
 export function previewEngine(
   env: CoreEnv,
   engine: unknown,
-): { apiKey: string; model: string; name: string } | null {
+): { apiKey: string; model: string; name: string; baseUrl: string | null } | null {
+  const relay = relayBaseUrl(env.OPENAI_BASE_URL);
   if (engine === undefined || engine === '' || engine === 'default')
-    return { apiKey: env.OPENAI_API_KEY!, model: env.OPENAI_MODEL!, name: 'default' };
+    return { apiKey: env.OPENAI_API_KEY!, model: env.OPENAI_MODEL!, name: 'default', baseUrl: relay };
   if (typeof engine !== 'string' || !Object.hasOwn(PREVIEW_ENGINES, engine)) return null;
-  const e = PREVIEW_ENGINES[engine as keyof typeof PREVIEW_ENGINES];
+  const e = PREVIEW_ENGINES[engine]!;
   const apiKey = env[e.key];
-  return apiKey ? { apiKey, model: e.model, name: engine } : null;
+  return apiKey ? { apiKey, model: e.model, name: engine, baseUrl: e.baseUrl ?? relay } : null;
 }
 
 export async function previewReadingRequest(
@@ -734,7 +741,7 @@ export async function previewReadingRequest(
       engine.apiKey,
       engine.model,
       fetchImpl,
-      relayBaseUrl(env.OPENAI_BASE_URL),
+      engine.baseUrl,
       readingInstructions(version),
       // 站長可以帶 tuning 比較推理設定；沒帶就跟正式一樣
       typeof decoded.tuning === 'string' ? decoded.tuning : env.AI_TUNING,

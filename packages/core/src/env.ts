@@ -47,6 +47,8 @@ export interface CoreEnv {
   /** Secret（只給站長預覽比較模型用，2026-11-20）：中轉站另開的測試令牌。正式解讀不用。 */
   TEST_KEY_HAIKU?: string;
   TEST_KEY_GEMINI?: string;
+  /** DeepSeek 官方 API 的測試金鑰（api.deepseek.com，模型 deepseek-flash）。 */
+  TEST_KEY_DEEPSEEK?: string;
   /** Private AI chat, intentionally disabled until a paid-model budget is accepted. */
   AI_CHAT_ENABLED?: string;
   /** Explicit model name; server-only, not exposed as a client configuration. */
