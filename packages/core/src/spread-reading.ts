@@ -458,7 +458,7 @@ export async function previewSpreadRequest(
       engine.apiKey,
       engine.model,
       fetchImpl,
-      relayBaseUrl(env.OPENAI_BASE_URL),
+      engine.baseUrl,
       100,
       undefined,
       typeof decoded.tuning === 'string' ? decoded.tuning : env.AI_TUNING,

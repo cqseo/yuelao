@@ -422,6 +422,7 @@ console.log('PASS: test checkout is limited to allowlisted emails and fails clos
     apiKey: 'prod-key-1234567890abcdefgh',
     model: 'deepseek-v4.1-flash',
     name: 'default',
+    baseUrl: null,
   });
   assert.equal(previewEngine(env, 'haiku'), null);
   assert.equal(previewEngine(env, 'gpt-4o'), null);
@@ -431,6 +432,21 @@ console.log('PASS: test checkout is limited to allowlisted emails and fails clos
     apiKey: 'test-haiku-key-1234567890',
     model: 'claude-haiku-4-5',
     name: 'haiku',
+    baseUrl: null,
   });
+  const ds = previewEngine(
+    {
+      ...(env as object),
+      OPENAI_BASE_URL: 'https://relay.example.com/v1',
+      TEST_KEY_DEEPSEEK: 'ds-test-key-1234567890',
+    } as never,
+    'deepseek',
+  );
+  assert.equal(
+    ds?.baseUrl,
+    'https://api.deepseek.com',
+    'official DeepSeek goes direct, not through the relay',
+  );
+  assert.equal(ds?.model, 'deepseek-flash');
   console.log('PASS: admin preview can switch to an allowlisted test model only when its test key exists');
 }
