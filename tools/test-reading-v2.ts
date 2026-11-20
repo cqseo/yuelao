@@ -147,3 +147,23 @@ assert.equal(
   503,
 );
 console.log('PASS: admin preview generates either version without saving');
+
+// 第三版（2026-11-20）：第二版＋「說中」的寫法；塔羅、算命攤、財神殿同一個開關
+{
+  const ai = await import('../packages/core/src/ai-reading');
+  const sr = await import('../packages/core/src/spread-reading');
+  const { parseSpread } = await import('../packages/core/src/spread');
+  assert.equal(ai.readingInstructions('3'), ai.READING_INSTRUCTIONS_V3);
+  assert.ok(ai.READING_INSTRUCTIONS_V3.startsWith(ai.READING_INSTRUCTIONS_V2));
+  assert.match(ai.READING_INSTRUCTIONS_V3, /每個判斷都要有出處/);
+  assert.match(ai.RESONANCE_RULES, /不要捏造他沒說過的具體經歷/);
+  assert.match(ai.RESONANCE_RULES, /不說日期/);
+  const sp = parseSpread('match:01_03,07_11|0123456789abcdef')!;
+  assert.ok(!sr.spreadInstructions(sp).includes('說中了'));
+  assert.ok(sr.spreadInstructions(sp, true).includes('說中了'));
+  assert.match(
+    ai.nowContext(new Date('2026-11-20T05:00:00Z')),
+    /^2026 年 11 月中旬（秋冬之交，離年底和春節不遠）$/,
+  );
+  console.log('PASS: v3 adds the resonance rules to every paid reading behind one switch');
+}

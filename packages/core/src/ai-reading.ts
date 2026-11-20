@@ -37,6 +37,33 @@ export function parseUiLanguage(value: unknown): UiLanguage | undefined {
 export const FOREIGN_LANGUAGE_RULE =
   '- 如果 outputLanguage 不是中文：每節小標那一行仍照抄上面的中文小標（連同全形方括號），其餘內文與最後一行聲明都改用 outputLanguage 書寫，自然、口語，不要夾中文；篇幅約 450-650 個英文單字，或該語言的相應長度。籤詩原句可以引用中文，但要緊接著用 outputLanguage 解釋。';
 
+/**
+ * 「說中」的寫法（2026-11-20 站長：要讓人讀完覺得「好準」）。所有付費解讀共用。
+ * 準的感覺來自：用他自己的話、每個判斷都有出處、具體的生活畫面、說出他心裡的矛盾、給他之後對得上的觀察點。
+ * 界線不變：不捏造他沒說過的具體經歷，不保證結果、不給日期與機率。
+ */
+export const RESONANCE_RULES = `寫得讓人覺得「說中了」（這一段和格式一樣重要）：
+- 開頭第一段就接住他：用他問題裡的原話或細節（時間長短、誰做了什麼、他卡在哪），先說出他現在多半的心情與處境，再接到籤、牌或命盤上的依據。讀的人第一眼要覺得「這是在說我」，不是範本。
+- 每個判斷都要有出處：明確點名是哪一句籤詩、哪一張牌和它的位置、哪一個生肖或星座關係、哪一個五行或十神數字，說出「因為……所以……」。換一支籤、換一張盤，內容就會不一樣。
+- 寫具體的畫面，不寫空泛的形容：例如「訊息打了又刪」「看到對方上線卻不敢先開口」「月底看著帳戶不知道錢去哪了」「開會時話到嘴邊又吞回去」。每篇至少兩三個這樣的畫面，要貼著他的處境與問題，不要每篇都用同一組。
+- 說出他心裡的拉扯：這類處境的人常有的兩面（想主動又怕被看輕、想放下又捨不得、想穩定又不甘心），用「你多半……」「常常會……」的口氣篤定地說，不要每句都加「可能」。
+- 只用他給的資料：可以描述這種處境的人常有的感受、習慣與反應，但不要捏造他沒說過的具體經歷（年份、人物、某件往事、外貌、職業細節）。
+- 給他之後對得上的觀察點：不預言事件，而是說「接下來兩三週，留意……；如果……，代表……；如果……，就該……」，讓他之後回頭看會覺得被說中。時間只說階段（這幾週、年底前、春節前後、上半年），不說日期。
+- 語氣篤定、像真的在替他看：少用「也許」「或許」「不一定」，界線與免責只在該說的地方說一次，不要每段重複。
+- 不要空話：避免「保持積極」「順其自然」「一切都會好起來」「相信自己」「緣分天注定」這類放在誰身上都成立的句子；每一句建議都要具體到能做。`;
+
+/** 給解讀用的「現在」：月份與季節，讓時間感具體（不說日期）。用北京時間。 */
+export function nowContext(now = new Date()): string {
+  const d = new Date(now.getTime() + 8 * 3_600_000);
+  const m = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+  const part = day <= 10 ? '上旬' : day <= 20 ? '中旬' : '下旬';
+  const season =
+    m >= 3 && m <= 5 ? '春天' : m >= 6 && m <= 8 ? '夏天' : m >= 9 && m <= 11 ? '秋冬之交' : '冬天';
+  const near = m >= 11 ? '，離年底和春節不遠' : m <= 2 ? '，春節前後' : '';
+  return `${d.getUTCFullYear()} 年 ${m} 月${part}（${season}${near}）`;
+}
+
 /** The customer's question is never saved or logged. Only the output is stored
  * in the private per-unlock row. AI provider may still have its own logs. */
 /** 第一版（2026-11-13 起的線上版本）。留著做對照，換版用 READING_PROMPT_VERSION。 */
@@ -104,9 +131,19 @@ export const READING_INSTRUCTIONS_V2 = `你是月老。有人在月老殿求到�
 使用資料內指定的 outputLanguage（繁體中文、簡體中文或其他語言）。
 ${FOREIGN_LANGUAGE_RULE}`;
 
-/** 線上用哪一版：READING_PROMPT_VERSION="2" 用第二版，其他（含沒設）用第一版。 */
+/** 第三版（2026-11-20）：第二版＋「說中」的寫法（RESONANCE_RULES）與現在的時間感。 */
+export const READING_INSTRUCTIONS_V3 = `${READING_INSTRUCTIONS_V2}
+
+${RESONANCE_RULES}
+- 資料裡的 now 是現在的月份與季節，說時間感時以它為準。`;
+
+/** 線上用哪一版：READING_PROMPT_VERSION="3"／"2" 用第三／二版，其他（含沒設）用第一版。 */
 export function readingInstructions(version: unknown): string {
-  return version === '2' ? READING_INSTRUCTIONS_V2 : READING_INSTRUCTIONS_V1;
+  return version === '3'
+    ? READING_INSTRUCTIONS_V3
+    : version === '2'
+      ? READING_INSTRUCTIONS_V2
+      : READING_INSTRUCTIONS_V1;
 }
 /** 舊名字：既有測試與呼叫端用的是第一版。 */
 export const READING_INSTRUCTIONS = READING_INSTRUCTIONS_V1;
@@ -260,6 +297,7 @@ export function readingUserInput(input: ReadingGenerationInput, stick: StickCont
     free: { verdict: stick.verdict, threeDays: clean(stick.actions), sevenDays: clean(stick.practice) },
     // 第一版提示詞讀的是 stick.freeVerdict：照舊附上
     freeVerdict: stick.verdict,
+    now: nowContext(),
     userQuestionUntrusted: input.question || '沒有提供個人情況，請只作象徵性建議',
   });
 }
@@ -360,7 +398,12 @@ async function stickFromDatabase(
           .maybeSingle()
       : { data: null };
   const key = `verdict_${input.category}` as 'verdict_him' | 'verdict_single' | 'verdict_reunion';
-  return { no: stick.no, grade: stick.grade, poem: loc?.poem ?? stick.poem, verdict: loc?.[key] ?? stick[key] };
+  return {
+    no: stick.no,
+    grade: stick.grade,
+    poem: loc?.poem ?? stick.poem,
+    verdict: loc?.[key] ?? stick[key],
+  };
 }
 
 export async function generatePaidReading({
@@ -392,7 +435,9 @@ export async function generatePaidReading({
   try {
     // Only the publicly visible stick content, never another user's context.
     // 以站點的籤內容為準（籤頁顯示的就是這份）；資料庫 sticks 表是舊版籤文，只在站點沒提供時退回。
-    const stick = stickContext?.(input.stickId, input.category, input.locale) ?? (await stickFromDatabase(database, input));
+    const stick =
+      stickContext?.(input.stickId, input.category, input.locale) ??
+      (await stickFromDatabase(database, input));
     if (!stick) throw new Error('stick_unavailable');
     const body = await generateWithOpenAI(
       input,
@@ -487,7 +532,8 @@ export async function previewReadingRequest(
   if (!input) return errorResponse(400, 'invalid_generation_input');
   const stick = stickContext?.(input.stickId, input.category, input.locale);
   if (!stick) return errorResponse(404, 'stick_unavailable');
-  const version = decoded.version === 2 || decoded.version === '2' ? '2' : '1';
+  const v = String(decoded.version ?? '1');
+  const version = v === '3' || v === '2' ? v : '1';
   try {
     const body = await generateWithOpenAI(
       input,

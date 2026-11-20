@@ -18,18 +18,18 @@ import { StripeProvider } from './billing/stripe';
 import { companionChatRequest, companionStatus } from './companion-chat';
 import { dailyCheckinRequest } from './daily-checkin';
 import type { CoreEnv } from './env';
+import { adminFeedbackRequest, submitFeedbackRequest } from './feedback';
 import { createGuestRequest, guestsEnabled, sendGuestBindCode, verifyGuestBindCode } from './guest-auth';
 import { hallOfferingRequest } from './hall-offering';
 import { errorResponse, json } from './http';
 import { finishGoogleLogin, startGoogleLogin } from './oauth-google';
 import { redeemPackRequest } from './pack-redemption';
-import { adminFeedbackRequest, submitFeedbackRequest } from './feedback';
 import { adminPartnersRequest, partnerSelfRequest } from './partners';
 import { paidReadingResponse } from './reading';
 import { askFollowupRequest, followupStatusRequest } from './reading-followup';
 import type { SiteConfig } from './site';
 import { trackRequest } from './site-events';
-import { generateSpreadReadingRequest, spreadReadingResponse } from './spread-reading';
+import { generateSpreadReadingRequest, previewSpreadRequest, spreadReadingResponse } from './spread-reading';
 import { createAnonClient, createServiceClient } from './supabase';
 import { listWishesResponse, wishActionRequest } from './wishes';
 
@@ -171,15 +171,26 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         if (!user) return errorResponse(401, 'auth_required');
-        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase())) return errorResponse(403, 'forbidden');
+        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase()))
+          return errorResponse(403, 'forbidden');
         return previewReadingRequest(request, ctx.env, options.stickContext);
+      },
+      /** 站長預覽塔羅館、算命攤、財神殿的完整解讀（目前提示 vs 加「說中」寫法），不存、不扣權益。 */
+      spreadPreview: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        if (!user) return errorResponse(401, 'auth_required');
+        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase()))
+          return errorResponse(403, 'forbidden');
+        return previewSpreadRequest(request, ctx.env, options.caiContext);
       },
       /** 分銷：GET 推廣人列表與報表；POST 新增推廣人。 */
       adminPartners: async (request: Request) => {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         if (!user) return errorResponse(401, 'auth_required');
-        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase())) return errorResponse(403, 'forbidden');
+        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase()))
+          return errorResponse(403, 'forbidden');
         if (!ctx.supabaseService) return errorResponse(503, 'supabase_not_configured');
         return adminPartnersRequest(request, ctx.supabaseService, feeLookup(), ctx.baseURL);
       },
@@ -194,7 +205,8 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
         const ctx = context();
         const user = await getUserFromRequest(request, ctx.env);
         if (!user) return errorResponse(401, 'auth_required');
-        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase())) return errorResponse(403, 'forbidden');
+        if (!admins().some((a) => a.toLowerCase() === user.email.toLowerCase()))
+          return errorResponse(403, 'forbidden');
         if (!ctx.supabaseService) return errorResponse(503, 'supabase_not_configured');
         return adminFeedbackRequest(request, ctx.supabaseService);
       },

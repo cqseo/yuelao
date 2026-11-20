@@ -2,8 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   aiGenerationEnabled,
   FOREIGN_LANGUAGE_RULE,
+  nowContext,
   outputLanguage,
   parseUiLanguage,
+  RESONANCE_RULES,
   relayBaseUrl,
   runModel,
   type UiLanguage,
@@ -192,6 +194,29 @@ export const CAI_INSTRUCTIONS = `你是財神殿裡替人解求財籤的老廟�
 - 使用資料內指定的 outputLanguage（繁體中文、簡體中文或其他語言）。
 ${FOREIGN_LANGUAGE_RULE}`;
 
+/** 這把識別字串用哪一份提示；resonance 時加上「說中」的寫法（READING_PROMPT_VERSION="3"）。 */
+export function spreadInstructions(spread: ParsedSpread, resonance = false): string {
+  const base =
+    spread.deck === 'match'
+      ? MATCH_INSTRUCTIONS
+      : spread.deck === 'love'
+        ? LOVE_INSTRUCTIONS
+        : spread.deck === 'bazi'
+          ? spread.topic === 'career'
+            ? BAZI_CAREER_INSTRUCTIONS
+            : spread.topic === 'wealth'
+              ? BAZI_WEALTH_INSTRUCTIONS
+              : spread.topic === 'year'
+                ? BAZI_YEAR_INSTRUCTIONS
+                : BAZI_INSTRUCTIONS
+          : spread.deck === 'cai'
+            ? CAI_INSTRUCTIONS
+            : SPREAD_INSTRUCTIONS;
+  return resonance
+    ? `${base}\n\n${RESONANCE_RULES}\n- 資料裡的 now 是現在的月份與季節，說時間感時以它為準。`
+    : base;
+}
+
 type SpreadInput = {
   spread: ParsedSpread;
   locale: 'zh-Hant' | 'zh-Hans';
@@ -208,6 +233,7 @@ export function spreadUserInput(
   if (input.spread.deck === 'cai')
     return JSON.stringify({
       outputLanguage: outputLanguage(input.locale, input.ui),
+      now: nowContext(),
       topic: input.spread.topic,
       stick: caiContext?.(input.spread.no) ?? null,
       situation: SITS[input.sit] ?? '未說明',
@@ -216,6 +242,7 @@ export function spreadUserInput(
   if (input.spread.deck === 'bazi')
     return JSON.stringify({
       outputLanguage: outputLanguage(input.locale, input.ui),
+      now: nowContext(),
       chart: baziFacts(baziChart(input.spread)),
       situation: SITS[input.sit] ?? '未說明',
       userQuestionUntrusted:
@@ -227,6 +254,7 @@ export function spreadUserInput(
   if (input.spread.deck === 'love')
     return JSON.stringify({
       outputLanguage: outputLanguage(input.locale, input.ui),
+      now: nowContext(),
       chart: loveFacts(loveChart(input.spread.zodiac, input.spread.sign, input.spread.year)),
       situation: SITS[input.sit] ?? '未說明',
       userQuestionUntrusted: input.question || '沒有提供問題，請只就姻緣走勢給建議',
@@ -234,6 +262,7 @@ export function spreadUserInput(
   if (input.spread.deck === 'match')
     return JSON.stringify({
       outputLanguage: outputLanguage(input.locale, input.ui),
+      now: nowContext(),
       match: matchFacts(matchOf(input.spread.a, input.spread.b)),
       situation: SITS[input.sit] ?? '未說明',
       userQuestionUntrusted: input.question || '沒有提供問題，請只就兩人相處給建議',
@@ -242,6 +271,7 @@ export function spreadUserInput(
   const pos = SPREAD_POSITIONS[sp.deck];
   return JSON.stringify({
     outputLanguage: outputLanguage(input.locale, input.ui),
+    now: nowContext(),
     deck: sp.deck === 'tarot' ? '塔羅（偉特）' : '雷諾曼',
     cards: sp.cards.map((c, i) => ({
       position: pos[i],
@@ -296,7 +326,13 @@ export async function generateSpreadReading(
   user: AccountUser,
   input: SpreadInput,
   database: SupabaseClient,
-  ai: { apiKey: string; model: string; baseUrl: string | null; fetchImpl?: typeof fetch },
+  ai: {
+    apiKey: string;
+    model: string;
+    baseUrl: string | null;
+    fetchImpl?: typeof fetch;
+    resonance?: boolean;
+  },
   caiContext?: (no: number) => Record<string, unknown> | null,
 ): Promise<Response> {
   // 求財籤要有籤內容才寫得了；沒有就不領租約，免得白白把解鎖狀態改成生成中
@@ -317,21 +353,7 @@ export async function generateSpreadReading(
   if (state !== 'claimed' || !isUuid(claimId) || !isUuid(unlockId)) return errorResponse(503, 'claim_failed');
   try {
     const body = await runModel(
-      input.spread.deck === 'match'
-        ? MATCH_INSTRUCTIONS
-        : input.spread.deck === 'love'
-          ? LOVE_INSTRUCTIONS
-          : input.spread.deck === 'bazi'
-            ? input.spread.topic === 'career'
-              ? BAZI_CAREER_INSTRUCTIONS
-              : input.spread.topic === 'wealth'
-                ? BAZI_WEALTH_INSTRUCTIONS
-                : input.spread.topic === 'year'
-                  ? BAZI_YEAR_INSTRUCTIONS
-                  : BAZI_INSTRUCTIONS
-            : input.spread.deck === 'cai'
-              ? CAI_INSTRUCTIONS
-              : SPREAD_INSTRUCTIONS,
+      spreadInstructions(input.spread, ai.resonance),
       spreadUserInput(input, caiContext),
       ai.apiKey,
       ai.model,
@@ -390,7 +412,48 @@ export async function generateSpreadReadingRequest(
       apiKey: env.OPENAI_API_KEY!,
       model: env.OPENAI_MODEL!,
       baseUrl: relayBaseUrl(env.OPENAI_BASE_URL),
+      resonance: env.READING_PROMPT_VERSION === '3',
     },
     caiContext,
   );
+}
+
+/**
+ * 站長預覽（2026-11-20）：同一把識別字串、同一個問題，用目前的提示或加了「說中」寫法的提示各生成一份對照。
+ * 不領租約、不存、不扣權益；權限由呼叫端先檢查。body：{ spread, locale, question?, sit?, version?: '2' | '3' }
+ */
+export async function previewSpreadRequest(
+  request: Request,
+  env: CoreEnv,
+  caiContext?: (no: number) => Record<string, unknown> | null,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Response> {
+  if (!sameOriginPost(request)) return errorResponse(403, 'invalid_origin');
+  if (!aiGenerationEnabled(env)) return errorResponse(503, 'ai_delivery_disabled');
+  const text = await request.text();
+  if (text.length > 1800) return errorResponse(413, 'request_too_large');
+  let decoded: Record<string, unknown>;
+  try {
+    decoded = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return errorResponse(400, 'invalid_json');
+  }
+  const input = parseSpreadGeneration({ ...decoded, consent: true });
+  if (!input) return errorResponse(400, 'invalid_generation_input');
+  if (input.spread.deck === 'cai' && !caiContext?.(input.spread.no))
+    return errorResponse(404, 'stick_unavailable');
+  const resonance = String(decoded.version ?? '') === '3';
+  try {
+    const body = await runModel(
+      spreadInstructions(input.spread, resonance),
+      spreadUserInput(input, caiContext),
+      env.OPENAI_API_KEY!,
+      env.OPENAI_MODEL!,
+      fetchImpl,
+      relayBaseUrl(env.OPENAI_BASE_URL),
+    );
+    return json({ version: resonance ? '3' : '2', body });
+  } catch {
+    return errorResponse(503, 'reading_generation_failed');
+  }
 }
