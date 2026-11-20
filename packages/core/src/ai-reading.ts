@@ -316,22 +316,7 @@ export async function runModel(
   if (!validKey(apiKey, !!baseUrl) || !validModel(model)) throw new Error('ai_not_configured');
   if (baseUrl) {
     // OpenAI 相容中轉站：用最通用的 chat/completions。
-    const res = await fetchImpl(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        // 2026-11-20：2400、4096 都還會偶爾被截斷（年運第三版），finish_reason=length 就整份失敗；字數上限由提示控制
-        max_tokens: 8192,
-        messages: [
-          { role: 'system', content: instructions },
-          { role: 'user', content: userInput },
-        ],
-      }),
-      signal: AbortSignal.timeout(60000),
-    });
-    if (!res.ok) throw new Error('ai_provider_failed');
-    return extractChatText(await res.json(), minChars);
+    return relayChat(instructions, userInput, apiKey, model, fetchImpl, baseUrl, minChars);
   }
   const payload = {
     model,
@@ -351,6 +336,139 @@ export async function runModel(
   });
   if (!response.ok) throw new Error('ai_provider_failed');
   return extractText(await response.json(), minChars);
+}
+
+/**
+ * 中轉站生成（2026-11-20）：實測約三成請求會整整卡住 60 秒沒有回應（各版提示都一樣），客人只看到「沒寫成」。
+ * 改成串流：只要模型還在吐字就繼續等；開頭一直沒有回應就當卡住，整個重送。
+ * 總時間不超過 relayTiming.budget，留在資料庫租約（最短 80 秒）之內。中轉站不支援串流、回一般 JSON 也照常解析。
+ */
+/** 連回應標頭都沒等到：中轉站若不支援串流，要整篇寫完才回標頭（正常 20～30 秒），所以這段放寬。 */
+export const relayTiming = { headers: 35_000, stall: 15_000, idle: 20_000, budget: 72_000, minRetry: 30_000 };
+// stall：串流已接上、但第一個字遲遲不來；idle：寫到一半停住；budget：整體上限；minRetry：剩不到這麼久就不重送。
+// （測試會把時間縮短）
+async function relayChat(
+  instructions: string,
+  userInput: string,
+  apiKey: string,
+  model: string,
+  fetchImpl: typeof fetch,
+  baseUrl: string,
+  minChars: number,
+): Promise<string> {
+  const deadline = Date.now() + relayTiming.budget;
+  let lastError: unknown = new Error('ai_provider_failed');
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const left = deadline - Date.now();
+    // 剩下的時間不夠寫完一篇（正常 20～30 秒）就不再重送
+    if (attempt > 0 && left < relayTiming.minRetry) break;
+    try {
+      return await relayOnce(instructions, userInput, apiKey, model, fetchImpl, baseUrl, minChars, left);
+    } catch (e) {
+      lastError = e;
+      // 已經開始寫才失敗（截斷、太短）重送也多半一樣；只有「卡住沒回應」和連線錯誤才重送
+      if (!(e instanceof Error && (e.message === 'ai_stalled' || e.message === 'ai_provider_failed')))
+        throw e;
+    }
+  }
+  throw lastError;
+}
+
+async function relayOnce(
+  instructions: string,
+  userInput: string,
+  apiKey: string,
+  model: string,
+  fetchImpl: typeof fetch,
+  baseUrl: string,
+  minChars: number,
+  budget: number,
+): Promise<string> {
+  const ctrl = new AbortController();
+  let started = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let why = 'ai_stalled';
+  const arm = (ms: number, reason: string) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      why = reason;
+      ctrl.abort();
+    }, ms);
+  };
+  const total = setTimeout(() => {
+    why = started ? 'ai_timeout' : 'ai_stalled';
+    ctrl.abort();
+  }, budget);
+  arm(relayTiming.headers, 'ai_stalled');
+  try {
+    const res = await fetchImpl(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        // 2026-11-20：2400、4096 都還會偶爾被截斷（年運第三版），finish_reason=length 就整份失敗；字數上限由提示控制
+        max_tokens: 8192,
+        stream: true,
+        messages: [
+          { role: 'system', content: instructions },
+          { role: 'user', content: userInput },
+        ],
+      }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error('ai_provider_failed');
+    const type = res.headers.get('content-type') ?? '';
+    if (!type.includes('event-stream') || !res.body) {
+      // 不支援串流：一般 JSON，剩下的時間內讀完
+      arm(Math.max(1000, budget), 'ai_timeout');
+      return extractChatText(await res.json(), minChars);
+    }
+    arm(relayTiming.stall, 'ai_stalled');
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    let text = '';
+    let finish: unknown;
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl = buf.indexOf('\n');
+      while (nl >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        nl = buf.indexOf('\n');
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (data === '[DONE]') continue;
+        let chunk: { choices?: { delta?: Record<string, unknown>; finish_reason?: unknown }[] };
+        try {
+          chunk = JSON.parse(data);
+        } catch {
+          continue;
+        }
+        const c = chunk.choices?.[0];
+        if (!c) continue;
+        // 推理模型會先送 reasoning_content：也算「還活著」，但不放進正文
+        const piece = c.delta?.content;
+        if (typeof piece === 'string') text += piece;
+        if (piece !== undefined || c.delta?.reasoning_content !== undefined) {
+          started = true;
+          arm(relayTiming.idle, 'ai_timeout');
+        }
+        if (c.finish_reason) finish = c.finish_reason;
+      }
+    }
+    if (finish !== 'stop') throw new Error(finish ? 'ai_incomplete' : started ? 'ai_timeout' : 'ai_stalled');
+    return checkLength(text, minChars);
+  } catch (e) {
+    if (ctrl.signal.aborted) throw new Error(why);
+    if (e instanceof Error && /^ai_/.test(e.message)) throw e;
+    throw new Error('ai_provider_failed');
+  } finally {
+    clearTimeout(timer);
+    clearTimeout(total);
+  }
 }
 
 export function parseGenerationInput(value: unknown): ReadingGenerationInput | null {

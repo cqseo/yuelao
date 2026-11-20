@@ -8,6 +8,7 @@ import {
   parseGenerationInput,
   READING_INSTRUCTIONS,
   relayBaseUrl,
+  relayTiming,
 } from '../packages/core/src/ai-reading';
 import { testCheckoutAllowed } from '../packages/core/src/billing/allowlist';
 
@@ -178,6 +179,94 @@ await assert.rejects(
 console.log(
   'PASS: relay uses chat/completions with the same safety prompt; truncated, short, empty or failed replies are rejected',
 );
+
+// 中轉站串流＋卡住重送（2026-11-20）：時間縮短來測
+{
+  Object.assign(relayTiming, { headers: 300, stall: 150, idle: 150, budget: 1500, minRetry: 200 });
+  const ctx = { no: '1', grade: 'g', poem: 'p', verdict: 'v' };
+  const sse = (parts: string[], finish = 'stop', gapMs = 0) => {
+    const enc = new TextEncoder();
+    return new Response(
+      new ReadableStream({
+        async start(c) {
+          c.enqueue(enc.encode('data: {"choices":[{"delta":{"reasoning_content":"想"}}]}\n\n'));
+          for (const p of parts) {
+            if (gapMs) await new Promise((r) => setTimeout(r, gapMs));
+            c.enqueue(enc.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: p } }] })}\n\n`));
+          }
+          c.enqueue(
+            enc.encode(`data: {"choices":[{"delta":{},"finish_reason":"${finish}"}]}\n\ndata: [DONE]\n\n`),
+          );
+          c.close();
+        },
+      }),
+      { status: 200, headers: { 'content-type': 'text/event-stream' } },
+    );
+  };
+  const halves = [report.slice(0, 60), report.slice(60)];
+  const hang = (_u: unknown, o?: RequestInit) =>
+    new Promise<Response>((_, rej) => o?.signal?.addEventListener('abort', () => rej(new Error('aborted'))));
+  const gen = (f: typeof fetch) =>
+    generateWithOpenAI(input, ctx, relayEnv.OPENAI_API_KEY, 'm-1', f, 'https://relay.example.com/v1');
+
+  // 串流正常：拼回全文、不含推理內容、請求帶 stream
+  let streamed = false;
+  assert.equal(
+    await gen((async (_u, o) => {
+      streamed = JSON.parse(o!.body as string).stream === true;
+      return sse(halves);
+    }) as typeof fetch),
+    report,
+  );
+  assert.ok(streamed);
+  // 第一次卡住沒回應 → 自動重送一次就成功
+  let n = 0;
+  const t0 = Date.now();
+  assert.equal(
+    await gen(((u: unknown, o?: RequestInit) =>
+      ++n === 1 ? hang(u, o) : Promise.resolve(sse(halves))) as typeof fetch),
+    report,
+  );
+  assert.equal(n, 2);
+  assert.ok(Date.now() - t0 < 1000);
+  // 寫得慢但一直有字：不算卡住
+  assert.equal(await gen((async () => sse(halves, 'stop', 100)) as typeof fetch), report);
+  // 被截斷：不重送，直接失敗
+  n = 0;
+  await assert.rejects(
+    gen((async () => {
+      n++;
+      return sse(halves, 'length');
+    }) as typeof fetch),
+    /ai_incomplete/,
+  );
+  assert.equal(n, 1);
+  // 一直卡住：在總時限內放棄
+  const t1 = Date.now();
+  await assert.rejects(gen(hang as typeof fetch), /ai_stalled/);
+  assert.ok(Date.now() - t1 <= 1700);
+  // 不支援串流的中轉站：照舊讀 JSON
+  assert.equal(
+    await gen(
+      (async () =>
+        new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: report } }] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })) as typeof fetch,
+    ),
+    report,
+  );
+  Object.assign(relayTiming, {
+    headers: 35_000,
+    stall: 15_000,
+    idle: 20_000,
+    budget: 72_000,
+    minRetry: 30_000,
+  });
+  console.log(
+    'PASS: relay streams, retries a stalled request once, keeps waiting while words arrive, and gives up within budget',
+  );
+}
 
 const user = { id: '00000000-0000-4000-8000-000000000001', email: 'qa@example.invalid' };
 const claimId = '00000000-0000-4000-8000-000000000020';
