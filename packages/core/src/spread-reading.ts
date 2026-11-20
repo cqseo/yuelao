@@ -453,7 +453,15 @@ export async function previewSpreadRequest(
       relayBaseUrl(env.OPENAI_BASE_URL),
     );
     return json({ version: resonance ? '3' : '2', body });
-  } catch {
-    return errorResponse(503, 'reading_generation_failed');
+  } catch (e) {
+    return json(
+      {
+        error: {
+          code: 'reading_generation_failed',
+          reason: e instanceof Error ? e.message.slice(0, 60) : 'unknown',
+        },
+      },
+      { status: 503 },
+    );
   }
 }

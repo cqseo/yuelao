@@ -45,7 +45,7 @@ export const FOREIGN_LANGUAGE_RULE =
 export const RESONANCE_RULES = `寫得讓人覺得「說中了」（這一段和格式一樣重要）：
 - 開頭第一段就接住他：用他問題裡的原話或細節（時間長短、誰做了什麼、他卡在哪），先說出他現在多半的心情與處境，再接到籤、牌或命盤上的依據。讀的人第一眼要覺得「這是在說我」，不是範本。
 - 每個判斷都要有出處：明確點名是哪一句籤詩、哪一張牌和它的位置、哪一個生肖或星座關係、哪一個五行或十神數字，說出「因為……所以……」。換一支籤、換一張盤，內容就會不一樣。
-- 寫具體的畫面，不寫空泛的形容：例如「訊息打了又刪」「看到對方上線卻不敢先開口」「月底看著帳戶不知道錢去哪了」「開會時話到嘴邊又吞回去」。每篇至少兩三個這樣的畫面，要貼著他的處境與問題，不要每篇都用同一組。
+- 寫具體的畫面，不寫空泛的形容：畫面要從他的問題與處境長出來（他說同事曖昧，就寫辦公室裡的時刻；他說存不到錢，就寫月底與帳單的時刻），每篇兩三個。畫面用「像是……的時候」「比如……那種時刻」帶出，是舉例，不要寫成已經發生的事實。這裡的說明不要照抄成句子。
 - 說出他心裡的拉扯：這類處境的人常有的兩面（想主動又怕被看輕、想放下又捨不得、想穩定又不甘心），用「你多半……」「常常會……」的口氣篤定地說，不要每句都加「可能」。
 - 只用他給的資料：可以描述這種處境的人常有的感受、習慣與反應，但不要捏造他沒說過的具體經歷（年份、人物、某件往事、外貌、職業細節）。
 - 給他之後對得上的觀察點：不預言事件，而是說「接下來兩三週，留意……；如果……，代表……；如果……，就該……」，讓他之後回頭看會覺得被說中。時間只說階段（這幾週、年底前、春節前後、上半年），不說日期。
@@ -321,13 +321,14 @@ export async function runModel(
       headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
       body: JSON.stringify({
         model,
-        max_tokens: 2400,
+        // 2026-11-20：2400 不夠（八字、合緣與第三版會寫到被截斷，finish_reason=length 就整份失敗）
+        max_tokens: 4096,
         messages: [
           { role: 'system', content: instructions },
           { role: 'user', content: userInput },
         ],
       }),
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(60000),
     });
     if (!res.ok) throw new Error('ai_provider_failed');
     return extractChatText(await res.json(), minChars);
@@ -335,7 +336,7 @@ export async function runModel(
   const payload = {
     model,
     store: false, // No response object is saved to the provider's application state.
-    max_output_tokens: 2400,
+    max_output_tokens: 4096,
     instructions,
     input: userInput,
   };
@@ -346,7 +347,7 @@ export async function runModel(
       'content-type': 'application/json',
     },
     body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(60000),
   });
   if (!response.ok) throw new Error('ai_provider_failed');
   return extractText(await response.json(), minChars);
@@ -545,7 +546,16 @@ export async function previewReadingRequest(
       readingInstructions(version),
     );
     return json({ version, stick: { no: stick.no, grade: stick.grade, poem: stick.poem }, body });
-  } catch {
-    return errorResponse(503, 'reading_generation_failed');
+  } catch (e) {
+    // 只有站長看得到：失敗原因（ai_incomplete＝被截斷、ai_provider_failed、timeout…），不含任何內容
+    return json(
+      {
+        error: {
+          code: 'reading_generation_failed',
+          reason: e instanceof Error ? e.message.slice(0, 60) : 'unknown',
+        },
+      },
+      { status: 503 },
+    );
   }
 }
