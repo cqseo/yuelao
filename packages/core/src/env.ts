@@ -42,6 +42,8 @@ export interface CoreEnv {
   OPENAI_BASE_URL?: string;
   /** 付費解籤用哪一版提示詞："2" 用第二版（ai-reading.ts READING_INSTRUCTIONS_V2），其他用第一版。 */
   READING_PROMPT_VERSION?: string;
+  /** 中轉站請求的推理設定（2026-11-20）："thinking-off"、"effort-low"，其他／不設就照模型預設。 */
+  AI_TUNING?: string;
   /** Private AI chat, intentionally disabled until a paid-model budget is accepted. */
   AI_CHAT_ENABLED?: string;
   /** Explicit model name; server-only, not exposed as a client configuration. */

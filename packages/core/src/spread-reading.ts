@@ -332,6 +332,7 @@ export async function generateSpreadReading(
     baseUrl: string | null;
     fetchImpl?: typeof fetch;
     resonance?: boolean;
+    tuning?: string;
   },
   caiContext?: (no: number) => Record<string, unknown> | null,
 ): Promise<Response> {
@@ -359,6 +360,9 @@ export async function generateSpreadReading(
       ai.model,
       ai.fetchImpl ?? fetch,
       ai.baseUrl,
+      100,
+      undefined,
+      ai.tuning,
     );
     const { data: stored, error: saveError } = await database.rpc('finish_spread_reading', {
       p_user_id: user.id,
@@ -413,6 +417,7 @@ export async function generateSpreadReadingRequest(
       model: env.OPENAI_MODEL!,
       baseUrl: relayBaseUrl(env.OPENAI_BASE_URL),
       resonance: env.READING_PROMPT_VERSION === '3',
+      tuning: env.AI_TUNING,
     },
     caiContext,
   );
@@ -451,6 +456,9 @@ export async function previewSpreadRequest(
       env.OPENAI_MODEL!,
       fetchImpl,
       relayBaseUrl(env.OPENAI_BASE_URL),
+      100,
+      undefined,
+      typeof decoded.tuning === 'string' ? decoded.tuning : env.AI_TUNING,
     );
     return json({ version: resonance ? '3' : '2', body });
   } catch (e) {

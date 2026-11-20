@@ -9,6 +9,7 @@ import {
   READING_INSTRUCTIONS,
   relayBaseUrl,
   relayTiming,
+  tuningBody,
 } from '../packages/core/src/ai-reading';
 import { testCheckoutAllowed } from '../packages/core/src/billing/allowlist';
 
@@ -256,6 +257,33 @@ console.log(
     ),
     report,
   );
+  // 推理設定：只收白名單裡的寫法
+  let sent: Record<string, unknown> = {};
+  await gen((async (_u, o) => {
+    sent = JSON.parse(o!.body as string);
+    return sse(halves);
+  }) as typeof fetch);
+  assert.equal(sent.thinking, undefined);
+  assert.equal(
+    await generateWithOpenAI(
+      input,
+      ctx,
+      relayEnv.OPENAI_API_KEY,
+      'm-1',
+      (async (_u, o) => {
+        sent = JSON.parse(o!.body as string);
+        return sse(halves);
+      }) as typeof fetch,
+      'https://relay.example.com/v1',
+      undefined,
+      'thinking-off',
+    ),
+    report,
+  );
+  assert.deepEqual(sent.thinking, { type: 'disabled' });
+  assert.deepEqual(tuningBody('effort-low'), { reasoning_effort: 'low' });
+  assert.deepEqual(tuningBody('constructor'), {});
+  assert.deepEqual(tuningBody('{"temperature":2}'), {});
   Object.assign(relayTiming, {
     headers: 35_000,
     stall: 15_000,
