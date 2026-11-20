@@ -186,6 +186,8 @@ function Login() {
           else if (sessionStorage.getItem('market-pending') !== null) next = localizeHref('/market#yuelao');
           else if (sessionStorage.getItem('market-spread-pending') !== null) next = localizeHref('/market#tarot');
           else if (sessionStorage.getItem('market-back') !== null) next = localizeHref('/market');
+          else if (sessionStorage.getItem('admin-back') !== null) next = localizeHref('/admin');
+          sessionStorage.removeItem('admin-back');
         } catch {}
         window.location.assign(next);
         return;

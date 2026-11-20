@@ -650,3 +650,50 @@
   user-select: all;
   overflow-wrap: anywhere;
 }
+
+/* 未確認站長身份：只有一個登入框，不顯示選單（2026-11-20） */
+.admin.admin--gate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  align-content: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+.admin-gate {
+  width: min(360px, 100%);
+  background: var(--a-surface);
+  border: 1px solid var(--a-line);
+  border-radius: 14px;
+  padding: 32px 28px 24px;
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  text-align: center;
+}
+.admin-gate p {
+  margin: 0;
+  color: var(--a-text-2);
+}
+.admin-gate .admin-brand {
+  padding: 0;
+}
+.admin-gate .admin-brand strong {
+  color: var(--a-text);
+}
+.admin-gate .admin-brand span {
+  display: inline;
+  color: var(--a-muted);
+}
+.admin .admin-btn--main {
+  background: var(--a-accent);
+  border-color: var(--a-accent);
+  color: #fff;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: center;
+}
+.admin .admin-gate-back {
+  color: var(--a-muted);
+  font-size: 13px;
+}
