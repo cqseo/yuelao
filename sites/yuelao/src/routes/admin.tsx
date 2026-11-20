@@ -260,6 +260,8 @@ function AdminPage() {
   });
   const [load, setLoad] = useState<Load>({ state: 'loading' });
   const [tick, setTick] = useState(0);
+  // 確認是站長之前只顯示登入框：選單、時間範圍都不給外人看（2026-11-20）
+  const [authed, setAuthed] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: tick 只用來手動重新整理
   useEffect(() => {
@@ -277,6 +279,7 @@ function AdminPage() {
       if (res.status === 403) return setLoad({ state: 'forbidden' });
       if (!res.ok) return setLoad({ state: 'error' });
       setLoad({ state: 'ready', stats: (await res.json()) as Stats });
+      setAuthed(true);
     })().catch(() => alive && setLoad({ state: 'error' }));
     try {
       localStorage.setItem('yl-admin-days', String(days));
@@ -297,6 +300,8 @@ function AdminPage() {
     return () => removeEventListener('hashchange', read);
   }, []);
   const current = SECTIONS.find((x) => x.id === section) ?? (SECTIONS[0] as (typeof SECTIONS)[number]);
+
+  if (!authed) return <AdminGate state={load.state} />;
 
   return (
     <div className="admin">
@@ -360,6 +365,39 @@ function AdminPage() {
         )}
         {load.state === 'error' && <p className="admin-state">数据暂时取不到，稍后点「刷新」再试。</p>}
         {load.state === 'ready' && <Dashboard stats={load.stats} section={section} />}
+      </main>
+    </div>
+  );
+}
+
+function AdminGate({ state }: { state: Load['state'] }) {
+  const login = () => {
+    try {
+      sessionStorage.setItem('admin-back', '1');
+    } catch {}
+  };
+  return (
+    <div className="admin admin--gate">
+      <main className="admin-gate">
+        <div className="admin-brand">
+          <strong>月老</strong>
+          <span>后台</span>
+        </div>
+        {state === 'loading' ? (
+          <p className="admin-muted">正在确认身份……</p>
+        ) : state === 'error' ? (
+          <p className="admin-muted">暂时连不上，稍后重新整理再试。</p>
+        ) : (
+          <>
+            <p>{state === 'forbidden' ? '这个账号没有后台权限。' : '请登录站长账号。'}</p>
+            <a className="admin-btn admin-btn--main" href={localizeHref('/login')} onClick={login}>
+              {state === 'forbidden' ? '换个账号登录' : '登录'}
+            </a>
+          </>
+        )}
+        <a className="admin-gate-back" href={localizeHref('/')}>
+          回网站
+        </a>
       </main>
     </div>
   );
