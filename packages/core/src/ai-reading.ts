@@ -321,8 +321,8 @@ export async function runModel(
       headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
       body: JSON.stringify({
         model,
-        // 2026-11-20：2400 不夠（八字、合緣與第三版會寫到被截斷，finish_reason=length 就整份失敗）
-        max_tokens: 4096,
+        // 2026-11-20：2400、4096 都還會偶爾被截斷（年運第三版），finish_reason=length 就整份失敗；字數上限由提示控制
+        max_tokens: 8192,
         messages: [
           { role: 'system', content: instructions },
           { role: 'user', content: userInput },
@@ -336,7 +336,7 @@ export async function runModel(
   const payload = {
     model,
     store: false, // No response object is saved to the provider's application state.
-    max_output_tokens: 4096,
+    max_output_tokens: 8192,
     instructions,
     input: userInput,
   };
