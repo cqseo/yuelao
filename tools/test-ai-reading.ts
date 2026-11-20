@@ -260,7 +260,7 @@ console.log(
     headers: 35_000,
     stall: 15_000,
     idle: 20_000,
-    budget: 72_000,
+    budget: 100_000,
     minRetry: 30_000,
   });
   console.log(

@@ -312,11 +312,13 @@ export async function runModel(
   baseUrl: string | null = null,
   /** 回答最少幾個字（追問的轉介回答比較短）。 */
   minChars = 100,
+  /** 整體時限：要比資料庫租約短（解讀 110 秒、追問 80 秒）。 */
+  budgetMs = relayTiming.budget,
 ): Promise<string> {
   if (!validKey(apiKey, !!baseUrl) || !validModel(model)) throw new Error('ai_not_configured');
   if (baseUrl) {
     // OpenAI 相容中轉站：用最通用的 chat/completions。
-    return relayChat(instructions, userInput, apiKey, model, fetchImpl, baseUrl, minChars);
+    return relayChat(instructions, userInput, apiKey, model, fetchImpl, baseUrl, minChars, budgetMs);
   }
   const payload = {
     model,
@@ -341,10 +343,17 @@ export async function runModel(
 /**
  * 中轉站生成（2026-11-20）：實測約三成請求會整整卡住 60 秒沒有回應（各版提示都一樣），客人只看到「沒寫成」。
  * 改成串流：只要模型還在吐字就繼續等；開頭一直沒有回應就當卡住，整個重送。
- * 總時間不超過 relayTiming.budget，留在資料庫租約（最短 80 秒）之內。中轉站不支援串流、回一般 JSON 也照常解析。
+ * 中轉站後台的紀錄：同一個模型非串流要 15～66 秒，超過 60 秒就被我們切斷（客人看到「沒寫成」，錢照扣）。
+ * 總時間不超過 budgetMs，留在資料庫租約之內。中轉站不支援串流、回一般 JSON 也照常解析。
  */
 /** 連回應標頭都沒等到：中轉站若不支援串流，要整篇寫完才回標頭（正常 20～30 秒），所以這段放寬。 */
-export const relayTiming = { headers: 35_000, stall: 15_000, idle: 20_000, budget: 72_000, minRetry: 30_000 };
+export const relayTiming = {
+  headers: 35_000,
+  stall: 15_000,
+  idle: 20_000,
+  budget: 100_000,
+  minRetry: 30_000,
+};
 // stall：串流已接上、但第一個字遲遲不來；idle：寫到一半停住；budget：整體上限；minRetry：剩不到這麼久就不重送。
 // （測試會把時間縮短）
 async function relayChat(
@@ -355,8 +364,9 @@ async function relayChat(
   fetchImpl: typeof fetch,
   baseUrl: string,
   minChars: number,
+  budgetMs: number,
 ): Promise<string> {
-  const deadline = Date.now() + relayTiming.budget;
+  const deadline = Date.now() + budgetMs;
   let lastError: unknown = new Error('ai_provider_failed');
   for (let attempt = 0; attempt < 3; attempt++) {
     const left = deadline - Date.now();
