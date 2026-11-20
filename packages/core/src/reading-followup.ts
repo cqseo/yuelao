@@ -280,6 +280,7 @@ export async function askFollowupRequest(
       fetchImpl,
       relayBaseUrl(env.OPENAI_BASE_URL),
       30,
+      70_000, // 追問的租約只有 80 秒
     );
     if (isRedirect(body)) {
       await release();
