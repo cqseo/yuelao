@@ -683,6 +683,26 @@ export async function generatePaidReadingRequest(
  * 依指定版本的提示詞生成一份解讀，只回給站長看，不存、不記錄、不扣任何權益。
  * 權限（站長信箱）由呼叫端先檢查。
  */
+/**
+ * 站長預覽可以換模型比較（2026-11-20）：engine 只收白名單；對應的測試令牌沒設就回錯，不會退回正式模型。
+ * 正式解讀一律用 OPENAI_MODEL，不受影響。
+ */
+const PREVIEW_ENGINES = {
+  haiku: { model: 'claude-haiku-4-5', key: 'TEST_KEY_HAIKU' },
+  gemini: { model: 'gemini-3.8-flash', key: 'TEST_KEY_GEMINI' },
+} as const;
+export function previewEngine(
+  env: CoreEnv,
+  engine: unknown,
+): { apiKey: string; model: string; name: string } | null {
+  if (engine === undefined || engine === '' || engine === 'default')
+    return { apiKey: env.OPENAI_API_KEY!, model: env.OPENAI_MODEL!, name: 'default' };
+  if (typeof engine !== 'string' || !Object.hasOwn(PREVIEW_ENGINES, engine)) return null;
+  const e = PREVIEW_ENGINES[engine as keyof typeof PREVIEW_ENGINES];
+  const apiKey = env[e.key];
+  return apiKey ? { apiKey, model: e.model, name: engine } : null;
+}
+
 export async function previewReadingRequest(
   request: Request,
   env: CoreEnv,
@@ -705,12 +725,14 @@ export async function previewReadingRequest(
   if (!stick) return errorResponse(404, 'stick_unavailable');
   const v = String(decoded.version ?? '1');
   const version = v === '3' || v === '2' ? v : '1';
+  const engine = previewEngine(env, decoded.engine);
+  if (!engine) return errorResponse(400, 'engine_not_configured');
   try {
     const body = await generateWithOpenAI(
       input,
       stick,
-      env.OPENAI_API_KEY!,
-      env.OPENAI_MODEL!,
+      engine.apiKey,
+      engine.model,
       fetchImpl,
       relayBaseUrl(env.OPENAI_BASE_URL),
       readingInstructions(version),
@@ -719,6 +741,7 @@ export async function previewReadingRequest(
     );
     return json({
       version,
+      engine: engine.name,
       tuning: typeof decoded.tuning === 'string' ? decoded.tuning : (env.AI_TUNING ?? ''),
       stick: { no: stick.no, grade: stick.grade, poem: stick.poem },
       body,

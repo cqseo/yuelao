@@ -8,6 +8,7 @@ import {
   parseGenerationInput,
   READING_INSTRUCTIONS,
   relayBaseUrl,
+  previewEngine,
   relayTiming,
   tuningBody,
 } from '../packages/core/src/ai-reading';
@@ -413,3 +414,23 @@ assert.equal(testCheckoutAllowed(' Owner@QQ.com , other@x.io', 'owner@qq.com'), 
 assert.equal(testCheckoutAllowed('owner@qq.com', 'stranger@qq.com'), false);
 assert.equal(testCheckoutAllowed('owner@qq.com', undefined), false);
 console.log('PASS: test checkout is limited to allowlisted emails and fails closed');
+
+// 站長預覽換模型：只收白名單、沒設測試令牌就不給、不會退回正式金鑰
+{
+  const env = { OPENAI_API_KEY: 'prod-key-1234567890abcdefgh', OPENAI_MODEL: 'deepseek-v4.1-flash' } as never;
+  assert.deepEqual(previewEngine(env, undefined), {
+    apiKey: 'prod-key-1234567890abcdefgh',
+    model: 'deepseek-v4.1-flash',
+    name: 'default',
+  });
+  assert.equal(previewEngine(env, 'haiku'), null);
+  assert.equal(previewEngine(env, 'gpt-4o'), null);
+  assert.equal(previewEngine(env, 'toString'), null);
+  const withKey = { ...(env as object), TEST_KEY_HAIKU: 'test-haiku-key-1234567890' } as never;
+  assert.deepEqual(previewEngine(withKey, 'haiku'), {
+    apiKey: 'test-haiku-key-1234567890',
+    model: 'claude-haiku-4-5',
+    name: 'haiku',
+  });
+  console.log('PASS: admin preview can switch to an allowlisted test model only when its test key exists');
+}
