@@ -183,6 +183,8 @@ type GenerationData = {
   stickContext?: StickContextProvider;
   /** 用哪一版提示詞（readingInstructions）。 */
   instructions?: string;
+  /** 推理設定（env.AI_TUNING）。 */
+  tuning?: string;
   user: AccountUser;
   input: ReadingGenerationInput;
   database: SupabaseClient;
@@ -275,9 +277,31 @@ export async function generateWithOpenAI(
   fetchImpl: typeof fetch = fetch,
   baseUrl: string | null = null,
   instructions: string = READING_INSTRUCTIONS_V1,
+  tuning?: string,
 ): Promise<string> {
-  return runModel(instructions, readingUserInput(input, stick), apiKey, model, fetchImpl, baseUrl);
+  return runModel(
+    instructions,
+    readingUserInput(input, stick),
+    apiKey,
+    model,
+    fetchImpl,
+    baseUrl,
+    100,
+    relayTiming.budget,
+    tuning,
+  );
 }
+
+/**
+ * 推理設定（2026-11-20）：中轉站紀錄顯示同一篇解讀輸出 1.5k～8k token，多出來的是模型寫正文前的推理，
+ * 耗時跟著從 13 秒拉到 100 秒以上。只收這幾種寫法，其他一律不加。
+ */
+const TUNINGS: Record<string, Record<string, unknown>> = {
+  'thinking-off': { thinking: { type: 'disabled' } },
+  'effort-low': { reasoning_effort: 'low' },
+};
+export const tuningBody = (name: unknown): Record<string, unknown> =>
+  typeof name === 'string' && Object.hasOwn(TUNINGS, name) ? (TUNINGS[name] as Record<string, unknown>) : {};
 
 /** 送給模型的資料：和籤頁上看到的同一份內容；沒有的欄位就不送。 */
 export function readingUserInput(input: ReadingGenerationInput, stick: StickContext): string {
@@ -314,11 +338,13 @@ export async function runModel(
   minChars = 100,
   /** 整體時限：要比資料庫租約短（解讀 110 秒、追問 80 秒）。 */
   budgetMs = relayTiming.budget,
+  /** 推理設定名稱（tuningBody）；只用在中轉站。 */
+  tuning?: string,
 ): Promise<string> {
   if (!validKey(apiKey, !!baseUrl) || !validModel(model)) throw new Error('ai_not_configured');
   if (baseUrl) {
     // OpenAI 相容中轉站：用最通用的 chat/completions。
-    return relayChat(instructions, userInput, apiKey, model, fetchImpl, baseUrl, minChars, budgetMs);
+    return relayChat(instructions, userInput, apiKey, model, fetchImpl, baseUrl, minChars, budgetMs, tuning);
   }
   const payload = {
     model,
@@ -365,6 +391,7 @@ async function relayChat(
   baseUrl: string,
   minChars: number,
   budgetMs: number,
+  tuning?: string,
 ): Promise<string> {
   const deadline = Date.now() + budgetMs;
   let lastError: unknown = new Error('ai_provider_failed');
@@ -373,7 +400,17 @@ async function relayChat(
     // 剩下的時間不夠寫完一篇（正常 20～30 秒）就不再重送
     if (attempt > 0 && left < relayTiming.minRetry) break;
     try {
-      return await relayOnce(instructions, userInput, apiKey, model, fetchImpl, baseUrl, minChars, left);
+      return await relayOnce(
+        instructions,
+        userInput,
+        apiKey,
+        model,
+        fetchImpl,
+        baseUrl,
+        minChars,
+        left,
+        tuning,
+      );
     } catch (e) {
       lastError = e;
       // 已經開始寫才失敗（截斷、太短）重送也多半一樣；只有「卡住沒回應」和連線錯誤才重送
@@ -393,6 +430,7 @@ async function relayOnce(
   baseUrl: string,
   minChars: number,
   budget: number,
+  tuning?: string,
 ): Promise<string> {
   const ctrl = new AbortController();
   let started = false;
@@ -419,6 +457,7 @@ async function relayOnce(
         // 2026-11-20：2400、4096 都還會偶爾被截斷（年運第三版），finish_reason=length 就整份失敗；字數上限由提示控制
         max_tokens: 8192,
         stream: true,
+        ...tuningBody(tuning),
         messages: [
           { role: 'system', content: instructions },
           { role: 'user', content: userInput },
@@ -545,6 +584,7 @@ export async function generatePaidReading({
   fetchImpl,
   stickContext,
   instructions,
+  tuning,
 }: GenerationData): Promise<Response> {
   const { data: claim, error: claimError } = await database.rpc('claim_paid_ai_reading', {
     p_user_id: user.id,
@@ -576,6 +616,7 @@ export async function generatePaidReading({
       fetchImpl,
       baseUrl ?? null,
       instructions ?? READING_INSTRUCTIONS_V1,
+      tuning,
     );
 
     const { data: stored, error: saveError } = await database.rpc('finish_paid_ai_reading', {
@@ -633,6 +674,7 @@ export async function generatePaidReadingRequest(
     baseUrl: relayBaseUrl(env.OPENAI_BASE_URL) ?? undefined,
     stickContext,
     instructions: readingInstructions(env.READING_PROMPT_VERSION),
+    tuning: env.AI_TUNING,
   });
 }
 
@@ -672,8 +714,15 @@ export async function previewReadingRequest(
       fetchImpl,
       relayBaseUrl(env.OPENAI_BASE_URL),
       readingInstructions(version),
+      // 站長可以帶 tuning 比較推理設定；沒帶就跟正式一樣
+      typeof decoded.tuning === 'string' ? decoded.tuning : env.AI_TUNING,
     );
-    return json({ version, stick: { no: stick.no, grade: stick.grade, poem: stick.poem }, body });
+    return json({
+      version,
+      tuning: typeof decoded.tuning === 'string' ? decoded.tuning : (env.AI_TUNING ?? ''),
+      stick: { no: stick.no, grade: stick.grade, poem: stick.poem },
+      body,
+    });
   } catch (e) {
     // 只有站長看得到：失敗原因（ai_incomplete＝被截斷、ai_provider_failed、timeout…），不含任何內容
     return json(
