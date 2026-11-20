@@ -6,6 +6,7 @@ import {
   outputLanguage,
   parseUiLanguage,
   RESONANCE_RULES,
+  previewEngine,
   relayBaseUrl,
   runModel,
   type UiLanguage,
@@ -448,19 +449,21 @@ export async function previewSpreadRequest(
   if (input.spread.deck === 'cai' && !caiContext?.(input.spread.no))
     return errorResponse(404, 'stick_unavailable');
   const resonance = String(decoded.version ?? '') === '3';
+  const engine = previewEngine(env, decoded.engine);
+  if (!engine) return errorResponse(400, 'engine_not_configured');
   try {
     const body = await runModel(
       spreadInstructions(input.spread, resonance),
       spreadUserInput(input, caiContext),
-      env.OPENAI_API_KEY!,
-      env.OPENAI_MODEL!,
+      engine.apiKey,
+      engine.model,
       fetchImpl,
       relayBaseUrl(env.OPENAI_BASE_URL),
       100,
       undefined,
       typeof decoded.tuning === 'string' ? decoded.tuning : env.AI_TUNING,
     );
-    return json({ version: resonance ? '3' : '2', body });
+    return json({ version: resonance ? '3' : '2', engine: engine.name, body });
   } catch (e) {
     return json(
       {

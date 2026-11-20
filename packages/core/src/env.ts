@@ -44,6 +44,9 @@ export interface CoreEnv {
   READING_PROMPT_VERSION?: string;
   /** 中轉站請求的推理設定（2026-11-20）："thinking-off"、"effort-low"，其他／不設就照模型預設。 */
   AI_TUNING?: string;
+  /** Secret（只給站長預覽比較模型用，2026-11-20）：中轉站另開的測試令牌。正式解讀不用。 */
+  TEST_KEY_HAIKU?: string;
+  TEST_KEY_GEMINI?: string;
   /** Private AI chat, intentionally disabled until a paid-model budget is accepted. */
   AI_CHAT_ENABLED?: string;
   /** Explicit model name; server-only, not exposed as a client configuration. */
