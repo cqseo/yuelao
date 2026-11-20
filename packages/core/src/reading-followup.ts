@@ -1,8 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   aiGenerationEnabled,
+  nowContext,
   outputLanguage,
   parseUiLanguage,
+  RESONANCE_RULES,
   relayBaseUrl,
   runModel,
   type StickContextProvider,
@@ -184,6 +186,7 @@ export function followupUserInput(
 ): string {
   return JSON.stringify({
     outputLanguage: outputLanguage(input.locale, input.ui),
+    now: nowContext(),
     stick: stick
       ? {
           number: stick.no,
@@ -268,7 +271,9 @@ export async function askFollowupRequest(
       .map((r) => r.body as string);
     const stick = stickContext?.(input.stickId, input.category, input.locale) ?? null;
     const body = await runModel(
-      FOLLOWUP_INSTRUCTIONS,
+      env.READING_PROMPT_VERSION === '3'
+        ? `${FOLLOWUP_INSTRUCTIONS}\n\n${RESONANCE_RULES}\n- 追問篇幅短：「說中」的寫法挑最要緊的用，畫面一兩個就好；轉介（【另求一籤】【先照顧自己】）時不必套用。\n- 資料裡的 now 是現在的月份與季節。`
+        : FOLLOWUP_INSTRUCTIONS,
       followupUserInput(input, stick, reading, earlier),
       env.OPENAI_API_KEY!,
       env.OPENAI_MODEL!,
