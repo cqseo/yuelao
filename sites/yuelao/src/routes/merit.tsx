@@ -120,7 +120,8 @@ function MeritPage() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const hand = useRef<HTMLImageElement>(null);
   const mala = useRef<HTMLDivElement>(null);
-  const [flicks, setFlicks] = useState(0);
+  const malaCanvas = useRef<HTMLCanvasElement>(null);
+  const malaStrand = useRef<{ flick: () => void; dispose: () => void } | null>(null);
   const scene = useRef<Scene | null>(null);
   const lastTap = useRef(0);
   const plusId = useRef(0);
@@ -185,6 +186,22 @@ function MeritPage() {
       templeAmbience(false);
     };
   }, []);
+  // 念珠分頁：整串珠子畫在 canvas 上，每撥一下往下滑一顆（見 merit/mala.ts）
+  useEffect(() => {
+    if (tab !== 'beads' || !malaCanvas.current) return;
+    let m: { flick: () => void; dispose: () => void } | null = null;
+    let dead = false;
+    import('~/merit/mala').then(({ createMala }) => {
+      if (dead || !malaCanvas.current) return;
+      m = createMala(malaCanvas.current);
+      malaStrand.current = m;
+    });
+    return () => {
+      dead = true;
+      m?.dispose();
+      malaStrand.current = null;
+    };
+  }, [tab]);
   useEffect(() => {
     scene.current?.setMode(tab);
     if (!seen.current.has(tab)) {
@@ -249,7 +266,7 @@ function MeritPage() {
       const { rec: next, round: done } = nextBead(recRef.current, d);
       update(next);
       scene.current?.bead(done);
-      setFlicks((f) => f + 1);
+      malaStrand.current?.flick();
       // 拇指往下推一顆：整隻手跟著輕輕一沉再回來
       mala.current?.animate(
         [
@@ -312,8 +329,9 @@ function MeritPage() {
       {/* 第一人稱撥念珠：左手掌心朝自己、拇指推珠；手上方那串是循環的珠子，每撥一下往下走一顆 */}
       {tab === 'beads' && (
         <div ref={mala} className="mt-mala" aria-hidden="true">
-          <div className="mt-mala-strand" style={{ '--n': flicks } as React.CSSProperties} />
           <img src="/merit/mala-hand.webp" alt="" width={640} height={960} decoding="async" />
+          <canvas ref={malaCanvas} />
+          <img src="/merit/mala-front.webp" alt="" width={640} height={960} decoding="async" />
         </div>
       )}
       {!ready && !noGl && <div className="mt-loading">{t('正在進殿…', '正在进殿…')}</div>}
