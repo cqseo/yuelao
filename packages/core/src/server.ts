@@ -142,12 +142,7 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
     analytics: {
       track: (request: Request) => {
         const ctx = context();
-        return trackRequest(
-          request,
-          ctx.supabaseService,
-          () => getUserFromRequest(request, ctx.env),
-          admins(),
-        );
+        return trackRequest(request, ctx.supabaseService, () => getAccountUser(request, ctx.env), admins());
       },
       adminStats: async (request: Request) => {
         const ctx = context();

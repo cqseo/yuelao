@@ -252,7 +252,9 @@ export function computeStats(input: StatsInput) {
   const offerSeen = new Set<string>();
   for (const e of cur) {
     if (e.name !== 'page_view' || normalizePath(e.path) !== '/') engaged.add(e.vid);
-    if (e.user_id || e.name === 'login') loggedIn.add(e.vid);
+    // 訪客帳號（props.guest）不算登入：他只是付款時被自動建了帳號
+    if ((e.user_id && (e.props as { guest?: unknown } | null)?.guest !== true) || e.name === 'login')
+      loggedIn.add(e.vid);
     if (e.name === 'checkout_start') checkout.add(e.vid);
     if (e.name === 'reading_done') readers.add(e.vid);
     if (e.name === 'ritual_begin') starters.add(e.vid);

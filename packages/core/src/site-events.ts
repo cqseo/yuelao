@@ -1,4 +1,4 @@
-import type { SessionUser } from './auth';
+import type { AccountUser } from './auth';
 import { sameOriginPost } from './auth-session';
 import type { Supabase } from './supabase';
 
@@ -124,7 +124,7 @@ export function isAdminEmail(email: string | null | undefined, admins: readonly 
 export async function trackRequest(
   request: Request,
   database: Supabase | null,
-  getUser: () => Promise<SessionUser | null>,
+  getUser: () => Promise<AccountUser | null>,
   admins: readonly string[],
 ): Promise<Response> {
   const done = new Response(null, { status: 204 });
@@ -143,7 +143,10 @@ export async function trackRequest(
   const batch = parseTrackBatch(body, url.hostname);
   if (!batch) return done;
 
-  // 登入的人才查身分；站長自己的操作不算進統計。
+  // 有 session 的人才查身分；站長自己的操作不算進統計。
+  // 訪客帳號（付款時自動建的，還沒綁信箱）也要記上 user_id（2026-11-21）：否則付了錢的人在後台
+  // 找不到他從哪裡來、走過哪些步驟。同一個瀏覽器（vid）只要有一筆帶 user_id，之前的紀錄也算他的。
+  // 事件上另外標 guest，讓「登入訪客」只算真正登入的人。
   const hasSession = /(?:^|;\s*)(?:__Host-yl_|yl_dev_)access=/.test(request.headers.get('cookie') ?? '');
   const user = hasSession ? await getUser().catch(() => null) : null;
   if (user && isAdminEmail(user.email, admins)) return done;
@@ -158,7 +161,7 @@ export async function trackRequest(
     user_id: user?.id ?? null,
     name: e.name,
     path: e.path,
-    props: e.props,
+    props: user?.guest ? { ...e.props, guest: true } : e.props,
     referrer: batch.referrer,
     device: deviceFrom(userAgent),
     country: /^[A-Z]{2}$/.test(country) && country !== 'XX' && country !== 'T1' ? country : null,

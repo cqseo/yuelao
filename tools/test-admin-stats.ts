@@ -288,3 +288,40 @@ console.log('PASS: stats aggregate visitors, live orders, funnel, paths and jour
   assert.deepEqual(s2.fortuneMulti, { visitors: 2, twoOrMore: 1, allThree: 1 });
   console.log('PASS: per-play conversion splits the stall and the tarot parlor, and spots repeat buyers');
 }
+
+// 訪客帳號買的單（2026-11-21）：付款前的紀錄沒有 user_id，付款時建了訪客帳號之後的紀錄帶 user_id＋guest。
+// 同一個瀏覽器的整段都要算到他身上：付費漏斗看得到他，但「登入訪客」不算他。
+{
+  const order = {
+    id: 'g-order',
+    user_id: 'guest-1',
+    product_id: 'unlock_1',
+    amount: 1200,
+    currency: 'HKD',
+    status: 'paid',
+    checkout_ref: 'cs_live_guest',
+    created_at: t(30),
+    paid_at: t(29),
+  };
+  const g = computeStats({
+    days: 7,
+    now,
+    events: [
+      ev('vG_gggggggg', 'sG1_ggggggg', 40, 'page_view', '/market'),
+      ev('vG_gggggggg', 'sG1_ggggggg', 38, 'reading_done', '/market', null, { kind: 'stick' }),
+      ev('vG_gggggggg', 'sG1_ggggggg', 37, 'unlock_click', '/market'),
+      ev('vG_gggggggg', 'sG1_ggggggg', 31, 'checkout_start', '/market'),
+      ev('vG_gggggggg', 'sG1_ggggggg', 28, 'page_view', '/market', 'guest-1', { guest: true }),
+      ev('vG_gggggggg', 'sG1_ggggggg', 27, 'deep_read', '/market', 'guest-1', { guest: true }),
+      ev('vH_hhhhhhhh', 'sH1_hhhhhhh', 40, 'page_view', '/'),
+    ],
+    orders: [order],
+    refunds: new Map(),
+    profiles: [],
+    totalUsers: 1,
+    eventsTruncated: false,
+  });
+  assert.equal(g.funnel.find((f) => f.key === 'paid')?.count, 1, 'the guest buyer is found in the funnel');
+  assert.equal(g.kpis.loggedIn, 0, 'a guest account is not a logged-in visitor');
+  console.log('PASS: guest buyers are attributed through their browser, without counting as logged in');
+}
