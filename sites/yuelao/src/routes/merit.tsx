@@ -7,7 +7,16 @@ import { track } from '~/lib/track';
 import { dailyStick, todayLabel } from '~/market/engine/daily-draw.js';
 import { shareMerit, shareWallpaper } from '~/market/engine/share.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
-import { bead as beadSound, chime, vibrate, warmAudio, woodblock } from '~/ritual/audio';
+import {
+  bead as beadSound,
+  chime,
+  isSoundOn,
+  setSound,
+  templeAmbience,
+  vibrate,
+  warmAudio,
+  woodblock,
+} from '~/ritual/audio';
 import { localDayKey } from '~/site/daily';
 import {
   addMerit,
@@ -30,15 +39,16 @@ import {
 import site from '../../site.config';
 import './merit.css';
 
-// 功德台（2026-11-21）：免費引流。敲木魚、撥念珠、擲筊問一件事、今日籤做成手機桌布。
-// 不用 AI、不用登入；功德數只記在這台瀏覽器。每一樣玩完都接到月老殿求籤。
+// 功德台（2026-11-21 重做成沉浸式）：殿內供桌的 3D 場景（three.js，懶載）＋手機 App 式的介面。
+// 敲木魚、撥念珠、擲筊問事、今日籤桌布。不用 AI、不用登入；功德數只記在這台瀏覽器。
+// 每一樣玩完都接到月老殿求籤。
 
 export const Route = createFileRoute('/merit')({
   head: () =>
     pageHead(site, {
       title: tr('功德台｜線上敲木魚、念珠、擲筊、招桃花桌布 · 免費'),
       description: tr(
-        '手機上的功德台：敲木魚功德 +1、撥 108 顆念珠、擲筊問月老一件事、把今日一籤做成招桃花手機桌布。免費、免登入。',
+        '手機上的功德台：在殿前敲木魚功德 +1、撥 108 顆念珠、擲筊問月老一件事、把今日一籤做成招桃花手機桌布。免費、免登入。',
       ),
       path: localizeHref('/merit', { locale: getLocale() }),
       image: `${site.url}/og/merit.jpg`,
@@ -48,6 +58,14 @@ export const Route = createFileRoute('/merit')({
 
 const TABS = ['muyu', 'beads', 'jiao', 'wallpaper'] as const;
 type Tab = (typeof TABS)[number];
+type T = (hant: string, hans: string) => string;
+type Scene = {
+  hit: (power?: number) => void;
+  bead: (round?: boolean) => void;
+  celebrate: () => void;
+  setMode: (m: string) => void;
+  dispose: () => void;
+};
 
 function load(): MeritRecord {
   try {
@@ -63,345 +81,333 @@ function save(r: MeritRecord) {
   } catch {}
 }
 
+/** 這一回敲到幾下時給一個大一點的回應。 */
+const MILESTONES: Record<number, [string, string]> = {
+  10: ['心靜一點了', '心静一点了'],
+  33: ['三十三下，煩惱放下', '三十三下，烦恼放下'],
+  108: ['一百零八下，功德圓滿', '一百零八下，功德圆满'],
+  300: ['三百下，心如止水', '三百下，心如止水'],
+  1000: ['一千下，誠心可鑑', '一千下，诚心可鉴'],
+};
+
 function MeritPage() {
   const hans = contentLocale() === 'zh-Hans';
-  const t = (hant: string, hansText: string) => (hans ? hansText : tr(hant));
+  const t: T = (hant, hansText) => (hans ? hansText : tr(hant));
   const [tab, setTab] = useState<Tab>('muyu');
   const [rec, setRec] = useState<MeritRecord>(emptyMerit);
+  const recRef = useRef(rec);
   const [day, setDay] = useState('');
+  const [sound, setSoundState] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [noGl, setNoGl] = useState(false);
+  const [plus, setPlus] = useState<{ id: number; x: number }[]>([]);
+  const [combo, setCombo] = useState(0);
+  const [toast, setToast] = useState('');
+  const [pop, setPop] = useState(0);
+  const [session, setSession] = useState(0);
+  const [round, setRound] = useState(false);
+  const [chant, setChant] = useState<(typeof CHANTS)[number]['id']>('amitabha');
+  const [note, setNote] = useState('');
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const scene = useRef<Scene | null>(null);
+  const lastTap = useRef(0);
+  const plusId = useRef(0);
   const seen = useRef(new Set<string>());
+  const toastTimer = useRef(0);
 
   useEffect(() => {
-    setRec(load());
+    const r = load();
+    setRec(r);
+    recRef.current = r;
     setDay(localDayKey(new Date()));
+    setSoundState(isSoundOn());
     const read = () => {
       const h = location.hash.slice(1);
       setTab((TABS as readonly string[]).includes(h) ? (h as Tab) : 'muyu');
     };
     read();
     addEventListener('hashchange', read);
-    return () => removeEventListener('hashchange', read);
+    // 3D 場景懶載：頁面先能點（計數照算），模型好了再接上
+    let dead = false;
+    import('~/merit/scene.js')
+      .then(({ createMeritScene }) => {
+        if (dead || !canvas.current) return;
+        try {
+          scene.current = createMeritScene(canvas.current, { onReady: () => setReady(true) }) as Scene;
+          scene.current.setMode(location.hash.slice(1) || 'muyu');
+        } catch {
+          setNoGl(true);
+        }
+      })
+      .catch(() => setNoGl(true));
+    return () => {
+      dead = true;
+      removeEventListener('hashchange', read);
+      scene.current?.dispose();
+      templeAmbience(false);
+    };
   }, []);
   useEffect(() => {
-    if (seen.current.has(tab)) return;
-    seen.current.add(tab);
-    track('merit_open', { tab });
+    scene.current?.setMode(tab);
+    if (!seen.current.has(tab)) {
+      seen.current.add(tab);
+      track('merit_open', { tab });
+    }
   }, [tab]);
 
   const choose = (x: Tab) => {
     setTab(x);
+    setNote('');
     history.replaceState(null, '', `#${x}`);
   };
   const update = (r: MeritRecord) => {
+    recRef.current = r;
     setRec(r);
     save(r);
   };
-  const today = day ? todayCount(rec, day) : 0;
+  const showToast = (text: string) => {
+    setToast(text);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(''), 2400);
+  };
+  const floatPlus = () => {
+    const id = ++plusId.current;
+    setPlus((p) => [...p.slice(-8), { id, x: ((id * 47) % 120) - 60 }]);
+    setTimeout(() => setPlus((p) => p.filter((x) => x.id !== id)), 1000);
+  };
+  const firstTouch = () => {
+    warmAudio();
+    if (sound) templeAmbience(true);
+  };
 
-  const NAMES: Record<Tab, [string, string]> = {
-    muyu: [t('敲木魚', '敲木鱼'), t('功德 +1', '功德 +1')],
-    beads: [t('撥念珠', '拨念珠'), t('一百零八顆', '一百零八颗')],
-    jiao: [t('擲筊', '掷筊'), t('問月老一件事', '问月老一件事')],
-    wallpaper: [t('桌布', '桌布'), t('今日籤招桃花', '今日签招桃花')],
+  /** 敲一下或撥一顆。 */
+  const tap = () => {
+    firstTouch();
+    const now = performance.now();
+    const c = now - lastTap.current < 700 ? combo + 1 : 1;
+    lastTap.current = now;
+    setCombo(c);
+    const d = day || localDayKey(new Date());
+    const n = session + 1;
+    setSession(n);
+    setPop((p) => p + 1);
+    floatPlus();
+    if (tab === 'muyu') {
+      update(addMerit(recRef.current, 1, d));
+      const big = MILESTONES[n];
+      scene.current?.hit(big ? 2 : 1);
+      woodblock();
+      vibrate(big ? [30, 40, 30] : 14);
+      if (big) {
+        scene.current?.celebrate();
+        chime(523);
+        showToast(t(big[0], big[1]));
+        track('merit_knock', { n });
+      } else if (n === 1) track('merit_knock', { n });
+    } else {
+      const { rec: next, round: done } = nextBead(recRef.current, d);
+      update(next);
+      scene.current?.bead(done);
+      vibrate(done ? [30, 40, 30] : 8);
+      if (done) {
+        chime(523);
+        setRound(true);
+        showToast(t('撥滿一圈，功德圓滿', '拨满一圈，功德圆满'));
+        track('merit_bead_round', { chant });
+      } else beadSound();
+    }
+  };
+  const toggleSound = () => {
+    const on = setSound(!sound);
+    setSoundState(on);
+    templeAmbience(on);
+  };
+  const shareCount = async () => {
+    setNote(t('正在做圖…', '正在做图…'));
+    const r = await shareMerit({
+      today: todayCount(rec, day),
+      total: rec.total,
+      kind: tab === 'beads' ? 'beads' : 'muyu',
+    });
+    track('share_image', { kind: 'merit', result: r });
+    setNote(r === 'saved' ? t('存好了，可以放進限時動態。', '存好了，可以放进限时动态。') : '');
+  };
+
+  const today = day ? todayCount(rec, day) : 0;
+  const tapping = tab === 'muyu' || tab === 'beads';
+  const c0 = CHANTS.find((c) => c.id === chant) ?? CHANTS[0];
+  const NAMES: Record<Tab, string> = {
+    muyu: t('木魚', '木鱼'),
+    beads: t('念珠', '念珠'),
+    jiao: t('擲筊', '掷筊'),
+    wallpaper: t('桌布', '壁纸'),
   };
 
   return (
-    <article className="merit-page">
-      <header className="merit-head">
-        <p className="merit-kicker">{t('月下 · 功德台', '月下 · 功德台')}</p>
-        <h1>{t('心亂的時候，來敲一下。', '心乱的时候，来敲一下。')}</h1>
-        <p className="merit-tally" aria-live="polite">
-          {t('今日功德', '今日功德')} <b>{today.toLocaleString()}</b>
-          <span>·</span>
-          {t('累計', '累计')} <b>{rec.total.toLocaleString()}</b>
-        </p>
+    <article className={`mt${ready ? ' ready' : ''}${tapping ? '' : ' dim'}`}>
+      <canvas ref={canvas} className="mt-canvas" />
+      {!ready && !noGl && <div className="mt-loading">{t('正在進殿…', '正在进殿…')}</div>}
+
+      <header className="mt-top">
+        <a href={localizeHref('/')} className="mt-back">
+          {t('← 月下', '← 月下')}
+        </a>
+        <h1>{t('功德台', '功德台')}</h1>
+        <button type="button" className="mt-sound" onClick={toggleSound} aria-pressed={sound}>
+          {sound ? t('聲音開', '声音开') : t('聲音關', '声音关')}
+        </button>
       </header>
 
-      <nav className="merit-tabs" aria-label={t('功德台', '功德台')}>
-        {TABS.map((x) => (
-          <button
-            key={x}
-            type="button"
-            id={`merit-tab-${x}`}
-            aria-pressed={tab === x}
-            className={tab === x ? 'on' : ''}
-            onClick={() => choose(x)}
-          >
-            <b>{NAMES[x][0]}</b>
-            <small>{NAMES[x][1]}</small>
-          </button>
-        ))}
-      </nav>
-
-      <section className="merit-stage">
-        {tab === 'muyu' && <Muyu rec={rec} day={day} update={update} t={t} />}
-        {tab === 'beads' && <Beads rec={rec} day={day} update={update} t={t} />}
-        {tab === 'jiao' && <Jiao t={t} hans={hans} />}
-        {tab === 'wallpaper' && <Wallpaper t={t} hans={hans} />}
+      <section className="mt-hud" aria-live="polite">
+        <span>{tab === 'beads' ? t(c0.text, c0.hans) : t('今日功德', '今日功德')}</span>
+        <b key={pop} className="mt-count">
+          {tab === 'beads' ? `${rec.bead} / ${BEADS_PER_ROUND}` : today.toLocaleString()}
+        </b>
+        <small>
+          {tab === 'beads'
+            ? t(
+                `已撥 ${rec.rounds} 圈 · 累計功德 ${rec.total.toLocaleString()}`,
+                `已拨 ${rec.rounds} 圈 · 累计功德 ${rec.total.toLocaleString()}`,
+              )
+            : t(`累計 ${rec.total.toLocaleString()}`, `累计 ${rec.total.toLocaleString()}`)}
+          {combo >= 5 && tapping && <em className="mt-combo"> · {t(`連擊 ×${combo}`, `连击 ×${combo}`)}</em>}
+        </small>
       </section>
 
-      <p className="merit-note">
-        {t(
-          '功德數只記在這台手機的瀏覽器裡，免費、免登入。這裡是線上的心意與儀式感，不代替到廟裡參拜，也不保證任何結果。',
-          '功德数只记在这台手机的浏览器里，免费、免登录。这里是线上的心意与仪式感，不代替到庙里参拜，也不保证任何结果。',
+      {tapping && (
+        <button
+          type="button"
+          id="merit-tap"
+          className="mt-tap"
+          onClick={tap}
+          aria-label={tab === 'muyu' ? t('敲一下木魚', '敲一下木鱼') : t('撥一顆念珠', '拨一颗念珠')}
+        >
+          {noGl && <span className="mt-fallback">{tab === 'muyu' ? t('篤', '笃') : '◯'}</span>}
+          {plus.map((p) => (
+            <span key={p.id} className="mt-plus" style={{ marginLeft: `${p.x}px` }}>
+              {t('功德 +1', '功德 +1')}
+            </span>
+          ))}
+          {session === 0 && (
+            <span className="mt-cue">
+              {tab === 'muyu' ? t('點一下，敲木魚', '点一下，敲木鱼') : t('點一下，撥一顆', '点一下，拨一颗')}
+            </span>
+          )}
+        </button>
+      )}
+      {toast && (
+        <div className="mt-toast" role="status">
+          {toast}
+        </div>
+      )}
+
+      <footer className="mt-bottom">
+        {tab === 'beads' && (
+          <div className="mt-chips">
+            {CHANTS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                aria-pressed={chant === c.id}
+                className={chant === c.id ? 'on' : ''}
+                onClick={() => setChant(c.id)}
+              >
+                {t(c.text, c.hans)}
+              </button>
+            ))}
+          </div>
         )}
-      </p>
+        {tapping && (
+          <div className="mt-actions">
+            <button type="button" className="mt-ghost" onClick={shareCount} disabled={!rec.total}>
+              {t('分享功德圖', '分享功德图')}
+            </button>
+            {(session >= 10 || round) && <ToTemple t={t} />}
+          </div>
+        )}
+        {note && tapping && (
+          <p className="mt-note" role="status">
+            {note}
+          </p>
+        )}
+        {tab === 'jiao' && <Jiao t={t} hans={hans} onTouch={firstTouch} />}
+        {tab === 'wallpaper' && <Wallpaper t={t} hans={hans} />}
+
+        <nav className="mt-tabs" aria-label={t('功德台', '功德台')}>
+          {TABS.map((x) => (
+            <button
+              key={x}
+              type="button"
+              id={`merit-tab-${x}`}
+              aria-pressed={tab === x}
+              className={tab === x ? 'on' : ''}
+              onClick={() => choose(x)}
+            >
+              <TabIcon tab={x} />
+              <span>{NAMES[x]}</span>
+            </button>
+          ))}
+        </nav>
+      </footer>
     </article>
   );
 }
 
-type T = (hant: string, hans: string) => string;
+function TabIcon({ tab }: { tab: Tab }) {
+  const p = {
+    width: 26,
+    height: 26,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.6,
+  };
+  if (tab === 'muyu')
+    return (
+      <svg {...p} aria-hidden="true">
+        <path d="M4 14c0-4.4 3.6-8 8-8s8 3.6 8 8c0 3-2.7 5-8 5s-8-2-8-5z" />
+        <path d="M6.5 14.5c3 1.6 8 1.6 11 0" />
+        <path d="M16 4l4-2" />
+      </svg>
+    );
+  if (tab === 'beads')
+    return (
+      <svg {...p} aria-hidden="true">
+        <circle cx="12" cy="11" r="6.5" strokeDasharray="2.2 1.6" strokeWidth="2.4" />
+        <path d="M12 17.5v3.5M10.5 21h3" />
+      </svg>
+    );
+  if (tab === 'jiao')
+    return (
+      <svg {...p} aria-hidden="true">
+        <path d="M3 9c2-2 6-2 8 0-1 4-3 6-4 6S3 13 3 9z" />
+        <path d="M13 11c2-2 6-2 8 0-1 4-3 6-4 6s-3-2-4-6z" />
+      </svg>
+    );
+  return (
+    <svg {...p} aria-hidden="true">
+      <rect x="7" y="2.5" width="10" height="19" rx="2.2" />
+      <path d="M12 8v6M10 11h4" />
+    </svg>
+  );
+}
 
 /** 心靜了就去求籤：每個玩法結尾的同一個出口。 */
 function ToTemple({ t, text }: { t: T; text?: string }) {
   return (
-    <a
-      className="merit-cta"
-      href={localizeHref('/market#yuelao')}
-      onClick={() => track('merit_to_temple', {})}
-    >
+    <a className="mt-cta" href={localizeHref('/market#yuelao')} onClick={() => track('merit_to_temple', {})}>
       {text ?? t('心靜了，去月老殿求一支籤', '心静了，去月老殿求一支签')}
     </a>
   );
 }
 
-function usePlus() {
-  const [plus, setPlus] = useState<number[]>([]);
-  const id = useRef(0);
-  const pop = () => {
-    const n = ++id.current;
-    // 連續點時浮字左右錯開，不疊在一起
-    setPlus((p) => [...p.slice(-6), n]);
-    setTimeout(() => setPlus((p) => p.filter((x) => x !== n)), 900);
-  };
-  return { plus, pop };
-}
-
-const MILESTONES = new Set([1, 10, 108, 1000]);
-
-function Muyu({
-  rec,
-  day,
-  update,
-  t,
-}: {
-  rec: MeritRecord;
-  day: string;
-  update: (r: MeritRecord) => void;
-  t: T;
-}) {
-  const [hit, setHit] = useState(0);
-  const [session, setSession] = useState(0);
-  const [sharing, setSharing] = useState('');
-  const { plus, pop } = usePlus();
-  const knock = () => {
-    warmAudio();
-    woodblock();
-    vibrate(12);
-    const d = day || localDayKey(new Date());
-    update(addMerit(rec, 1, d));
-    setHit((h) => h + 1);
-    pop();
-    const n = session + 1;
-    setSession(n);
-    if (MILESTONES.has(n)) track('merit_knock', { n });
-  };
-  const share = async () => {
-    setSharing(t('正在做圖…', '正在做图…'));
-    const r = await shareMerit({ today: todayCount(rec, day), total: rec.total, kind: 'muyu' });
-    track('share_image', { kind: 'merit', result: r });
-    setSharing(r === 'saved' ? t('存好了，可以放進限時動態。', '存好了，可以放进限时动态。') : '');
-  };
-  return (
-    <div className="merit-muyu">
-      <button
-        type="button"
-        id="muyu-knock"
-        className="muyu-hit"
-        onClick={knock}
-        aria-label={t('敲一下木魚', '敲一下木鱼')}
-      >
-        <svg key={hit} className="muyu-svg" viewBox="0 0 320 270" aria-hidden="true">
-          <defs>
-            <radialGradient id="wood" cx="38%" cy="30%" r="80%">
-              <stop offset="0" stopColor="#d4974a" />
-              <stop offset="0.5" stopColor="#94541f" />
-              <stop offset="1" stopColor="#4a2610" />
-            </radialGradient>
-          </defs>
-          {/* 紅墊 */}
-          <ellipse cx="160" cy="236" rx="128" ry="24" fill="#7d2219" />
-          <ellipse cx="160" cy="230" rx="122" ry="18" fill="#a8291f" />
-          {/* 木魚身：圓、底略平 */}
-          <path
-            d="M58 146C58 86 104 46 160 46S262 86 262 146c0 50-40 80-102 80S58 196 58 146z"
-            fill="url(#wood)"
-            stroke="#3a1c0a"
-            strokeWidth="2"
-          />
-          {/* 頂上的握把稜與雕紋 */}
-          <ellipse cx="160" cy="50" rx="30" ry="9" fill="#6b3816" />
-          <path d="M104 78c32-18 80-18 112 0" stroke="#5a2e12" strokeWidth="3" fill="none" />
-          <path d="M92 96c40-22 96-22 136 0" stroke="#5a2e12" strokeWidth="3" fill="none" />
-          {/* 前面的魚口（開口） */}
-          <path d="M74 150c34 22 138 22 172 0-10 22-36 40-86 40s-76-18-86-40z" fill="#1e0d05" />
-          <path
-            d="M84 104c14-22 36-36 60-40"
-            stroke="rgba(255,232,190,.35)"
-            strokeWidth="6"
-            strokeLinecap="round"
-            fill="none"
-          />
-          {/* 木槌 */}
-          <g className="muyu-mallet">
-            <line x1="214" y1="44" x2="300" y2="4" stroke="#caa06a" strokeWidth="8" strokeLinecap="round" />
-            <ellipse cx="206" cy="48" rx="20" ry="15" fill="#e8cf9e" stroke="#a5814e" strokeWidth="2" />
-          </g>
-        </svg>
-        {plus.map((n) => (
-          <span key={n} className="merit-plus" style={{ marginLeft: `${((n * 37) % 90) - 45}px` }}>
-            {t('功德 +1', '功德 +1')}
-          </span>
-        ))}
-      </button>
-      <p className="merit-hint">
-        {session
-          ? t(`這一回敲了 ${session} 下`, `这一回敲了 ${session} 下`)
-          : t('點木魚，敲一下', '点木鱼，敲一下')}
-      </p>
-      <div className="merit-actions">
-        <button type="button" className="merit-ghost" onClick={share} disabled={!rec.total}>
-          {t('做成功德圖分享', '做成功德图分享')}
-        </button>
-        {session >= 10 && <ToTemple t={t} />}
-      </div>
-      {sharing && (
-        <p className="merit-hint" role="status">
-          {sharing}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Beads({
-  rec,
-  day,
-  update,
-  t,
-}: {
-  rec: MeritRecord;
-  day: string;
-  update: (r: MeritRecord) => void;
-  t: T;
-}) {
-  const [chant, setChant] = useState<(typeof CHANTS)[number]['id']>('amitabha');
-  const [round, setRound] = useState(false);
-  const { plus, pop } = usePlus();
-  const c0 = CHANTS.find((c) => c.id === chant) ?? CHANTS[0];
-  const step = () => {
-    warmAudio();
-    const d = day || localDayKey(new Date());
-    const { rec: next, round: done } = nextBead(rec, d);
-    update(next);
-    pop();
-    vibrate(8);
-    if (done) {
-      chime(523);
-      setRound(true);
-      track('merit_bead_round', { chant });
-    } else beadSound();
-  };
-  const SHOWN = 18;
-  const cur = rec.bead % SHOWN;
-  return (
-    <div className="merit-beads">
-      <div className="chips">
-        {CHANTS.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            aria-pressed={chant === c.id}
-            className={chant === c.id ? 'on' : ''}
-            onClick={() => setChant(c.id)}
-          >
-            {t(c.text, c.hans)}
-          </button>
-        ))}
-      </div>
-      <button
-        type="button"
-        id="beads-step"
-        className="beads-hit"
-        onClick={step}
-        aria-label={t('撥一顆念珠', '拨一颗念珠')}
-      >
-        <svg viewBox="0 0 300 300" aria-hidden="true">
-          <g
-            style={{
-              transform: 'none',
-              transformOrigin: '150px 150px',
-              transition: 'transform .25s ease-out',
-            }}
-          >
-            {Array.from({ length: SHOWN }, (_, i) => {
-              const a = (i / SHOWN) * Math.PI * 2 - Math.PI / 2;
-              return (
-                <circle
-                  // biome-ignore lint/suspicious/noArrayIndexKey: 珠子位置固定
-                  key={i}
-                  cx={150 + Math.cos(a) * 118}
-                  cy={150 + Math.sin(a) * 118}
-                  r={i === cur ? 17 : 14}
-                  fill={i === cur ? '#e8c25a' : '#7a3b1c'}
-                  stroke="#2b1408"
-                  strokeWidth="2"
-                />
-              );
-            })}
-          </g>
-          <circle cx="150" cy="150" r="104" fill="none" stroke="rgba(220,187,124,.25)" strokeWidth="2" />
-        </svg>
-        <span className="beads-center">
-          <b>{t(c0.text, c0.hans)}</b>
-          <small>
-            {t(`第 ${rec.bead} / ${BEADS_PER_ROUND} 顆`, `第 ${rec.bead} / ${BEADS_PER_ROUND} 颗`)}
-            <br />
-            {t(`已撥 ${rec.rounds} 圈`, `已拨 ${rec.rounds} 圈`)}
-          </small>
-        </span>
-        {plus.map((n) => (
-          <span key={n} className="merit-plus" style={{ marginLeft: `${((n * 37) % 90) - 45}px` }}>
-            {t('功德 +1', '功德 +1')}
-          </span>
-        ))}
-      </button>
-      <p className="merit-hint">
-        {round
-          ? t('撥滿一圈了。心定下來，有想問的事嗎？', '拨满一圈了。心定下来，有想问的事吗？')
-          : t('點一下撥一顆，滿 108 顆算一圈', '点一下拨一颗，满 108 颗算一圈')}
-      </p>
-      {round && <ToTemple t={t} />}
-    </div>
-  );
-}
-
-function Crescent({ face, n }: { face: JiaoFace | null; n: number }) {
+function Cup({ face, n }: { face: JiaoFace | null; n: number }) {
   // 用月老殿同一套實物圖（DESIGN.md：筊杯一律用真實影像）；還沒擲時兩片都顯示平面
   const src = face === 'round' ? '/ritual/cup-convex.webp' : '/ritual/cup-flat.webp';
-  return (
-    <img
-      className={`jiao-piece ${face ?? 'idle'} p${n}`}
-      src={src}
-      alt=""
-      width={120}
-      height={120}
-      decoding="async"
-    />
-  );
+  return <img className={`mt-cup ${face ?? 'idle'} c${n}`} src={src} alt="" decoding="async" />;
 }
 
-function Jiao({ t, hans }: { t: T; hans: boolean }) {
+function Jiao({ t, hans, onTouch }: { t: T; hans: boolean; onTouch: () => void }) {
   const [q, setQ] = useState('');
   const [faces, setFaces] = useState<[JiaoFace, JiaoFace] | null>(null);
   const [result, setResult] = useState<JiaoResult | null>(null);
@@ -409,10 +415,11 @@ function Jiao({ t, hans }: { t: T; hans: boolean }) {
   const [streak, setStreak] = useState(0);
   const toss = () => {
     if (busy) return;
-    warmAudio();
+    onTouch();
     setBusy(true);
     setResult(null);
     setFaces(null);
+    vibrate(20);
     setTimeout(() => {
       const r = tossJiao();
       setFaces(r.faces);
@@ -420,50 +427,53 @@ function Jiao({ t, hans }: { t: T; hans: boolean }) {
       setStreak((s) => shengStreak(s, r.result));
       setBusy(false);
       woodblock();
-      setTimeout(() => woodblock(), 90);
+      setTimeout(() => woodblock(), 110);
       if (r.result === 'sheng') chime(587);
-      vibrate([20, 40, 20]);
+      vibrate([20, 50, 20]);
       track('merit_jiao', { result: r.result, asked: q.trim() ? 1 : 0 });
-    }, 950);
+    }, 1000);
   };
   const info = result ? JIAO_TEXT[result] : null;
   return (
-    <div className="merit-jiao">
-      <label className="jiao-q">
-        <span>
-          {t('心裡默念一件事（只問是或不是，不會送出去）', '心里默念一件事（只问是或不是，不会送出去）')}
-        </span>
-        <input
-          id="jiao-question"
-          value={q}
-          maxLength={60}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={t('例如：我該主動傳訊息給他嗎？', '例如：我该主动传讯息给他吗？')}
-          autoComplete="off"
-        />
-      </label>
-      <div className={`jiao-floor${busy ? ' tossing' : ''}`}>
-        <Crescent face={faces?.[0] ?? null} n={0} />
-        <Crescent face={faces?.[1] ?? null} n={1} />
+    <div className="mt-sheet">
+      <div className={`mt-cups${busy ? ' tossing' : ''}`}>
+        <Cup face={faces?.[0] ?? null} n={0} />
+        <Cup face={faces?.[1] ?? null} n={1} />
       </div>
-      {info && (
-        <div className={`jiao-result ${result}`} role="status">
+      {info ? (
+        <div className={`mt-result ${result}`} role="status">
           <b>{hans ? info.hans : tr(info.name)}</b>
-          {streak >= 2 && (
-            <span className="jiao-streak">{t(`連續 ${streak} 個聖筊`, `连续 ${streak} 个圣筊`)}</span>
-          )}
+          {streak >= 2 && <span>{t(`連續 ${streak} 個聖筊`, `连续 ${streak} 个圣筊`)}</span>}
           <p>{hans ? info.lineHans : tr(info.line)}</p>
         </div>
+      ) : (
+        <label className="mt-q">
+          <span>
+            {t('心裡默念一件事，只問是或不是（不會送出去）', '心里默念一件事，只问是或不是（不会送出去）')}
+          </span>
+          <input
+            id="jiao-question"
+            value={q}
+            maxLength={60}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t('例如：我該主動傳訊息給他嗎？', '例如：我该主动传讯息给他吗？')}
+            autoComplete="off"
+          />
+        </label>
       )}
-      <div className="merit-actions">
-        <button type="button" id="jiao-toss" className="merit-seal" onClick={toss} disabled={busy}>
-          {busy ? t('筊杯落地中…', '筊杯落地中…') : result ? t('再擲一次', '再掷一次') : t('擲筊', '掷筊')}
+      <div className="mt-actions">
+        <button type="button" id="jiao-toss" className="mt-seal" onClick={toss} disabled={busy}>
+          {busy
+            ? t('筊杯落地中…', '筊杯落地中…')
+            : result
+              ? t('再擲一次', '再掷一次')
+              : t('雙手合十，擲筊', '双手合十，掷筊')}
         </button>
-        {result === 'sheng' && <ToTemple t={t} text={t('帶著這件事去求一支籤', '带着这件事去求一支签')} />}
+        {result === 'sheng' && <ToTemple t={t} text={t('帶著這件事去求籤', '带着这件事去求签')} />}
       </div>
-      <p className="merit-hint small">
+      <p className="mt-note small">
         {t('線上擲筊是互動模擬，不代表神明真的同意。', '线上掷筊是互动模拟，不代表神明真的同意。')}{' '}
-        <a href={localizeHref('/jiaobei')}>{t('聖筊、笑筊、陰筊怎麼看', '圣筊、笑筊、阴筊怎么看')}</a>
+        <a href={localizeHref('/jiaobei')}>{t('三種筊怎麼看', '三种筊怎么看')}</a>
       </p>
     </div>
   );
@@ -480,7 +490,7 @@ function Wallpaper({ t, hans }: { t: T; hans: boolean }) {
   const w = WALLPAPERS.find((x) => x.id === theme) ?? WALLPAPERS[0];
   const make = async () => {
     if (!d?.stick) return;
-    setNote(t('正在做桌布…', '正在做桌布…'));
+    setNote(t('正在做桌布…', '正在做壁纸…'));
     const r = await shareWallpaper({
       glyph: hans ? w.glyphHans : w.glyph,
       title: hans ? w.hans : w.name,
@@ -499,48 +509,46 @@ function Wallpaper({ t, hans }: { t: T; hans: boolean }) {
     );
   };
   return (
-    <div className="merit-wall">
-      <div className="chips">
-        {WALLPAPERS.map((x) => (
-          <button
-            key={x.id}
-            type="button"
-            aria-pressed={theme === x.id}
-            className={theme === x.id ? 'on' : ''}
-            onClick={() => setTheme(x.id)}
-          >
-            {hans ? x.hans : tr(x.name)}
-          </button>
-        ))}
-      </div>
-      <div className="wall-phone" style={{ '--c': w.color } as React.CSSProperties}>
-        <span className="wall-time">09:41</span>
-        <span className="wall-glyph">{hans ? w.glyphHans : w.glyph}</span>
-        <span className="wall-wish">{hans ? w.wishHans : w.wish}</span>
+    <div className="mt-sheet mt-wall">
+      <div className="mt-phone" style={{ '--c': w.color } as React.CSSProperties}>
+        <span className="mt-phone-time">09:41</span>
+        <span className="mt-phone-glyph">{hans ? w.glyphHans : w.glyph}</span>
+        <span className="mt-phone-wish">{hans ? w.wishHans : w.wish}</span>
         {d?.stick && (
-          <span className="wall-stick">
+          <span className="mt-phone-stick">
             {d.stick.no} · {d.stick.grade}
           </span>
         )}
-        <span className="wall-url">yuexia.app</span>
       </div>
-      <p className="merit-hint">
-        {t(
-          '用你今天的「今日一籤」做成手機桌布，每天換一支。',
-          '用你今天的「今日一签」做成手机壁纸，每天换一支。',
-        )}
-      </p>
-      <div className="merit-actions">
-        <button type="button" id="wall-make" className="merit-seal" onClick={make} disabled={!d}>
+      <div className="mt-wall-side">
+        <div className="mt-chips">
+          {WALLPAPERS.map((x) => (
+            <button
+              key={x.id}
+              type="button"
+              aria-pressed={theme === x.id}
+              className={theme === x.id ? 'on' : ''}
+              onClick={() => setTheme(x.id)}
+            >
+              {hans ? x.hans : tr(x.name)}
+            </button>
+          ))}
+        </div>
+        <p className="mt-note">
+          {t(
+            '用你今天的「今日一籤」做成手機桌布，每天換一支。',
+            '用你今天的「今日一签」做成手机壁纸，每天换一支。',
+          )}
+        </p>
+        <button type="button" id="wall-make" className="mt-seal" onClick={make} disabled={!d}>
           {t('存成手機桌布', '存成手机壁纸')}
         </button>
-        <ToTemple t={t} text={t('想問一件具體的事？去求籤', '想问一件具体的事？去求签')} />
+        {note && (
+          <p className="mt-note" role="status">
+            {note}
+          </p>
+        )}
       </div>
-      {note && (
-        <p className="merit-hint" role="status">
-          {note}
-        </p>
-      )}
     </div>
   );
 }

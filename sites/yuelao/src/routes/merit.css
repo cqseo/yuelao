@@ -1,413 +1,535 @@
-/* 功德台 /merit：夜色舞台，手機優先。顏色與 3D 集市一致（夜、金、米紙、朱紅）。 */
-.merit-page {
-  --m-night: #0d0e22;
-  --m-deep: #070812;
-  --m-gold: #dcbb7c;
-  --m-paper: #efe5cf;
-  --m-soft: rgba(239, 229, 207, 0.66);
+/* 功德台 /merit：全螢幕沉浸。後面是 3D 殿內供桌（canvas），前面是 App 式介面：
+   頂欄、功德數、可點的整片中央、底部動作列與分頁列。顏色：夜、燭金、米紙、朱紅。 */
+.mt {
+  --m-night: #0e0705;
+  --m-gold: #e6c27a;
+  --m-gold-deep: #c89a3a;
+  --m-paper: #f3e7cf;
+  --m-soft: rgba(243, 231, 207, 0.7);
+  --m-faint: rgba(243, 231, 207, 0.45);
   --m-red: #a8291f;
-  --m-line: rgba(220, 187, 124, 0.28);
-  font-family: var(--font-serif-tc, "Noto Serif TC", serif);
+  --m-glass: rgba(20, 10, 6, 0.62);
+  --m-line: rgba(230, 194, 122, 0.24);
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(90% 60% at 50% 40%, #3a1a0c 0%, #140906 60%, #080403 100%);
   color: var(--m-paper);
-  background: radial-gradient(120% 80% at 50% 0%, #2a1d14 0%, var(--m-night) 45%, var(--m-deep) 100%);
-  border-radius: 20px;
-  padding-block: clamp(1.4rem, 5vw, 2.6rem) 1.6rem;
-  padding-inline: clamp(1rem, 4vw, 2.4rem);
-  margin: 0.5rem auto 2rem;
-  max-width: 760px;
-  display: grid;
-  gap: 1.3rem;
+  font-family: var(--font-serif-tc, "Noto Serif TC", serif);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
-.merit-page * {
+.mt * {
   box-sizing: border-box;
 }
-.merit-page a {
-  color: var(--m-gold);
+.mt-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition:
+    opacity 0.9s ease,
+    filter 0.5s ease;
 }
-.merit-head {
-  text-align: center;
+.mt.ready .mt-canvas {
+  opacity: 1;
+}
+.mt.dim .mt-canvas {
+  filter: brightness(0.55) blur(2px);
+}
+.mt-loading {
+  position: absolute;
+  inset: 0;
   display: grid;
-  gap: 0.5rem;
-}
-.merit-kicker {
-  margin: 0;
-  font-size: 0.82rem;
-  letter-spacing: 0.2em;
-  color: var(--m-gold);
-}
-.merit-head h1 {
-  margin: 0;
-  font-size: clamp(1.5rem, 6vw, 2.2rem);
-  font-weight: 700;
-  text-wrap: balance;
-}
-.merit-tally {
-  margin: 0;
-  color: var(--m-soft);
-  font-variant-numeric: tabular-nums;
-  display: flex;
-  justify-content: center;
-  gap: 0.4rem;
-  align-items: baseline;
-  flex-wrap: wrap;
-}
-.merit-tally b {
-  color: var(--m-paper);
-  font-size: 1.25rem;
-}
-.merit-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-.merit-tabs button {
-  font: inherit;
-  color: var(--m-soft);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--m-line);
-  border-radius: 12px;
-  padding: 0.6rem 0.3rem;
-  display: grid;
-  gap: 0.1rem;
-  cursor: pointer;
-}
-.merit-tabs button b {
-  color: var(--m-paper);
-  font-size: 1rem;
-}
-.merit-tabs button small {
-  font-size: 0.72rem;
-}
-.merit-tabs button.on {
-  border-color: var(--m-gold);
-  background: rgba(220, 187, 124, 0.14);
-}
-.merit-stage {
-  min-height: 420px;
-  display: grid;
-  align-content: start;
-}
-.merit-stage > div {
-  display: grid;
-  justify-items: center;
-  gap: 1rem;
-}
-.merit-hint {
-  margin: 0;
-  color: var(--m-soft);
-  text-align: center;
-}
-.merit-hint.small {
-  font-size: 0.82rem;
-}
-.merit-actions {
-  display: flex;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.merit-seal,
-.merit-ghost,
-.merit-cta {
-  font: inherit;
-  border-radius: 999px;
-  padding: 0.65rem 1.4rem;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-}
-.merit-seal {
-  background: var(--m-red);
-  color: #fff3dc;
-  border: 1px solid var(--m-red);
-  font-weight: 600;
-}
-.merit-ghost {
-  background: transparent;
-  color: var(--m-paper);
-  border: 1px solid var(--m-line);
-}
-.merit-page .merit-cta {
-  color: var(--m-night);
-  background: var(--m-gold);
-  border: 1px solid var(--m-gold);
-  font-weight: 600;
-}
-.merit-seal:disabled,
-.merit-ghost:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.merit-page button:focus-visible,
-.merit-page a:focus-visible,
-.merit-page input:focus-visible {
-  outline: 2px solid var(--m-gold);
-  outline-offset: 3px;
+  place-items: center;
+  color: var(--m-faint);
+  letter-spacing: 0.3em;
 }
 
-/* 木魚 */
-.muyu-hit,
-.beads-hit {
-  position: relative;
+/* 頂欄 */
+.mt-top {
+  position: absolute;
+  inset: 0 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) max(16px, env(safe-area-inset-right, 0px)) 0
+    max(16px, env(safe-area-inset-left, 0px));
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  z-index: 3;
+}
+.mt-top h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.4em;
+  padding-left: 0.4em;
+  color: var(--m-gold);
+  font-weight: 600;
+}
+.mt-back {
+  color: var(--m-soft);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+.mt-sound {
+  justify-self: end;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--m-soft);
+  background: var(--m-glass);
+  border: 1px solid var(--m-line);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+}
+
+/* 功德數 */
+.mt-hud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(env(safe-area-inset-top, 0px) + 58px);
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  z-index: 2;
+  pointer-events: none;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+}
+.mt-hud > span {
+  font-size: 0.85rem;
+  letter-spacing: 0.25em;
+  color: var(--m-soft);
+}
+.mt-count {
+  font-size: clamp(2.8rem, 12vw, 4.2rem);
+  line-height: 1.05;
+  font-weight: 700;
+  color: var(--m-paper);
+  font-variant-numeric: tabular-nums;
+  animation: mt-pop 0.22s ease-out;
+}
+@keyframes mt-pop {
+  0% {
+    transform: scale(1.14);
+    color: var(--m-gold);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.mt-hud small {
+  color: var(--m-faint);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.mt-combo {
+  font-style: normal;
+  color: var(--m-gold);
+}
+
+/* 整片中央都能點 */
+.mt-tap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22%;
+  bottom: 30%;
+  z-index: 1;
   border: 0;
   background: none;
   padding: 0;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  user-select: none;
+  color: inherit;
+  font: inherit;
 }
-.muyu-svg {
-  width: min(78vw, 340px);
-  height: auto;
-  display: block;
-  animation: muyu-bump 0.18s ease-out;
+.mt-tap:focus-visible {
+  outline: 2px solid var(--m-gold);
+  outline-offset: -6px;
 }
-.muyu-mallet {
-  transform-origin: 300px 4px;
-  transform: rotate(12deg);
-  animation: muyu-mallet 0.18s ease-out;
-}
-@keyframes muyu-bump {
-  40% {
-    transform: scale(0.96, 0.94);
-  }
-}
-@keyframes muyu-mallet {
-  40% {
-    transform: rotate(0deg);
-  }
-}
-.merit-plus {
+.mt-cue {
   position: absolute;
   left: 50%;
-  top: 18%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  font-size: 0.9rem;
+  color: var(--m-soft);
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+  animation: mt-breathe 2.2s ease-in-out infinite;
+}
+@keyframes mt-breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+.mt-plus {
+  position: absolute;
+  left: 50%;
+  top: 22%;
   transform: translateX(-50%);
   color: var(--m-gold);
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1.3rem;
+  text-shadow: 0 0 12px rgba(255, 190, 80, 0.8);
   pointer-events: none;
   white-space: nowrap;
-  animation: merit-plus 0.9s ease-out forwards;
+  animation: mt-float 1s ease-out forwards;
 }
-@keyframes merit-plus {
+@keyframes mt-float {
   from {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translate(-50%, 0) scale(1.15);
   }
   to {
     opacity: 0;
-    transform: translate(-50%, -70px);
+    transform: translate(-50%, -90px) scale(0.95);
+  }
+}
+.mt-fallback {
+  display: inline-grid;
+  place-items: center;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #d4974a, #7a3a14 70%);
+  font-size: 3rem;
+  color: var(--m-paper);
+}
+.mt-toast {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  padding: 0.8rem 1.6rem;
+  font-size: clamp(1.3rem, 6vw, 1.9rem);
+  font-weight: 700;
+  color: var(--m-gold);
+  text-shadow: 0 0 22px rgba(255, 190, 80, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: mt-toast 2.4s ease-out forwards;
+}
+@keyframes mt-toast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.9);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%);
   }
 }
 
-/* 念珠 */
-.merit-page .chips {
+/* 底部：動作列、面板、分頁列 */
+.mt-bottom {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  display: grid;
+  gap: 0.7rem;
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 10px)
+    max(16px, env(safe-area-inset-left, 0px));
+  justify-items: center;
+}
+.mt-actions {
   display: flex;
+  gap: 0.6rem;
   flex-wrap: wrap;
-  gap: 0.45rem;
   justify-content: center;
 }
-.merit-page .chips button {
+.mt-ghost,
+.mt-seal,
+.mt-cta {
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  border-radius: 999px;
+  padding: 0.62rem 1.3rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.mt-ghost {
+  color: var(--m-paper);
+  background: var(--m-glass);
+  border: 1px solid var(--m-line);
+  backdrop-filter: blur(8px);
+}
+.mt-seal {
+  color: #fff3dc;
+  background: linear-gradient(#bf3326, #8f1f16);
+  border: 1px solid #d0503e;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(168, 41, 31, 0.45);
+}
+.mt-cta {
+  color: #2a1406;
+  background: linear-gradient(#f0d28e, #c89a3a);
+  border: 1px solid #f3dca5;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(200, 154, 58, 0.35);
+}
+.mt-ghost:disabled,
+.mt-seal:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.mt-note {
+  margin: 0;
   color: var(--m-soft);
-  background: transparent;
+  font-size: 0.86rem;
+  text-align: center;
+  line-height: 1.6;
+}
+.mt-note.small {
+  font-size: 0.78rem;
+  color: var(--m-faint);
+}
+.mt-note a {
+  color: var(--m-gold);
+}
+.mt-chips {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.mt-chips button {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--m-soft);
+  background: var(--m-glass);
   border: 1px solid var(--m-line);
   border-radius: 999px;
-  padding: 0.35rem 0.9rem;
+  padding: 0.32rem 0.85rem;
   cursor: pointer;
+  backdrop-filter: blur(8px);
 }
-.merit-page .chips button.on {
-  color: var(--m-night);
+.mt-chips button.on {
+  color: #2a1406;
   background: var(--m-gold);
   border-color: var(--m-gold);
 }
-.beads-hit svg {
-  width: min(78vw, 320px);
-  height: auto;
-  display: block;
-}
-.beads-center {
-  position: absolute;
-  inset: 0;
+.mt-tabs {
+  width: min(100%, 460px);
   display: grid;
-  place-content: center;
-  text-align: center;
-  gap: 0.4rem;
-  color: var(--m-paper);
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--m-glass);
+  border: 1px solid var(--m-line);
+  border-radius: 20px;
+  padding: 6px;
+  backdrop-filter: blur(14px);
 }
-.beads-center b {
-  font-size: 1.3rem;
-  letter-spacing: 0.08em;
+.mt-tabs button {
+  font: inherit;
+  color: var(--m-faint);
+  background: none;
+  border: 0;
+  border-radius: 14px;
+  padding: 0.4rem 0 0.35rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
-.beads-center small {
-  color: var(--m-soft);
-  font-variant-numeric: tabular-nums;
+.mt-tabs button.on {
+  color: var(--m-gold);
+  background: rgba(230, 194, 122, 0.12);
+}
+.mt-tabs button:focus-visible,
+.mt-chips button:focus-visible,
+.mt-ghost:focus-visible,
+.mt-seal:focus-visible,
+.mt-cta:focus-visible,
+.mt-sound:focus-visible,
+.mt-back:focus-visible {
+  outline: 2px solid var(--m-gold);
+  outline-offset: 2px;
 }
 
-/* 擲筊 */
-.jiao-q {
-  display: grid;
-  gap: 0.4rem;
+/* 擲筊與桌布的面板 */
+.mt-sheet {
   width: min(100%, 460px);
-  color: var(--m-soft);
-  font-size: 0.88rem;
-}
-.jiao-q input {
-  font: inherit;
-  font-size: 1rem;
-  color: var(--m-paper);
-  background: rgba(255, 255, 255, 0.06);
+  display: grid;
+  gap: 0.8rem;
+  justify-items: center;
+  background: var(--m-glass);
   border: 1px solid var(--m-line);
-  border-radius: 10px;
-  padding: 0.7rem 0.8rem;
+  border-radius: 22px;
+  padding: 1rem 1rem 0.9rem;
+  backdrop-filter: blur(16px);
 }
-.jiao-floor {
+.mt-cups {
   display: flex;
-  gap: 1.4rem;
+  gap: 1rem;
   justify-content: center;
   align-items: flex-end;
-  min-height: 170px;
-  padding-top: 1rem;
+  height: 120px;
 }
-/* 兩片筊杯斜斜落地 */
-.jiao-piece {
+.mt-cup {
   width: 120px;
   height: auto;
-  transition: transform 0.3s ease-out;
+  filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.55));
+  transition: transform 0.25s ease-out;
 }
-.jiao-piece.idle {
-  opacity: 0.85;
+.mt-cup.c0 {
+  transform: rotate(-8deg);
 }
-.jiao-piece.round {
-  transform: rotate(8deg);
+.mt-cup.c1 {
+  transform: rotate(10deg) scaleX(-1);
 }
-.jiao-piece.flat {
-  transform: rotate(-6deg);
+.mt-cups.tossing .mt-cup {
+  animation: mt-toss 1s cubic-bezier(0.3, 0.1, 0.4, 1);
 }
-.jiao-floor.tossing .jiao-piece {
-  animation: jiao-toss 0.95s ease-in-out;
+.mt-cups.tossing .mt-cup.c1 {
+  animation-delay: 0.06s;
 }
-.jiao-floor.tossing .jiao-piece:last-child {
-  animation-delay: 0.05s;
-}
-@keyframes jiao-toss {
+@keyframes mt-toss {
   0% {
     transform: translateY(0) rotate(0);
   }
-  45% {
-    transform: translateY(-120px) rotate(400deg);
+  40% {
+    transform: translateY(-150px) rotate(420deg);
   }
-  80% {
+  78% {
     transform: translateY(0) rotate(700deg);
   }
-  90% {
-    transform: translateY(-14px) rotate(712deg);
+  88% {
+    transform: translateY(-16px) rotate(712deg);
   }
   100% {
     transform: translateY(0) rotate(720deg);
   }
 }
-.jiao-result {
-  width: min(100%, 460px);
-  border: 1px solid var(--m-line);
-  border-radius: 14px;
-  padding: 1rem 1.1rem;
-  text-align: center;
+.mt-q {
+  width: 100%;
   display: grid;
   gap: 0.4rem;
-}
-.jiao-result b {
-  font-size: 1.6rem;
-}
-.jiao-result.sheng {
-  border-color: var(--m-gold);
-  background: rgba(220, 187, 124, 0.12);
-}
-.jiao-result.sheng b {
-  color: var(--m-gold);
-}
-.jiao-result p {
-  margin: 0;
   color: var(--m-soft);
-  line-height: 1.7;
+  font-size: 0.84rem;
 }
-.jiao-streak {
+.mt-q input {
+  font: inherit;
+  font-size: 1rem;
+  color: var(--m-paper);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--m-line);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  user-select: text;
+}
+.mt-result {
+  width: 100%;
+  text-align: center;
+  display: grid;
+  gap: 0.3rem;
+}
+.mt-result b {
+  font-size: 2rem;
+  letter-spacing: 0.2em;
+  padding-left: 0.2em;
+}
+.mt-result.sheng b {
+  color: var(--m-gold);
+  text-shadow: 0 0 18px rgba(255, 190, 80, 0.7);
+}
+.mt-result span {
   color: var(--m-gold);
   font-size: 0.85rem;
 }
+.mt-result p {
+  margin: 0;
+  color: var(--m-soft);
+  line-height: 1.7;
+  font-size: 0.92rem;
+}
 
-/* 桌布 */
-.wall-phone {
+.mt-wall {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  justify-items: stretch;
+  gap: 1rem;
+}
+.mt-wall-side {
+  display: grid;
+  gap: 0.7rem;
+  justify-items: center;
+}
+.mt-phone {
   --c: #e06a7a;
   position: relative;
-  width: 200px;
+  width: 118px;
   aspect-ratio: 9 / 19.5;
-  max-width: 100%;
-  border-radius: 28px;
-  border: 6px solid #1c1a2e;
+  border-radius: 20px;
+  border: 4px solid #241a14;
   background:
-    radial-gradient(70% 40% at 50% 46%, color-mix(in srgb, var(--c) 45%, transparent), transparent 70%),
+    radial-gradient(70% 40% at 50% 48%, color-mix(in srgb, var(--c) 50%, transparent), transparent 72%),
     linear-gradient(#0d0e22, #070812);
   display: grid;
   justify-items: center;
   align-content: start;
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
-.wall-time {
-  margin-top: 26px;
+.mt-phone-time {
+  margin-top: 16px;
   font-family: system-ui, sans-serif;
-  font-size: 30px;
+  font-size: 19px;
   font-weight: 600;
   color: rgba(239, 229, 207, 0.9);
 }
-.wall-glyph {
-  margin-top: 54px;
-  font-size: 76px;
+.mt-phone-glyph {
+  margin-top: 30px;
+  font-size: 48px;
   font-weight: 900;
   line-height: 1;
-  color: var(--m-paper);
-  text-shadow: 0 0 22px var(--c);
+  text-shadow: 0 0 16px var(--c);
 }
-.wall-wish {
-  margin-top: 10px;
+.mt-phone-wish {
+  margin-top: 6px;
+  font-size: 10px;
   color: var(--c);
-  font-size: 15px;
   font-weight: 600;
 }
-.wall-stick {
-  margin-top: 16px;
-  font-size: 11px;
+.mt-phone-stick {
+  margin-top: 10px;
+  font-size: 7px;
   color: var(--m-gold);
   border: 1px solid var(--m-line);
-  padding: 4px 8px;
-}
-.wall-url {
-  position: absolute;
-  bottom: 40px;
-  font-size: 9px;
-  color: rgba(239, 229, 207, 0.4);
+  padding: 2px 4px;
 }
 
-.merit-note {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.7;
-  color: rgba(239, 229, 207, 0.5);
-  text-align: center;
+@media (min-width: 900px) {
+  .mt-tap {
+    left: 25%;
+    right: 25%;
+  }
 }
-
-@media (max-width: 420px) {
-  .merit-tabs button small {
-    display: none;
+@media (max-height: 640px) {
+  .mt-hud {
+    top: calc(env(safe-area-inset-top, 0px) + 44px);
+  }
+  .mt-count {
+    font-size: 2.4rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .muyu-svg,
-  .muyu-mallet,
-  .merit-plus,
-  .jiao-floor.tossing .jiao-piece {
+  .mt-count,
+  .mt-plus,
+  .mt-toast,
+  .mt-cue,
+  .mt-cups.tossing .mt-cup {
     animation: none;
   }
 }

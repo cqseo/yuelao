@@ -116,10 +116,11 @@ function Layout() {
   useEffect(() => {
     trackPageView();
   }, [location.pathname]);
-  // 首頁與 3D 集市自帶頂欄與頁腳；沒有獨立的求籤功能頁。
+  // 首頁、3D 集市與功德台（全螢幕沉浸）自帶頂欄與頁腳；沒有獨立的求籤功能頁。
   if (
     location.pathname === '/' ||
     location.pathname === '/market' ||
+    location.pathname === '/merit' ||
     location.pathname === '/admin'
   ) {
     return <Outlet />;
