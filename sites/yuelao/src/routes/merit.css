@@ -358,7 +358,42 @@
   outline-offset: 2px;
 }
 
-/* 擲筊與桌布的面板 */
+/* 第一人稱念珠：手圖 640×960（原圖 1024×1536 的比例），上方那串珠子是 104×94 的一顆珠子循環貼圖，
+   底端對準手上最上面那顆珠子上方的結（原圖 386,316），沿珠串方向斜 12.9°，往上淡進殿裡的暗處 */
+.mt-mala {
+  --w: min(82vw, 420px);
+  --th: calc(var(--w) * 94 / 1024);
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: var(--w);
+  height: calc(var(--w) * 1.5);
+  transform: translateX(-40%);
+  z-index: 1;
+  pointer-events: none;
+}
+.mt-mala img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.55)) brightness(0.92);
+}
+.mt-mala-strand {
+  position: absolute;
+  left: calc(var(--w) * (386 - 52) / 1024);
+  bottom: calc(100% - var(--w) * 316 / 1024);
+  width: calc(var(--w) * 104 / 1024);
+  height: calc(var(--th) * 5);
+  background: url("/merit/mala-bead.webp") 0 calc(var(--n, 0) * var(--th)) / 100% auto repeat-y;
+  transform-origin: 50% 100%;
+  transform: rotate(-12.9deg);
+  transition: background-position 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  mask-image: linear-gradient(to top, #000 45%, transparent 100%);
+  filter: brightness(0.9);
+}
+
+/* 擲筊與排行榜的面板 */
 .mt-sheet {
   width: min(100%, 460px);
   display: grid;
@@ -455,59 +490,165 @@
   font-size: 0.92rem;
 }
 
-.mt-wall {
-  grid-template-columns: auto 1fr;
-  align-items: center;
+/* 功德排行榜：一張深色木牌上的金字名單；前三名用壹貳參 */
+.mt-board {
   justify-items: stretch;
-  gap: 1rem;
+  gap: 0.6rem;
 }
-.mt-wall-side {
+.mt-board-head {
   display: grid;
-  gap: 0.7rem;
+  gap: 0.35rem;
   justify-items: center;
 }
-.mt-phone {
-  --c: #e06a7a;
-  position: relative;
-  width: 118px;
-  aspect-ratio: 9 / 19.5;
-  border-radius: 20px;
-  border: 4px solid #241a14;
-  background:
-    radial-gradient(70% 40% at 50% 48%, color-mix(in srgb, var(--c) 50%, transparent), transparent 72%),
-    linear-gradient(#0d0e22, #070812);
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+.mt-board-head small {
+  color: var(--m-faint);
+  font-size: 0.75rem;
 }
-.mt-phone-time {
-  margin-top: 16px;
-  font-family: system-ui, sans-serif;
-  font-size: 19px;
-  font-weight: 600;
-  color: rgba(239, 229, 207, 0.9);
-}
-.mt-phone-glyph {
-  margin-top: 30px;
-  font-size: 48px;
-  font-weight: 900;
-  line-height: 1;
-  text-shadow: 0 0 16px var(--c);
-}
-.mt-phone-wish {
-  margin-top: 6px;
-  font-size: 10px;
-  color: var(--c);
-  font-weight: 600;
-}
-.mt-phone-stick {
-  margin-top: 10px;
-  font-size: 7px;
-  color: var(--m-gold);
+.mt-seg {
+  display: inline-flex;
   border: 1px solid var(--m-line);
-  padding: 2px 4px;
+  border-radius: 999px;
+  padding: 3px;
+}
+.mt-seg button {
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--m-soft);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  cursor: pointer;
+}
+.mt-seg button.on {
+  color: #2a1708;
+  background: var(--m-gold);
+}
+.mt-ranks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(30vh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+.mt-ranks li {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+.mt-ranks li:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.03);
+}
+.mt-ranks li.me {
+  background: rgba(230, 194, 122, 0.16);
+  outline: 1px solid var(--m-line);
+}
+.mt-rank-no {
+  text-align: center;
+  color: var(--m-faint);
+  font-variant-numeric: tabular-nums;
+}
+.mt-ranks li.r1 .mt-rank-no,
+.mt-ranks li.r2 .mt-rank-no,
+.mt-ranks li.r3 .mt-rank-no {
+  width: 1.8rem;
+  height: 1.8rem;
+  line-height: 1.8rem;
+  margin: 0 auto;
+  border-radius: 6px;
+  color: #fff3dc;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: var(--m-red);
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 170, 0.35);
+}
+.mt-ranks li.r1 .mt-rank-no {
+  background: linear-gradient(#c9353f, #8e1f17);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 220, 170, 0.5),
+    0 0 12px rgba(255, 170, 80, 0.45);
+}
+.mt-ranks li.r1 b {
+  color: var(--m-gold);
+  text-shadow: 0 0 12px rgba(255, 190, 80, 0.5);
+}
+.mt-rank-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mt-rank-name em {
+  font-style: normal;
+  color: var(--m-gold);
+  font-size: 0.8rem;
+}
+.mt-ranks b {
+  font-variant-numeric: tabular-nums;
+  color: var(--m-paper);
+}
+.mt-rank-empty {
+  display: block !important;
+  text-align: center;
+  color: var(--m-soft);
+  padding: 1.2rem 0.5rem !important;
+}
+.mt-me {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+  border-top: 1px solid var(--m-line);
+  padding-top: 0.7rem;
+}
+.mt-me-line {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.mt-me-line b {
+  color: var(--m-gold);
+}
+.mt-link {
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--m-soft);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+.mt-nick {
+  width: 100%;
+  display: flex;
+  gap: 0.5rem;
+}
+.mt-nick input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--m-paper);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--m-line);
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  user-select: text;
+}
+.mt-seg button:focus-visible,
+.mt-link:focus-visible {
+  outline: 2px solid var(--m-gold);
+  outline-offset: 2px;
 }
 
 @media (min-width: 900px) {

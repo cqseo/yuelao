@@ -103,38 +103,3 @@ export const JIAO_TEXT: Record<JiaoResult, { name: string; hans: string; line: s
 
 /** 連續聖筊：聖筊就加一，其他歸零。民間常說連三聖筊最確定。 */
 export const shengStreak = (prev: number, r: JiaoResult) => (r === 'sheng' ? prev + 1 : 0);
-
-// ---------- 桌布 ----------
-export const WALLPAPERS = [
-  {
-    id: 'love',
-    name: '招桃花',
-    hans: '招桃花',
-    glyph: '緣',
-    glyphHans: '缘',
-    color: '#e06a7a',
-    wish: '願得一心人',
-    wishHans: '愿得一心人',
-  },
-  {
-    id: 'wealth',
-    name: '招財',
-    hans: '招财',
-    glyph: '財',
-    glyphHans: '财',
-    color: '#e8c25a',
-    wish: '財源廣進',
-    wishHans: '财源广进',
-  },
-  {
-    id: 'peace',
-    name: '保平安',
-    hans: '保平安',
-    glyph: '安',
-    glyphHans: '安',
-    color: '#8fc4a8',
-    wish: '出入平安',
-    wishHans: '出入平安',
-  },
-] as const;
-export type WallpaperId = (typeof WALLPAPERS)[number]['id'];

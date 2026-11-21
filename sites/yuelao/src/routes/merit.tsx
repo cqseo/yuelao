@@ -4,8 +4,7 @@ import { contentLocale } from '~/i18n/locale';
 import { pageHead } from '~/i18n/seo';
 import { tr } from '~/i18n/ui';
 import { track } from '~/lib/track';
-import { dailyStick, todayLabel } from '~/market/engine/daily-draw.js';
-import { shareMerit, shareWallpaper } from '~/market/engine/share.js';
+import { shareMerit } from '~/market/engine/share.js';
 import { getLocale, localizeHref } from '~/paraglide/runtime.js';
 import {
   bead as beadSound,
@@ -33,22 +32,31 @@ import {
   shengStreak,
   todayCount,
   tossJiao,
-  WALLPAPERS,
-  type WallpaperId,
 } from '~/site/merit';
+import {
+  addPending,
+  type Board as BoardData,
+  type BoardRange,
+  beacon,
+  fetchBoard,
+  flush,
+  nickname as savedNickname,
+  setNickname,
+} from '~/site/merit-sync';
 import site from '../../site.config';
 import './merit.css';
 
 // 功德台（2026-11-21 重做成沉浸式）：殿內供桌的 3D 場景（three.js，懶載）＋手機 App 式的介面。
-// 敲木魚、撥念珠、擲筊問事、今日籤桌布。不用 AI、不用登入；功德數只記在這台瀏覽器。
+// 敲木魚、撥念珠、擲筊問事、功德排行榜。不用 AI、不用登入。
+// 功德數記在這台瀏覽器，也匿名送上排行榜（只有自己取的法號，見 site/merit-sync.ts）。
 // 每一樣玩完都接到月老殿求籤。
 
 export const Route = createFileRoute('/merit')({
   head: () =>
     pageHead(site, {
-      title: tr('功德台｜線上敲木魚、念珠、擲筊、招桃花桌布 · 免費'),
+      title: tr('功德台｜線上敲木魚、念珠、擲筊、功德排行榜 · 免費'),
       description: tr(
-        '手機上的功德台：在殿前敲木魚功德 +1、撥 108 顆念珠、擲筊問月老一件事、把今日一籤做成招桃花手機桌布。免費、免登入。',
+        '手機上的功德台：在殿前敲木魚功德 +1、撥 108 顆念珠、擲筊問月老一件事，上功德排行榜看誰今天敲得多。免費、免登入。',
       ),
       path: localizeHref('/merit', { locale: getLocale() }),
       image: `${site.url}/og/merit.jpg`,
@@ -56,7 +64,7 @@ export const Route = createFileRoute('/merit')({
   component: MeritPage,
 });
 
-const TABS = ['muyu', 'beads', 'jiao', 'wallpaper'] as const;
+const TABS = ['muyu', 'beads', 'jiao', 'board'] as const;
 type Tab = (typeof TABS)[number];
 type T = (hant: string, hans: string) => string;
 type Scene = {
@@ -110,11 +118,15 @@ function MeritPage() {
   const [note, setNote] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
   const hand = useRef<HTMLImageElement>(null);
+  const mala = useRef<HTMLDivElement>(null);
+  const [flicks, setFlicks] = useState(0);
   const scene = useRef<Scene | null>(null);
   const lastTap = useRef(0);
   const plusId = useRef(0);
   const seen = useRef(new Set<string>());
   const toastTimer = useRef(0);
+  const hansRef = useRef(hans);
+  hansRef.current = hans;
 
   useEffect(() => {
     const r = load();
@@ -137,6 +149,7 @@ function MeritPage() {
           scene.current = createMeritScene(canvas.current, {
             onReady: () => setReady(true),
             handEl: hand.current,
+            malaHand: true,
             // 槌子真的碰到木魚那一刻才出聲、震動（手要先伸進來，約 0.09 秒）
             onImpact: (power: number) => {
               woodblock();
@@ -152,8 +165,19 @@ function MeritPage() {
         }
       })
       .catch(() => setNoGl(true));
+    // 排行榜：每 3 秒把剛敲的下數送出去；切走或關掉頁面時用 beacon 送最後一批
+    const timer = window.setInterval(() => void flush(hansRef.current), 3000);
+    const hide = () => {
+      if (document.visibilityState === 'hidden') beacon(hansRef.current);
+    };
+    document.addEventListener('visibilitychange', hide);
+    addEventListener('pagehide', hide);
     return () => {
       dead = true;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', hide);
+      removeEventListener('pagehide', hide);
+      beacon(hansRef.current);
       removeEventListener('hashchange', read);
       scene.current?.dispose();
       templeAmbience(false);
@@ -204,6 +228,7 @@ function MeritPage() {
     setSession(n);
     setPop((p) => p + 1);
     floatPlus();
+    addPending(1);
     if (tab === 'muyu') {
       update(addMerit(recRef.current, 1, d));
       const big = MILESTONES[n];
@@ -222,6 +247,16 @@ function MeritPage() {
       const { rec: next, round: done } = nextBead(recRef.current, d);
       update(next);
       scene.current?.bead(done);
+      setFlicks((f) => f + 1);
+      // 拇指往下推一顆：整隻手跟著輕輕一沉再回來
+      mala.current?.animate(
+        [
+          { transform: 'translateX(-40%) translateY(0) rotate(0deg)' },
+          { transform: 'translateX(-40%) translateY(10px) rotate(1.2deg)', offset: 0.35 },
+          { transform: 'translateX(-40%) translateY(0) rotate(0deg)' },
+        ],
+        { duration: 260, easing: 'ease-out' },
+      );
       vibrate(done ? [30, 40, 30] : 8);
       if (done) {
         chime(523);
@@ -256,7 +291,7 @@ function MeritPage() {
     muyu: t('木魚', '木鱼'),
     beads: t('念珠', '念珠'),
     jiao: t('擲筊', '掷筊'),
-    wallpaper: t('桌布', '壁纸'),
+    board: t('排行榜', '排行榜'),
   };
 
   return (
@@ -272,6 +307,13 @@ function MeritPage() {
         height={507}
         decoding="async"
       />
+      {/* 第一人稱撥念珠：左手掌心朝自己、拇指推珠；手上方那串是循環的珠子，每撥一下往下走一顆 */}
+      {tab === 'beads' && (
+        <div ref={mala} className="mt-mala" aria-hidden="true">
+          <div className="mt-mala-strand" style={{ '--n': flicks } as React.CSSProperties} />
+          <img src="/merit/mala-hand.webp" alt="" width={640} height={960} decoding="async" />
+        </div>
+      )}
       {!ready && !noGl && <div className="mt-loading">{t('正在進殿…', '正在进殿…')}</div>}
 
       <header className="mt-top">
@@ -308,7 +350,7 @@ function MeritPage() {
           onClick={tap}
           aria-label={tab === 'muyu' ? t('敲一下木魚', '敲一下木鱼') : t('撥一顆念珠', '拨一颗念珠')}
         >
-          {noGl && <span className="mt-fallback">{tab === 'muyu' ? t('篤', '笃') : '◯'}</span>}
+          {noGl && tab === 'muyu' && <span className="mt-fallback">{t('篤', '笃')}</span>}
           {plus.map((p) => (
             <span key={p.id} className="mt-plus" style={{ marginLeft: `${p.x}px` }}>
               {t('功德 +1', '功德 +1')}
@@ -357,7 +399,7 @@ function MeritPage() {
           </p>
         )}
         {tab === 'jiao' && <Jiao t={t} hans={hans} onTouch={firstTouch} />}
-        {tab === 'wallpaper' && <Wallpaper t={t} hans={hans} />}
+        {tab === 'board' && <Board t={t} hans={hans} today={today} onGo={() => choose('muyu')} />}
 
         <nav className="mt-tabs" aria-label={t('功德台', '功德台')}>
           {TABS.map((x) => (
@@ -412,8 +454,9 @@ function TabIcon({ tab }: { tab: Tab }) {
     );
   return (
     <svg {...p} aria-hidden="true">
-      <rect x="7" y="2.5" width="10" height="19" rx="2.2" />
-      <path d="M12 8v6M10 11h4" />
+      <path d="M8 21h8M12 17v4" />
+      <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
+      <path d="M7 6H4c0 3 1.5 4.5 3 4.5M17 6h3c0 3-1.5 4.5-3 4.5" />
     </svg>
   );
 }
@@ -505,75 +548,196 @@ function Jiao({ t, hans, onTouch }: { t: T; hans: boolean; onTouch: () => void }
   );
 }
 
-function Wallpaper({ t, hans }: { t: T; hans: boolean }) {
-  const [theme, setTheme] = useState<WallpaperId>('love');
+const RANGES: BoardRange[] = ['day', 'week', 'all'];
+
+/** 功德排行榜：今日／本週／總榜，前 50 名＋自己的名次，可以改法號。 */
+function Board({ t, hans, today, onGo }: { t: T; hans: boolean; today: number; onGo: () => void }) {
+  const [range, setRange] = useState<BoardRange>('day');
+  const [data, setData] = useState<BoardData | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [nick, setNick] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
   const [note, setNote] = useState('');
-  const [d, setD] = useState<ReturnType<typeof dailyStick> | null>(null);
+
+  useEffect(() => setNick(savedNickname(hans)), [hans]);
   useEffect(() => {
-    const x = dailyStick();
-    if (x.stick) setD(x);
-  }, []);
-  const w = WALLPAPERS.find((x) => x.id === theme) ?? WALLPAPERS[0];
-  const make = async () => {
-    if (!d?.stick) return;
-    setNote(t('正在做桌布…', '正在做壁纸…'));
-    const r = await shareWallpaper({
-      glyph: hans ? w.glyphHans : w.glyph,
-      title: hans ? w.hans : w.name,
-      wish: hans ? w.wishHans : w.wish,
-      color: w.color,
-      no: d.stick.no,
-      grade: d.stick.grade,
-      poem: d.stick.poem,
-      date: todayLabel(),
-    });
-    track('merit_wallpaper', { theme, result: r });
-    setNote(
-      r === 'saved' || r === 'shared'
-        ? t('存好了。到手機的「設定 → 桌布」換上它。', '存好了。到手机的「设置 → 壁纸」换上它。')
-        : '',
+    let dead = false;
+    setFailed(false);
+    // 先把剛敲的送上去，自己的名次才是最新的
+    void flush(hans).then(() =>
+      fetchBoard(range).then((b) => {
+        if (dead) return;
+        setData(b);
+        setFailed(!b);
+      }),
     );
+    track('merit_board', { range });
+    return () => {
+      dead = true;
+    };
+  }, [range, hans]);
+
+  const saveNick = async () => {
+    const n = draft.replace(/\s+/gu, ' ').trim();
+    if (!n || [...n].length > 10) {
+      setNote(t('法號要 1 到 10 個字。', '法号要 1 到 10 个字。'));
+      return;
+    }
+    const old = nick;
+    setNickname(n);
+    setNick(n);
+    const r = await flush(hans, true);
+    if (!r.ok) {
+      setNickname(old);
+      setNick(old);
+      setNote(
+        r.error === 'bad_nickname'
+          ? t(
+              '這個法號不能用：不能放聯絡方式、連結或不雅的字。',
+              '这个法号不能用：不能放联系方式、链接或不雅的字。',
+            )
+          : t('現在連不上，等一下再改。', '现在连不上，等一下再改。'),
+      );
+      return;
+    }
+    setEditing(false);
+    setNote('');
+    track('merit_nickname', {});
+    const b = await fetchBoard(range);
+    if (b) setData(b);
   };
+
+  const LABEL: Record<BoardRange, string> = {
+    day: t('今日', '今日'),
+    week: t('本週', '本周'),
+    all: t('總榜', '总榜'),
+  };
+  const me = data?.me;
+  const inTop = data?.top.some((r) => r.me);
   return (
-    <div className="mt-sheet mt-wall">
-      <div className="mt-phone" style={{ '--c': w.color } as React.CSSProperties}>
-        <span className="mt-phone-time">09:41</span>
-        <span className="mt-phone-glyph">{hans ? w.glyphHans : w.glyph}</span>
-        <span className="mt-phone-wish">{hans ? w.wishHans : w.wish}</span>
-        {d?.stick && (
-          <span className="mt-phone-stick">
-            {d.stick.no} · {d.stick.grade}
-          </span>
-        )}
-      </div>
-      <div className="mt-wall-side">
-        <div className="mt-chips">
-          {WALLPAPERS.map((x) => (
+    <div className="mt-sheet mt-board">
+      <div className="mt-board-head">
+        <div className="mt-seg" role="tablist" aria-label={t('排行榜範圍', '排行榜范围')}>
+          {RANGES.map((x) => (
             <button
-              key={x.id}
+              key={x}
               type="button"
-              aria-pressed={theme === x.id}
-              className={theme === x.id ? 'on' : ''}
-              onClick={() => setTheme(x.id)}
+              role="tab"
+              aria-selected={range === x}
+              className={range === x ? 'on' : ''}
+              onClick={() => setRange(x)}
             >
-              {hans ? x.hans : tr(x.name)}
+              {LABEL[x]}
             </button>
           ))}
         </div>
-        <p className="mt-note">
-          {t(
-            '用你今天的「今日一籤」做成手機桌布，每天換一支。',
-            '用你今天的「今日一签」做成手机壁纸，每天换一支。',
-          )}
-        </p>
-        <button type="button" id="wall-make" className="mt-seal" onClick={make} disabled={!d}>
-          {t('存成手機桌布', '存成手机壁纸')}
-        </button>
+        <small>
+          {range === 'day'
+            ? t('每天 0 點（台灣時間）重新開始', '每天 0 点（台湾时间）重新开始')
+            : range === 'week'
+              ? t('最近 7 天', '最近 7 天')
+              : t('從開榜到現在', '从开榜到现在')}
+        </small>
+      </div>
+
+      <ol className="mt-ranks" aria-busy={!data && !failed}>
+        {failed && (
+          <li className="mt-rank-empty">
+            {t('排行榜暫時打不開，等一下再看。', '排行榜暂时打不开，等一下再看。')}
+          </li>
+        )}
+        {data && !data.top.length && (
+          <li className="mt-rank-empty">
+            {t('還沒有人上榜，敲第一下就是第一名。', '还没有人上榜，敲第一下就是第一名。')}
+          </li>
+        )}
+        {data?.top.map((r) => (
+          <li
+            key={`${r.rank}-${r.nickname}-${r.total}`}
+            className={`${r.me ? 'me ' : ''}r${Math.min(r.rank, 4)}`}
+          >
+            <span className="mt-rank-no">{r.rank <= 3 ? ['', '壹', '貳', '參'][r.rank] : r.rank}</span>
+            <span className="mt-rank-name">
+              {r.nickname}
+              {r.me && <em>{t('（你）', '（你）')}</em>}
+            </span>
+            <b>{r.total.toLocaleString()}</b>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-me">
+        {editing ? (
+          <form
+            className="mt-nick"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveNick();
+            }}
+          >
+            <input
+              id="merit-nick"
+              value={draft}
+              maxLength={10}
+              onChange={(e) => setDraft(e.target.value)}
+              aria-label={t('法號', '法号')}
+              autoComplete="off"
+              // biome-ignore lint/a11y/noAutofocus: the field opens on request.
+              autoFocus
+            />
+            <button type="submit" className="mt-seal">
+              {t('存', '存')}
+            </button>
+          </form>
+        ) : (
+          <>
+            <div className="mt-me-line">
+              <span>
+                {nick}
+                <button
+                  type="button"
+                  className="mt-link"
+                  onClick={() => {
+                    setDraft(nick);
+                    setEditing(true);
+                  }}
+                >
+                  {t('改法號', '改法号')}
+                </button>
+              </span>
+              <b>
+                {me
+                  ? inTop
+                    ? t(`第 ${me.rank} 名`, `第 ${me.rank} 名`)
+                    : t(
+                        `第 ${me.rank} 名 · ${me.total.toLocaleString()}`,
+                        `第 ${me.rank} 名 · ${me.total.toLocaleString()}`,
+                      )
+                  : t('還沒上榜', '还没上榜')}
+              </b>
+            </div>
+            <button type="button" id="merit-go" className="mt-seal" onClick={onGo}>
+              {range === 'day' && today > 0
+                ? t(
+                    `今天已敲 ${today.toLocaleString()} 下，再去敲`,
+                    `今天已敲 ${today.toLocaleString()} 下，再去敲`,
+                  )
+                : t('去敲木魚，衝上榜', '去敲木鱼，冲上榜')}
+            </button>
+          </>
+        )}
         {note && (
           <p className="mt-note" role="status">
             {note}
           </p>
         )}
+        <p className="mt-note small">
+          {t(
+            '榜上只顯示法號，不顯示帳號。換手機或清掉瀏覽器資料會從頭算。',
+            '榜上只显示法号，不显示账号。换手机或清掉浏览器资料会从头算。',
+          )}
+        </p>
       </div>
     </div>
   );

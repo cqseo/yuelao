@@ -677,6 +677,36 @@ export async function shareMerit({ today, total, kind = 'muyu', shot = null }) {
       g.drawImage(hand, -76 * k, -74 * k, hand.width * k, hand.height * k);
       g.restore();
     }
+  } else {
+    // 念珠：和頁面同一隻左手＋往上延伸的珠串（一顆珠子的貼圖疊上去）
+    const [hand, bead] = await Promise.all([
+      loadImg('/merit/mala-hand.webp'),
+      loadImg('/merit/mala-bead.webp'),
+    ]);
+    if (hand) {
+      g.save();
+      g.beginPath();
+      g.rect(0, 0, W, PH - 60);
+      g.clip();
+      const hw = 620;
+      const k = hw / 1024; // 手圖座標以原圖 1024 寬計
+      const x0 = W / 2 - hw * 0.4;
+      const y0 = 250;
+      if (bead) {
+        const bw = 104 * k;
+        const bh = 94 * k;
+        g.save();
+        g.translate(x0 + 386 * k, y0 + 316 * k);
+        g.rotate((-12.9 * Math.PI) / 180);
+        for (let i = 1; i <= 5; i++) {
+          g.globalAlpha = Math.max(0, 1 - (i - 2) * 0.3);
+          g.drawImage(bead, -bw / 2, -bh * i, bw, bh);
+        }
+        g.restore();
+      }
+      g.drawImage(hand, x0, y0, hw, hw * 1.5);
+      g.restore();
+    }
   }
   // 上下漸層：上面放字、下面接到底部面板
   let gr = g.createLinearGradient(0, 0, 0, 260);
@@ -761,93 +791,4 @@ export async function shareMerit({ today, total, kind = 'muyu', shot = null }) {
   const qs = 230;
   drawQr(g, shareUrl('/merit'), W - 64 - qs, H - 64 - qs, qs);
   return deliver(c, 'yuelao-merit.png', '今日功德');
-}
-
-/**
- * 手機桌布（功德台，2026-11-21）：1080×2340。上方留給時鐘、下方留給 Dock，
- * 中間一個大字（緣／財／安）＋今日一籤的籤號、等第、籤詩直排，最下面小字站名。
- */
-export async function shareWallpaper({ glyph, title, wish, color, no, grade, poem, date }) {
-  await ready();
-  const SW = 1080;
-  const SH = 2340;
-  const c = document.createElement('canvas');
-  c.width = SW;
-  c.height = SH;
-  const g = c.getContext('2d');
-  const bg = g.createLinearGradient(0, 0, 0, SH);
-  bg.addColorStop(0, '#0d0e22');
-  bg.addColorStop(0.55, '#14112a');
-  bg.addColorStop(1, NIGHT);
-  g.fillStyle = bg;
-  g.fillRect(0, 0, SW, SH);
-  const halo = g.createRadialGradient(SW / 2, 1050, 40, SW / 2, 1050, 780);
-  halo.addColorStop(0, `${color}77`);
-  halo.addColorStop(0.5, `${color}1f`);
-  halo.addColorStop(1, `${color}00`);
-  g.fillStyle = halo;
-  g.fillRect(0, 0, SW, SH);
-  g.fillStyle = 'rgba(239,229,207,0.5)';
-  for (let i = 0; i < 90; i++) {
-    const x = Math.abs((Math.sin(i * 12.9898) * 43758.5453) % 1);
-    const y = Math.abs((Math.sin(i * 78.233) * 12345.678) % 1);
-    g.globalAlpha = 0.18 + ((i * 7) % 10) / 24;
-    g.fillRect(x * SW, 300 + y * 1900, 2, 2);
-  }
-  g.globalAlpha = 1;
-  // 一彎月
-  g.fillStyle = 'rgba(239,229,207,0.85)';
-  g.beginPath();
-  g.arc(SW - 210, 640, 54, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = '#100f26';
-  g.beginPath();
-  g.arc(SW - 186, 624, 50, 0, Math.PI * 2);
-  g.fill();
-
-  g.textAlign = 'center';
-  // 大字
-  g.save();
-  g.shadowColor = color;
-  g.shadowBlur = 70;
-  g.fillStyle = PAPER;
-  g.font = `900 360px ${SERIF}`;
-  g.fillText(glyph, SW / 2, 1110);
-  g.restore();
-  g.fillStyle = color;
-  g.font = `600 64px ${SERIF}`;
-  g.fillText(wish, SW / 2, 1240);
-  g.fillStyle = 'rgba(239,229,207,0.6)';
-  g.font = `400 34px ${SERIF}`;
-  g.fillText(`${title} · ${date}`, SW / 2, 1310);
-
-  // 今日一籤：細框裡籤號、等第，籤詩直排（右起，每行一直欄）
-  const bw = 620;
-  const bh = 460;
-  const bx = SW / 2 - bw / 2;
-  const by = 1400;
-  g.strokeStyle = 'rgba(220,187,124,0.55)';
-  g.lineWidth = 2;
-  g.strokeRect(bx, by, bw, bh);
-  g.fillStyle = GOLD;
-  g.font = `600 32px ${SERIF}`;
-  g.fillText(`今日一籤 · ${no} · ${grade}`, SW / 2, by + 60);
-  const cols = String(poem || '')
-    .split(/[\n，。、；！？]/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .slice(0, 4);
-  g.fillStyle = 'rgba(239,229,207,0.88)';
-  g.font = `500 38px ${SERIF}`;
-  const gap = 78;
-  cols.forEach((l, i) => {
-    const cx = SW / 2 + ((cols.length - 1) / 2 - i) * gap;
-    [...l].slice(0, 8).forEach((ch, k) => {
-      g.fillText(ch, cx, by + 130 + k * 42);
-    });
-  });
-  g.fillStyle = 'rgba(239,229,207,0.42)';
-  g.font = `400 28px ${SERIF}`;
-  g.fillText(`月下 · ${host() || 'yuexia.app'}`, SW / 2, SH - 330);
-  return deliver(c, 'yuelao-wallpaper.png', `${title}桌布`);
 }

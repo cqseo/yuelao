@@ -645,7 +645,8 @@ export function createMeritScene(canvas, opts = {}) {
     if (mode !== 'beads') return;
     beadTarget += (Math.PI * 2) / N;
     hiPulse = 1;
-    burst(new THREE.Vector3(0, 1.12 + R, 0.45), round ? 36 : 4, round ? 1.8 : 0.5);
+    if (round || !opts.malaHand)
+      burst(new THREE.Vector3(0, 1.12 + R, 0.45), round ? 36 : 4, round ? 1.8 : 0.5);
     if (round) {
       beamT = 1;
       flash.intensity = 10;
@@ -664,9 +665,10 @@ export function createMeritScene(canvas, opts = {}) {
     malletPivot.visible = showFish && !opts.handEl;
     cushion.visible = m !== 'beads';
     trim.visible = m !== 'beads';
-    beadsGrp.visible = m === 'beads';
-    // 擲筊、桌布：鏡頭拉遠一點，讓前景的面板有空間
-    dim = m === 'jiao' || m === 'wallpaper' ? 1 : 0;
+    // 頁面疊了第一人稱握念珠的手（malaHand）就不畫 3D 那圈
+    beadsGrp.visible = m === 'beads' && !opts.malaHand;
+    // 擲筊、排行榜：鏡頭拉遠一點，讓前景的面板有空間
+    dim = m === 'jiao' || m === 'board' ? 1 : 0;
   }
   let dim = 0;
   let dimNow = 0;
