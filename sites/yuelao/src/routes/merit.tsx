@@ -109,6 +109,7 @@ function MeritPage() {
   const [chant, setChant] = useState<(typeof CHANTS)[number]['id']>('amitabha');
   const [note, setNote] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
+  const hand = useRef<HTMLImageElement>(null);
   const scene = useRef<Scene | null>(null);
   const lastTap = useRef(0);
   const plusId = useRef(0);
@@ -133,7 +134,18 @@ function MeritPage() {
       .then(({ createMeritScene }) => {
         if (dead || !canvas.current) return;
         try {
-          scene.current = createMeritScene(canvas.current, { onReady: () => setReady(true) }) as Scene;
+          scene.current = createMeritScene(canvas.current, {
+            onReady: () => setReady(true),
+            handEl: hand.current,
+            // 槌子真的碰到木魚那一刻才出聲、震動（手要先伸進來，約 0.09 秒）
+            onImpact: (power: number) => {
+              woodblock();
+              vibrate(power > 1 ? [30, 40, 30] : 14);
+            },
+          }) as Scene;
+          // 截圖檢查姿勢用（網址帶 ?debug=pose 才掛上）
+          if (location.search.includes('debug=pose'))
+            (window as unknown as { __merit: Scene }).__merit = scene.current;
           scene.current.setMode(location.hash.slice(1) || 'muyu');
         } catch {
           setNoGl(true);
@@ -195,9 +207,11 @@ function MeritPage() {
     if (tab === 'muyu') {
       update(addMerit(recRef.current, 1, d));
       const big = MILESTONES[n];
-      scene.current?.hit(big ? 2 : 1);
-      woodblock();
-      vibrate(big ? [30, 40, 30] : 14);
+      if (scene.current) scene.current.hit(big ? 2 : 1);
+      else {
+        woodblock();
+        vibrate(big ? [30, 40, 30] : 14);
+      }
       if (big) {
         scene.current?.celebrate();
         chime(523);
@@ -246,6 +260,16 @@ function MeritPage() {
   return (
     <article className={`mt${ready ? ' ready' : ''}${tapping ? '' : ' dim'}`}>
       <canvas ref={canvas} className="mt-canvas" />
+      {/* 第一人稱握槌的手：位置與揮動由 3D 場景每一格算好 */}
+      <img
+        ref={hand}
+        className="mt-hand"
+        src="/merit/hand.webp"
+        alt=""
+        width={604}
+        height={484}
+        decoding="async"
+      />
       {!ready && !noGl && <div className="mt-loading">{t('正在進殿…', '正在进殿…')}</div>}
 
       <header className="mt-top">
