@@ -392,28 +392,34 @@ export function createMeritScene(canvas, opts = {}) {
   scene.add(fish);
 
   // 木槌：軸心在握柄尾端，平時抬起，敲的時候落下
+  // 從正面敲（2026-11-21 站長：木槌應該從前面來）：握柄在鏡頭這一側的右下方，
+  // 槌頭落在木魚正面、魚口上方。外層對準目標，內層只負責上下揮。
+  const STRIKE = new THREE.Vector3(0.06, 1.17, 0.7);
   const malletPivot = new THREE.Group();
-  malletPivot.position.set(0.95, 1.55, 0.45);
+  malletPivot.position.set(0.62, 0.92, 2.3);
+  malletPivot.lookAt(STRIKE);
+  const swing = new THREE.Group();
+  malletPivot.add(swing);
+  const reach = malletPivot.position.distanceTo(STRIKE);
   const malletWood = new THREE.MeshPhysicalMaterial({
     map: lacqueredWood('#c89a5a', '#e2bd84', 30),
     roughness: 0.45,
     clearcoat: 0.4,
   });
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.72, 16), malletWood);
-  shaft.rotation.z = Math.PI / 2;
-  shaft.position.x = -0.36;
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.028, reach - 0.08, 16), malletWood);
+  shaft.rotation.x = Math.PI / 2;
+  shaft.position.z = (reach - 0.08) / 2;
   shaft.castShadow = true;
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 32, 24), malletWood);
-  head.scale.set(1.25, 0.95, 0.95);
-  head.position.x = -0.74;
+  head.scale.set(1.3, 0.95, 0.95);
+  head.position.z = reach - 0.02;
   head.castShadow = true;
-  malletPivot.add(shaft, head);
+  swing.add(shaft, head);
   scene.add(malletPivot);
-  const MALLET_UP = 0.55;
+  // 平時槌頭抬起；敲的時候落到木魚上
+  const MALLET_UP = -0.16;
   const MALLET_HIT = 0.0;
-  // 敲的時候木槌頭剛好碰到木魚頂偏右
-  malletPivot.rotation.z = MALLET_UP;
-  malletPivot.rotation.y = 0.35;
+  swing.rotation.x = MALLET_UP;
 
   // ---------- 念珠 ----------
   const beadsGrp = new THREE.Group();
@@ -532,7 +538,7 @@ export function createMeritScene(canvas, opts = {}) {
   let beadTurn = 0;
   let beadTarget = 0;
   let hiPulse = 0;
-  const hitPoint = new THREE.Vector3(0.22, 1.36, 0.32);
+  const hitPoint = STRIKE.clone();
 
   function hit(power = 1) {
     if (mode !== 'muyu') return;
@@ -602,12 +608,12 @@ export function createMeritScene(canvas, opts = {}) {
     if (strikeT >= 0) {
       strikeT += dt / 0.22;
       const k = strikeT < 0.35 ? strikeT / 0.35 : 1 - (strikeT - 0.35) / 0.65;
-      malletPivot.rotation.z = MALLET_UP + (MALLET_HIT - MALLET_UP) * Math.max(0, Math.min(1, k * k));
+      swing.rotation.x = MALLET_UP + (MALLET_HIT - MALLET_UP) * Math.max(0, Math.min(1, k * k));
       if (strikeT >= 1) {
         strikeT = -1;
-        malletPivot.rotation.z = MALLET_UP;
+        swing.rotation.x = MALLET_UP;
       }
-    } else malletPivot.rotation.z = MALLET_UP + Math.sin(t * 1.4) * 0.015;
+    } else swing.rotation.x = MALLET_UP + Math.sin(t * 1.4) * 0.015;
     squash = Math.max(0, squash - dt * 9);
     const s = 1 - Math.sin(squash * Math.PI) * 0.035;
     fish.scale.set(1 + (1 - s) * 0.6, s, 1 + (1 - s) * 0.6);
