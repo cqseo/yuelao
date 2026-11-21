@@ -621,30 +621,145 @@ export async function shareDaily({ kind, dateLabel, title, name, sub, kw = [], l
 /**
  * 功德圖（功德台，2026-11-21）：1080×1350，今日功德大數字＋累計，底部 QR 到 /merit。
  */
-export async function shareMerit({ today, total, kind = 'muyu' }) {
+/** 今日敲幾下 → 一句稱號（好玩，不是保證什麼）。 */
+export function meritTitle(n, beads = false) {
+  if (beads) return n >= 108 ? '一圈圓滿' : '心定下來了';
+  if (n >= 1000) return '功德無量';
+  if (n >= 300) return '木魚高手';
+  if (n >= 108) return '功德圓滿';
+  if (n >= 33) return '煩惱放下';
+  return '心靜一點';
+}
+
+/**
+ * 功德圖（功德台，2026-11-21 改版）：1080×1350。上半是當下殿裡的畫面（木魚、燭火、金粉），
+ * 一隻手握槌敲下去；中間一顆朱紅印章蓋上今天的稱號，大字「+N 功德」；
+ * 底下一句挑戰「換你來敲」＋ QR。目的是讓看到的人想點進來玩。
+ */
+export async function shareMerit({ today, total, kind = 'muyu', shot = null }) {
   await ready();
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
   const g = c.getContext('2d');
-  night(g);
-  g.textAlign = 'center';
+  const beads = kind === 'beads';
+  g.fillStyle = '#0e0705';
+  g.fillRect(0, 0, W, H);
+
+  // 上半：殿內畫面，以木魚為中心裁成 1080×900
+  const PH = 900;
+  const photo = shot ? await loadImg(shot.url) : null;
+  if (photo) {
+    // 讓木魚寬約佔畫面 62%
+    const scale = (W * 0.31) / Math.max(1, shot.r);
+    const sw = W / scale;
+    const sh = PH / scale;
+    let sx = shot.cx - sw / 2;
+    let sy = shot.cy - sh * 0.52;
+    sx = Math.max(0, Math.min(shot.w - sw, sx));
+    sy = Math.max(0, Math.min(shot.h - sh, sy));
+    g.drawImage(photo, sx, sy, sw, sh, 0, 0, W, PH);
+  } else {
+    night(g);
+  }
+  // 手：右下方握槌敲下來（和頁面同一張圖）
+  if (!beads) {
+    const hand = await loadImg('/merit/hand.webp');
+    if (hand) {
+      g.save();
+      // 只畫在照片範圍內，不壓到底下的字
+      g.beginPath();
+      g.rect(0, 0, W, PH - 120);
+      g.clip();
+      g.translate(W * 0.56, PH * 0.3);
+      g.rotate((40 * Math.PI) / 180);
+      const k = 0.85;
+      g.drawImage(hand, -76 * k, -74 * k, hand.width * k, hand.height * k);
+      g.restore();
+    }
+  }
+  // 上下漸層：上面放字、下面接到底部面板
+  let gr = g.createLinearGradient(0, 0, 0, 260);
+  gr.addColorStop(0, 'rgba(14,7,5,0.85)');
+  gr.addColorStop(1, 'rgba(14,7,5,0)');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, W, 260);
+  gr = g.createLinearGradient(0, PH - 340, 0, PH + 10);
+  gr.addColorStop(0, 'rgba(14,7,5,0)');
+  gr.addColorStop(1, 'rgba(14,7,5,1)');
+  g.fillStyle = gr;
+  g.fillRect(0, PH - 340, W, 350);
+
+  // 頂部：站名與日期
+  g.textAlign = 'left';
   g.fillStyle = GOLD;
-  g.font = `600 44px ${SERIF}`;
-  g.fillText(kind === 'beads' ? '今日撥珠' : '今日敲木魚', W / 2, 250);
-  g.fillStyle = 'rgba(239,229,207,0.65)';
-  g.font = `400 34px ${SERIF}`;
-  g.fillText('功德', W / 2, 340);
-  g.fillStyle = PAPER;
-  g.font = `700 ${String(today).length > 5 ? 150 : 200}px ${SERIF}`;
-  g.fillText(`+${Number(today).toLocaleString()}`, W / 2, 560);
+  g.font = `600 36px ${SERIF}`;
+  g.fillText('月下 · 功德台', 64, 86);
+  const d = new Date();
+  g.textAlign = 'right';
   g.fillStyle = 'rgba(239,229,207,0.7)';
-  g.font = `400 38px ${SERIF}`;
-  g.fillText(`累計功德 ${Number(total).toLocaleString()}`, W / 2, 660);
+  g.font = `400 30px ${SERIF}`;
+  g.fillText(`${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`, W - 64, 86);
+
+  // 大字：+N 功德（金色發光）
+  g.textAlign = 'center';
+  g.save();
+  g.shadowColor = 'rgba(255,190,80,0.9)';
+  g.shadowBlur = 40;
+  g.fillStyle = '#f7e3b0';
+  const n = Number(today).toLocaleString();
+  g.font = `800 ${n.length > 5 ? 150 : 190}px ${SERIF}`;
+  g.fillText(`+${n}`, W / 2 - 60, PH - 40);
+  g.restore();
   g.fillStyle = GOLD;
-  g.font = `600 52px ${SERIF}`;
-  g.fillText('心亂的時候，來敲一下', W / 2, 820);
-  footerQr(g, shareUrl('/merit'), '掃碼一起敲木魚、擲筊');
+  g.font = `700 64px ${SERIF}`;
+  const nw = (() => {
+    g.font = `800 ${n.length > 5 ? 150 : 190}px ${SERIF}`;
+    const m = g.measureText(`+${n}`).width;
+    g.font = `700 64px ${SERIF}`;
+    return m;
+  })();
+  g.textAlign = 'left';
+  g.fillText('功德', W / 2 - 60 + nw / 2 + 18, PH - 46);
+
+  // 朱紅印章：今天的稱號（直排兩字一行）
+  const title = meritTitle(Number(today), beads);
+  g.save();
+  g.translate(W - 170, PH - 250);
+  g.rotate(-0.12);
+  g.fillStyle = 'rgba(176,32,22,0.92)';
+  g.strokeStyle = '#f3c9a0';
+  g.lineWidth = 4;
+  const sz = 190;
+  g.beginPath();
+  g.roundRect(-sz / 2, -sz / 2, sz, sz, 16);
+  g.fill();
+  g.strokeRect(-sz / 2 + 12, -sz / 2 + 12, sz - 24, sz - 24);
+  g.fillStyle = '#fff1dc';
+  g.font = `800 64px ${SERIF}`;
+  g.textAlign = 'center';
+  const chars = [...title];
+  const rows = [chars.slice(0, 2).join(''), chars.slice(2).join('')];
+  g.fillText(rows[0], 0, -6);
+  g.fillText(rows[1], 0, 66);
+  g.restore();
+
+  // 底部：挑戰一句＋說明＋QR
+  g.textAlign = 'left';
+  g.fillStyle = PAPER;
+  g.font = `700 54px ${SERIF}`;
+  g.fillText(beads ? `我今天撥了 ${n} 顆念珠` : `我今天敲了 ${n} 下木魚`, 64, PH + 110);
+  g.fillStyle = GOLD;
+  g.font = `700 54px ${SERIF}`;
+  g.fillText('換你來敲，看誰功德多', 64, PH + 186);
+  g.fillStyle = 'rgba(239,229,207,0.7)';
+  g.font = `400 32px ${SERIF}`;
+  g.fillText(`累計功德 ${Number(total).toLocaleString()} · 免費、免下載`, 64, PH + 252);
+  g.fillStyle = 'rgba(239,229,207,0.5)';
+  g.font = `400 28px ${SERIF}`;
+  g.fillText(`掃碼就能敲 · ${host() || 'yuexia.app'}/merit`, 64, PH + 300);
+  const qs = 230;
+  drawQr(g, shareUrl('/merit'), W - 64 - qs, H - 64 - qs, qs);
   return deliver(c, 'yuelao-merit.png', '今日功德');
 }
 

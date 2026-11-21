@@ -806,6 +806,29 @@ export function createMeritScene(canvas, opts = {}) {
       held = p;
     },
     celebrate,
+    /**
+     * 分享圖用：重畫一格、立刻讀出畫面（同一個 task 裡讀，不必開 preserveDrawingBuffer）。
+     * 回傳木魚（或念珠）中心在畫面上的位置與大小，分享圖照它裁切。
+     */
+    snapshot() {
+      renderer.render(scene, camera);
+      const url = canvas.toDataURL('image/jpeg', 0.92);
+      const w = canvas.width;
+      const h = canvas.height;
+      const c = (mode === 'beads' ? beadsGrp.position : fish.position).clone().project(camera);
+      const e = (mode === 'beads' ? beadsGrp.position : fish.position)
+        .clone()
+        .add(new THREE.Vector3(0.6, 0, 0))
+        .project(camera);
+      return {
+        url,
+        w,
+        h,
+        cx: ((c.x + 1) / 2) * w,
+        cy: ((1 - c.y) / 2) * h,
+        r: Math.abs(e.x - c.x) * w * 0.5,
+      };
+    },
     setMode,
     dispose() {
       alive = false;

@@ -242,6 +242,8 @@ function MeritPage() {
       today: todayCount(rec, day),
       total: rec.total,
       kind: tab === 'beads' ? 'beads' : 'muyu',
+      // 當下殿裡的畫面（木魚、燭火）當分享圖的上半
+      shot: (scene.current as (Scene & { snapshot?: () => unknown }) | null)?.snapshot?.() as never,
     });
     track('share_image', { kind: 'merit', result: r });
     setNote(r === 'saved' ? t('存好了，可以放進限時動態。', '存好了，可以放进限时动态。') : '');
