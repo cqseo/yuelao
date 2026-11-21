@@ -101,35 +101,109 @@ export function vibrate(pattern: number | number[]): void {
   }
 }
 
-/** 木魚「篤」（功德台）：短促的木頭聲＝高頻正弦快速衰減＋一點噪聲。 */
+let verb: ConvolverNode | null = null;
+/** 殿內的殘響：1.6 秒衰減的噪聲脈衝，敲擊聲送一點進去，聽起來像在木造殿裡。 */
+function hall(ctx: AudioContext): AudioNode {
+  if (verb) return verb;
+  const len = Math.floor(ctx.sampleRate * 1.6);
+  const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 3;
+  }
+  verb = ctx.createConvolver();
+  verb.buffer = ir;
+  const back = ctx.createGain();
+  back.gain.value = 0.32;
+  verb.connect(back);
+  back.connect(ctx.destination);
+  return verb;
+}
+
+/** 木魚「篤」（功德台）：空心木頭的兩個共鳴＋一點敲擊噪聲，再送進殿內殘響。 */
 export function woodblock(): void {
   const ctx = audio();
   if (!ctx || !noiseBuf) return;
   const t = ctx.currentTime;
-  const o = ctx.createOscillator();
-  const g = ctx.createGain();
-  o.type = 'sine';
-  o.frequency.setValueAtTime(820, t);
-  o.frequency.exponentialRampToValueAtTime(560, t + 0.09);
-  g.gain.setValueAtTime(0.45, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-  o.connect(g);
-  g.connect(ctx.destination);
-  o.start(t);
-  o.stop(t + 0.18);
+  const out = ctx.createGain();
+  out.gain.value = 0.9;
+  out.connect(ctx.destination);
+  out.connect(hall(ctx));
+  const pitch = 1 + (Math.random() - 0.5) * 0.04;
+  for (const [f, vol, dur] of [
+    [520, 0.42, 0.22],
+    [1180, 0.16, 0.09],
+    [190, 0.22, 0.12],
+  ] as const) {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f * pitch * 1.06, t);
+    o.frequency.exponentialRampToValueAtTime(f * pitch, t + 0.02);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    o.connect(g);
+    g.connect(out);
+    o.start(t);
+    o.stop(t + dur + 0.02);
+  }
   const n = ctx.createBufferSource();
   n.buffer = noiseBuf;
   const bp = ctx.createBiquadFilter();
   bp.type = 'bandpass';
-  bp.frequency.value = 2400;
-  bp.Q.value = 3;
+  bp.frequency.value = 2600;
+  bp.Q.value = 2;
   const ng = ctx.createGain();
-  ng.gain.setValueAtTime(0.12, t);
-  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+  ng.gain.setValueAtTime(0.22, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
   n.connect(bp);
   bp.connect(ng);
-  ng.connect(ctx.destination);
-  n.start(t, 0, 0.04);
+  ng.connect(out);
+  n.start(t, Math.random() * 0.3, 0.03);
+}
+
+let amb: { stop: () => void } | null = null;
+/** 殿內的背景聲：很低的持續嗡聲＋偶爾遠處一聲磬。聲音關著就不放。 */
+export function templeAmbience(on: boolean): void {
+  if (!on) {
+    amb?.stop();
+    amb = null;
+    return;
+  }
+  if (amb) return;
+  const ctx = audio();
+  if (!ctx) return;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, ctx.currentTime);
+  master.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 3);
+  master.connect(ctx.destination);
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 420;
+  lp.connect(master);
+  const oscs = [110, 164.8, 220.6].map((f) => {
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = f;
+    const g = ctx.createGain();
+    g.gain.value = f === 110 ? 0.6 : 0.25;
+    o.connect(g);
+    g.connect(lp);
+    o.start();
+    return o;
+  });
+  const bell = window.setInterval(() => chime(392), 14000);
+  amb = {
+    stop() {
+      clearInterval(bell);
+      const t = ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      for (const o of oscs) o.stop(t + 0.7);
+    },
+  };
 }
 
 /** 念珠：珠子相碰的輕響。 */
@@ -154,6 +228,7 @@ export function chime(base = 660): void {
     g.gain.exponentialRampToValueAtTime(0.0008, t + 2.4);
     o.connect(g);
     g.connect(ctx.destination);
+    g.connect(hall(ctx));
     o.start(t);
     o.stop(t + 2.5);
   }
