@@ -266,8 +266,8 @@ function MeritPage() {
         className="mt-hand"
         src="/merit/hand.webp"
         alt=""
-        width={604}
-        height={484}
+        width={760}
+        height={507}
         decoding="async"
       />
       {!ready && !noGl && <div className="mt-loading">{t('正在進殿…', '正在进殿…')}</div>}
