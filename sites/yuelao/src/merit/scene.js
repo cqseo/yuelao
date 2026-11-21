@@ -392,34 +392,112 @@ export function createMeritScene(canvas, opts = {}) {
   scene.add(fish);
 
   // 木槌：軸心在握柄尾端，平時抬起，敲的時候落下
-  // 從正面敲（2026-11-21 站長：木槌應該從前面來）：握柄在鏡頭這一側的右下方，
-  // 槌頭落在木魚正面、魚口上方。外層對準目標，內層只負責上下揮。
-  const STRIKE = new THREE.Vector3(0.06, 1.17, 0.7);
+  // 第一人稱的手（2026-11-21 站長：點螢幕就像自己的手握著槌子敲下去）：
+  // 平時手藏在畫面下方；一點，右手握著木槌從右下方伸進來、往木魚正面敲一下，
+  // 碰到的那一刻才出聲、噴金粉；連續點就一直舉在畫面裡，停手一會兒才收回去。
+  const STRIKE = new THREE.Vector3(0.04, 1.18, 0.68);
+  const GRIP = new THREE.Vector3(0.3, 0.72, 2.0);
   const malletPivot = new THREE.Group();
-  malletPivot.position.set(0.62, 0.92, 2.3);
+  malletPivot.position.copy(GRIP);
   malletPivot.lookAt(STRIKE);
   const swing = new THREE.Group();
   malletPivot.add(swing);
-  const reach = malletPivot.position.distanceTo(STRIKE);
+  const reach = GRIP.distanceTo(STRIKE);
   const malletWood = new THREE.MeshPhysicalMaterial({
     map: lacqueredWood('#c89a5a', '#e2bd84', 30),
     roughness: 0.45,
     clearcoat: 0.4,
   });
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.028, reach - 0.08, 16), malletWood);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.03, reach + 0.1, 16), malletWood);
   shaft.rotation.x = Math.PI / 2;
-  shaft.position.z = (reach - 0.08) / 2;
+  shaft.position.z = (reach + 0.1) / 2 - 0.12;
   shaft.castShadow = true;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 32, 24), malletWood);
-  head.scale.set(1.3, 0.95, 0.95);
-  head.position.z = reach - 0.02;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.09, 32, 24), malletWood);
+  head.scale.set(1.35, 1, 1);
+  head.position.z = reach - 0.04;
   head.castShadow = true;
   swing.add(shaft, head);
+  // 手：膚色、有一點皮膚的柔光；握拳包住槌柄，手背朝上、指節朝前
+  const skin = new THREE.MeshPhysicalMaterial({
+    color: 0xe2a882,
+    roughness: 0.55,
+    sheen: 0.6,
+    sheenColor: new THREE.Color(0xffc8a8),
+    sheenRoughness: 0.6,
+    clearcoat: 0.08,
+  });
+  const hand = new THREE.Group();
+  const back = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.1, 8, 20), skin);
+  back.rotation.z = Math.PI / 2;
+  back.scale.set(1, 1, 0.82);
+  back.position.set(0, 0.045, -0.02);
+  hand.add(back);
+  // 四根手指：一排指節，彎過槌柄前方
+  for (let k = 0; k < 4; k++) {
+    const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.034, 0.05, 6, 14), skin);
+    f.position.set(-0.075 + k * 0.05, -0.012 + Math.abs(k - 1.5) * 0.006, 0.055);
+    f.rotation.x = 0.35;
+    hand.add(f);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 10), skin);
+    tip.position.set(-0.075 + k * 0.05, -0.05, 0.02);
+    hand.add(tip);
+  }
+  // 大拇指：從左邊壓在槌柄上
+  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.08, 6, 14), skin);
+  thumb.rotation.set(Math.PI / 2 - 0.25, 0, 0.5);
+  thumb.position.set(-0.09, 0.03, 0.05);
+  hand.add(thumb);
+  // 手腕與袖子：往鏡頭這邊伸出畫面
+  const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.068, 0.22, 20), skin);
+  wrist.rotation.x = Math.PI / 2;
+  wrist.position.set(0.01, 0.02, -0.17);
+  hand.add(wrist);
+  const robe = new THREE.MeshStandardMaterial({ color: 0x5a1410, roughness: 0.9, normalMap: velvet });
+  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 1.1, 24, 1, true), robe);
+  sleeve.rotation.x = Math.PI / 2;
+  sleeve.position.set(0.02, 0.02, -0.82);
+  const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.016, 10, 40), gold);
+  cuff.position.set(0.02, 0.02, -0.28);
+  hand.add(sleeve, cuff);
+  for (const m of [back, thumb, wrist, sleeve]) m.castShadow = true;
+  // 第一人稱：手離鏡頭近，看起來大一點
+  hand.scale.setScalar(1.55);
+  swing.add(hand);
   scene.add(malletPivot);
-  // 平時槌頭抬起；敲的時候落到木魚上
-  const MALLET_UP = -0.16;
-  const MALLET_HIT = 0.0;
-  swing.rotation.x = MALLET_UP;
+  // 姿勢：0＝收在畫面下方、1＝舉起、2＝敲到木魚
+  const RAISE = -0.3;
+  let pose = 0;
+  const applyPose = (p) => {
+    const hide = Math.max(0, 1 - p);
+    const k = Math.max(0, p - 1);
+    swing.rotation.x = RAISE * (1 - k) + 0.5 * hide;
+    swing.position.set(0.6 * hide, -2.2 * hide, -0.4 * hide);
+  };
+  applyPose(0);
+
+  // 真實的手（照片去背，public/merit/hand.webp，604×484）：疊在畫面最前面，
+  // 槌頭對準木魚上的 STRIKE 投影點；手肘當軸心上下揮。3D 的手與木槌就不畫了。
+  const handEl = opts.handEl || null;
+  const HAND = { w: 604, head: [76, 82], pivot: [560, 330], base: 22 };
+  const proj = new THREE.Vector3();
+  function placeHand(p) {
+    const cw = canvas.clientWidth || innerWidth;
+    const ch = canvas.clientHeight || innerHeight;
+    proj.copy(STRIKE).project(camera);
+    const sx = ((proj.x + 1) / 2) * cw;
+    const sy = ((1 - proj.y) / 2) * ch;
+    const W = Math.max(340, Math.min(640, cw * 1.02));
+    const k = W / HAND.w;
+    const hide = Math.max(0, 1 - p);
+    const hit = Math.max(0, p - 1);
+    const swingDeg = 16 * (1 - hit) + 26 * hide;
+    const tx = W * 0.55 * hide;
+    const ty = W * 0.8 * hide;
+    const [hx, hy] = HAND.head;
+    const [px, py] = HAND.pivot;
+    handEl.style.transform = `translate(${sx + tx}px,${sy + ty}px) rotate(${HAND.base}deg) scale(${k}) translate(${-hx}px,${-hy}px) translate(${px}px,${py}px) rotate(${swingDeg}deg) translate(${-px}px,${-py}px)`;
+    handEl.style.visibility = mode === 'muyu' && hide < 0.999 ? 'visible' : 'hidden';
+  }
 
   // ---------- 念珠 ----------
   const beadsGrp = new THREE.Group();
@@ -540,15 +618,29 @@ export function createMeritScene(canvas, opts = {}) {
   let hiPulse = 0;
   const hitPoint = STRIKE.clone();
 
-  function hit(power = 1) {
-    if (mode !== 'muyu') return;
-    strikeT = 0;
+  let pending = []; // 還沒敲到的力道（連點時排隊，一下一下敲）
+  let lastTap = -10;
+  let strikeFrom = 0;
+  /** 槌子真的碰到木魚：這時才震、閃光、噴金粉，並通知頁面出聲。 */
+  function impact(power) {
     squash = 1;
     shake = 0.6 * power;
     flash.intensity = 7 * power;
     burst(hitPoint, power > 1 ? 40 : 10, power);
     ripple(0.6, power);
+    opts.onImpact?.(power);
   }
+  function hit(power = 1) {
+    if (mode !== 'muyu') return;
+    lastTap = clock.elapsedTime;
+    if (strikeT < 0) {
+      strikeT = 0;
+      strikeFrom = pose;
+      curPower = power;
+    } else pending.push(power);
+  }
+  let curPower = 1;
+  let held = null;
   function bead(round = false) {
     if (mode !== 'beads') return;
     beadTarget += (Math.PI * 2) / N;
@@ -569,7 +661,7 @@ export function createMeritScene(canvas, opts = {}) {
     mode = m;
     const showFish = m === 'muyu';
     fish.visible = showFish;
-    malletPivot.visible = showFish;
+    malletPivot.visible = showFish && !opts.handEl;
     cushion.visible = m !== 'beads';
     trim.visible = m !== 'beads';
     beadsGrp.visible = m === 'beads';
@@ -604,16 +696,34 @@ export function createMeritScene(canvas, opts = {}) {
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
 
-    // 木槌：0–0.35 落下、0.35–1 慢慢抬回
+    // 手：一下敲擊 0.26 秒。前 0.09 秒從現在的位置加速落到木魚上（碰到就出聲），
+    // 之後彈回舉起。連點時一下接一下；停手 0.9 秒才收回畫面下方。
     if (strikeT >= 0) {
-      strikeT += dt / 0.22;
-      const k = strikeT < 0.35 ? strikeT / 0.35 : 1 - (strikeT - 0.35) / 0.65;
-      swing.rotation.x = MALLET_UP + (MALLET_HIT - MALLET_UP) * Math.max(0, Math.min(1, k * k));
+      const before = strikeT;
+      strikeT += dt / 0.26;
+      const HIT = 0.35;
+      if (strikeT < HIT) {
+        const k = strikeT / HIT;
+        pose = strikeFrom + (2 - strikeFrom) * k * k;
+      } else {
+        if (before < HIT) impact(curPower);
+        const k = Math.min(1, (strikeT - HIT) / (1 - HIT));
+        pose = 2 - Math.sin((k * Math.PI) / 2);
+      }
       if (strikeT >= 1) {
         strikeT = -1;
-        swing.rotation.x = MALLET_UP;
+        pose = 1;
+        if (pending.length) {
+          curPower = pending.shift();
+          strikeT = 0;
+          strikeFrom = pose;
+        }
       }
-    } else swing.rotation.x = MALLET_UP + Math.sin(t * 1.4) * 0.015;
+    } else if (t - lastTap > 0.9) pose = Math.max(0, pose - dt * 3);
+    else pose = 1 + Math.sin(t * 2) * 0.02;
+    if (pending.length > 3) pending = pending.slice(-3);
+    applyPose(held ?? pose);
+    if (handEl) placeHand(held ?? pose);
     squash = Math.max(0, squash - dt * 9);
     const s = 1 - Math.sin(squash * Math.PI) * 0.035;
     fish.scale.set(1 + (1 - s) * 0.6, s, 1 + (1 - s) * 0.6);
@@ -691,6 +801,10 @@ export function createMeritScene(canvas, opts = {}) {
   return {
     hit,
     bead,
+    /** 測試截圖用：把手停在某個姿勢（0 收起、1 舉起、2 敲到）。 */
+    holdPose(p) {
+      held = p;
+    },
     celebrate,
     setMode,
     dispose() {

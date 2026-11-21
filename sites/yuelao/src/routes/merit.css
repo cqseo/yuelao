@@ -533,3 +533,22 @@
     animation: none;
   }
 }
+
+/* 第一人稱的手：照片去背，疊在 3D 場景前、介面後；位置由場景算 */
+.mt-hand {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 604px;
+  height: 484px;
+  max-width: none;
+  transform-origin: 0 0;
+  pointer-events: none;
+  z-index: 1;
+  visibility: hidden;
+  will-change: transform;
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.55)) brightness(0.92) sepia(0.12);
+}
+.mt.dim .mt-hand {
+  display: none;
+}
