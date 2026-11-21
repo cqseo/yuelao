@@ -22,6 +22,7 @@ import { adminFeedbackRequest, submitFeedbackRequest } from './feedback';
 import { createGuestRequest, guestsEnabled, sendGuestBindCode, verifyGuestBindCode } from './guest-auth';
 import { hallOfferingRequest } from './hall-offering';
 import { errorResponse, json } from './http';
+import { meritBoardRequest, submitMeritRequest } from './merit-board';
 import { finishGoogleLogin, startGoogleLogin } from './oauth-google';
 import { redeemPackRequest } from './pack-redemption';
 import { adminPartnersRequest, partnerSelfRequest } from './partners';
@@ -221,6 +222,11 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
         const ctx = context();
         return hallOfferingRequest(request, ctx.supabaseService, site.id);
       },
+    },
+    /** 功德台排行榜：不用登入，靠瀏覽器自己的裝置鑰匙（只存雜湊）。 */
+    merit: {
+      board: async (request: Request) => meritBoardRequest(request, context().supabaseService),
+      submit: async (request: Request) => submitMeritRequest(request, context().supabaseService),
     },
     wishes: {
       list: async (request: Request) => {

@@ -68,3 +68,22 @@ assert.ok(Math.abs(count.yin / n - 0.2) < 0.03);
 assert.equal(shengStreak(2, 'sheng'), 3);
 assert.equal(shengStreak(2, 'yin'), 0);
 console.log('PASS: moon blocks match the temple ritual: 50/30/20, xiao two convex, yin two flat');
+
+// 排行榜：送分的輸入檢查、法號過濾、裝置鑰匙只存雜湊
+const { parseSubmit, parseNickname, hashDevice } = await import('../packages/core/src/merit-board');
+const dev = 'a'.repeat(64);
+assert.deepEqual(parseSubmit({ device: dev, delta: 12 }), { device: dev, delta: 12, nickname: null });
+assert.equal(parseSubmit({ device: 'xyz', delta: 1 }), 'invalid');
+assert.equal(parseSubmit({ device: dev, delta: -1 }), 'invalid');
+assert.equal(parseSubmit({ device: dev, delta: 1.5 }), 'invalid');
+assert.equal(parseSubmit({ device: dev, delta: 999999 }), 'invalid');
+assert.equal(parseSubmit({ device: dev, delta: 1, nickname: '加我line 12345678' }), 'bad_nickname');
+assert.equal(parseSubmit({ device: dev, delta: 1, nickname: '一二三四五六七八九十一' }), 'bad_nickname');
+assert.equal(parseNickname('  阿明  '), '阿明');
+assert.equal(parseNickname('www.x.com'), null);
+assert.equal(parseNickname('幹你娘'), null);
+const h = await hashDevice(dev);
+assert.match(h, /^[0-9a-f]{64}$/);
+assert.notEqual(h, dev, 'the key itself is never stored');
+assert.equal(h, await hashDevice(dev));
+console.log('PASS: leaderboard input is checked and device keys are hashed');
