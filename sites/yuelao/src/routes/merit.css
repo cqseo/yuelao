@@ -1,0 +1,413 @@
+/* 功德台 /merit：夜色舞台，手機優先。顏色與 3D 集市一致（夜、金、米紙、朱紅）。 */
+.merit-page {
+  --m-night: #0d0e22;
+  --m-deep: #070812;
+  --m-gold: #dcbb7c;
+  --m-paper: #efe5cf;
+  --m-soft: rgba(239, 229, 207, 0.66);
+  --m-red: #a8291f;
+  --m-line: rgba(220, 187, 124, 0.28);
+  font-family: var(--font-serif-tc, "Noto Serif TC", serif);
+  color: var(--m-paper);
+  background: radial-gradient(120% 80% at 50% 0%, #2a1d14 0%, var(--m-night) 45%, var(--m-deep) 100%);
+  border-radius: 20px;
+  padding-block: clamp(1.4rem, 5vw, 2.6rem) 1.6rem;
+  padding-inline: clamp(1rem, 4vw, 2.4rem);
+  margin: 0.5rem auto 2rem;
+  max-width: 760px;
+  display: grid;
+  gap: 1.3rem;
+}
+.merit-page * {
+  box-sizing: border-box;
+}
+.merit-page a {
+  color: var(--m-gold);
+}
+.merit-head {
+  text-align: center;
+  display: grid;
+  gap: 0.5rem;
+}
+.merit-kicker {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.2em;
+  color: var(--m-gold);
+}
+.merit-head h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 6vw, 2.2rem);
+  font-weight: 700;
+  text-wrap: balance;
+}
+.merit-tally {
+  margin: 0;
+  color: var(--m-soft);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.merit-tally b {
+  color: var(--m-paper);
+  font-size: 1.25rem;
+}
+.merit-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.merit-tabs button {
+  font: inherit;
+  color: var(--m-soft);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--m-line);
+  border-radius: 12px;
+  padding: 0.6rem 0.3rem;
+  display: grid;
+  gap: 0.1rem;
+  cursor: pointer;
+}
+.merit-tabs button b {
+  color: var(--m-paper);
+  font-size: 1rem;
+}
+.merit-tabs button small {
+  font-size: 0.72rem;
+}
+.merit-tabs button.on {
+  border-color: var(--m-gold);
+  background: rgba(220, 187, 124, 0.14);
+}
+.merit-stage {
+  min-height: 420px;
+  display: grid;
+  align-content: start;
+}
+.merit-stage > div {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+}
+.merit-hint {
+  margin: 0;
+  color: var(--m-soft);
+  text-align: center;
+}
+.merit-hint.small {
+  font-size: 0.82rem;
+}
+.merit-actions {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.merit-seal,
+.merit-ghost,
+.merit-cta {
+  font: inherit;
+  border-radius: 999px;
+  padding: 0.65rem 1.4rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.merit-seal {
+  background: var(--m-red);
+  color: #fff3dc;
+  border: 1px solid var(--m-red);
+  font-weight: 600;
+}
+.merit-ghost {
+  background: transparent;
+  color: var(--m-paper);
+  border: 1px solid var(--m-line);
+}
+.merit-page .merit-cta {
+  color: var(--m-night);
+  background: var(--m-gold);
+  border: 1px solid var(--m-gold);
+  font-weight: 600;
+}
+.merit-seal:disabled,
+.merit-ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.merit-page button:focus-visible,
+.merit-page a:focus-visible,
+.merit-page input:focus-visible {
+  outline: 2px solid var(--m-gold);
+  outline-offset: 3px;
+}
+
+/* 木魚 */
+.muyu-hit,
+.beads-hit {
+  position: relative;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+.muyu-svg {
+  width: min(78vw, 340px);
+  height: auto;
+  display: block;
+  animation: muyu-bump 0.18s ease-out;
+}
+.muyu-mallet {
+  transform-origin: 300px 4px;
+  transform: rotate(12deg);
+  animation: muyu-mallet 0.18s ease-out;
+}
+@keyframes muyu-bump {
+  40% {
+    transform: scale(0.96, 0.94);
+  }
+}
+@keyframes muyu-mallet {
+  40% {
+    transform: rotate(0deg);
+  }
+}
+.merit-plus {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  color: var(--m-gold);
+  font-weight: 700;
+  font-size: 1.15rem;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: merit-plus 0.9s ease-out forwards;
+}
+@keyframes merit-plus {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -70px);
+  }
+}
+
+/* 念珠 */
+.merit-page .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+}
+.merit-page .chips button {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--m-soft);
+  background: transparent;
+  border: 1px solid var(--m-line);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+.merit-page .chips button.on {
+  color: var(--m-night);
+  background: var(--m-gold);
+  border-color: var(--m-gold);
+}
+.beads-hit svg {
+  width: min(78vw, 320px);
+  height: auto;
+  display: block;
+}
+.beads-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 0.4rem;
+  color: var(--m-paper);
+}
+.beads-center b {
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+}
+.beads-center small {
+  color: var(--m-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 擲筊 */
+.jiao-q {
+  display: grid;
+  gap: 0.4rem;
+  width: min(100%, 460px);
+  color: var(--m-soft);
+  font-size: 0.88rem;
+}
+.jiao-q input {
+  font: inherit;
+  font-size: 1rem;
+  color: var(--m-paper);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--m-line);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+}
+.jiao-floor {
+  display: flex;
+  gap: 1.4rem;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 170px;
+  padding-top: 1rem;
+}
+/* 兩片筊杯斜斜落地 */
+.jiao-piece {
+  width: 120px;
+  height: auto;
+  transition: transform 0.3s ease-out;
+}
+.jiao-piece.idle {
+  opacity: 0.85;
+}
+.jiao-piece.round {
+  transform: rotate(8deg);
+}
+.jiao-piece.flat {
+  transform: rotate(-6deg);
+}
+.jiao-floor.tossing .jiao-piece {
+  animation: jiao-toss 0.95s ease-in-out;
+}
+.jiao-floor.tossing .jiao-piece:last-child {
+  animation-delay: 0.05s;
+}
+@keyframes jiao-toss {
+  0% {
+    transform: translateY(0) rotate(0);
+  }
+  45% {
+    transform: translateY(-120px) rotate(400deg);
+  }
+  80% {
+    transform: translateY(0) rotate(700deg);
+  }
+  90% {
+    transform: translateY(-14px) rotate(712deg);
+  }
+  100% {
+    transform: translateY(0) rotate(720deg);
+  }
+}
+.jiao-result {
+  width: min(100%, 460px);
+  border: 1px solid var(--m-line);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  text-align: center;
+  display: grid;
+  gap: 0.4rem;
+}
+.jiao-result b {
+  font-size: 1.6rem;
+}
+.jiao-result.sheng {
+  border-color: var(--m-gold);
+  background: rgba(220, 187, 124, 0.12);
+}
+.jiao-result.sheng b {
+  color: var(--m-gold);
+}
+.jiao-result p {
+  margin: 0;
+  color: var(--m-soft);
+  line-height: 1.7;
+}
+.jiao-streak {
+  color: var(--m-gold);
+  font-size: 0.85rem;
+}
+
+/* 桌布 */
+.wall-phone {
+  --c: #e06a7a;
+  position: relative;
+  width: 200px;
+  aspect-ratio: 9 / 19.5;
+  max-width: 100%;
+  border-radius: 28px;
+  border: 6px solid #1c1a2e;
+  background:
+    radial-gradient(70% 40% at 50% 46%, color-mix(in srgb, var(--c) 45%, transparent), transparent 70%),
+    linear-gradient(#0d0e22, #070812);
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  overflow: hidden;
+}
+.wall-time {
+  margin-top: 26px;
+  font-family: system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 600;
+  color: rgba(239, 229, 207, 0.9);
+}
+.wall-glyph {
+  margin-top: 54px;
+  font-size: 76px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--m-paper);
+  text-shadow: 0 0 22px var(--c);
+}
+.wall-wish {
+  margin-top: 10px;
+  color: var(--c);
+  font-size: 15px;
+  font-weight: 600;
+}
+.wall-stick {
+  margin-top: 16px;
+  font-size: 11px;
+  color: var(--m-gold);
+  border: 1px solid var(--m-line);
+  padding: 4px 8px;
+}
+.wall-url {
+  position: absolute;
+  bottom: 40px;
+  font-size: 9px;
+  color: rgba(239, 229, 207, 0.4);
+}
+
+.merit-note {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: rgba(239, 229, 207, 0.5);
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .merit-tabs button small {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .muyu-svg,
+  .muyu-mallet,
+  .merit-plus,
+  .jiao-floor.tossing .jiao-piece {
+    animation: none;
+  }
+}
