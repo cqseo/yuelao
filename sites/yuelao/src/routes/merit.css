@@ -358,11 +358,10 @@
   outline-offset: 2px;
 }
 
-/* 第一人稱念珠：手圖 640×960（原圖 1024×1536 的比例），上方那串珠子是 104×94 的一顆珠子循環貼圖，
-   底端對準手上最上面那顆珠子上方的結（原圖 386,316），沿珠串方向斜 12.9°，往上淡進殿裡的暗處 */
+/* 第一人稱念珠：手（底）→ 整串珠子（canvas，merit/mala.ts）→ 蓋在珠子前面的拇指與指尖（mala-front）。
+   三層同尺寸疊在一起，原圖 1024×1536 的比例 */
 .mt-mala {
   --w: min(82vw, 420px);
-  --th: calc(var(--w) * 94 / 1024);
   position: absolute;
   left: 50%;
   bottom: 0;
@@ -379,18 +378,15 @@
   height: 100%;
   filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.55)) brightness(0.92);
 }
-.mt-mala-strand {
+.mt-mala img:last-child {
+  filter: brightness(0.92);
+}
+.mt-mala canvas {
   position: absolute;
-  left: calc(var(--w) * (386 - 52) / 1024);
-  bottom: calc(100% - var(--w) * 316 / 1024);
-  width: calc(var(--w) * 104 / 1024);
-  height: calc(var(--th) * 5);
-  background: url("/merit/mala-bead.webp") 0 calc(var(--n, 0) * var(--th)) / 100% auto repeat-y;
-  transform-origin: 50% 100%;
-  transform: rotate(-12.9deg);
-  transition: background-position 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
-  mask-image: linear-gradient(to top, #000 45%, transparent 100%);
-  filter: brightness(0.9);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: brightness(0.92);
 }
 
 /* 擲筊與排行榜的面板 */
