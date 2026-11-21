@@ -475,10 +475,10 @@ export function createMeritScene(canvas, opts = {}) {
   };
   applyPose(0);
 
-  // 真實的手（照片去背，public/merit/hand.webp，604×484）：疊在畫面最前面，
+  // 真實的手（照片去背，public/merit/hand.webp，760×507，2026-11-21 換成五指齊全的一張）：疊在畫面最前面，
   // 槌頭對準木魚上的 STRIKE 投影點；手肘當軸心上下揮。3D 的手與木槌就不畫了。
   const handEl = opts.handEl || null;
-  const HAND = { w: 604, head: [76, 82], pivot: [560, 330], base: 22 };
+  const HAND = { w: 760, head: [76, 74], pivot: [690, 330], base: 40 };
   const proj = new THREE.Vector3();
   function placeHand(p) {
     const cw = canvas.clientWidth || innerWidth;
@@ -486,7 +486,7 @@ export function createMeritScene(canvas, opts = {}) {
     proj.copy(STRIKE).project(camera);
     const sx = ((proj.x + 1) / 2) * cw;
     const sy = ((1 - proj.y) / 2) * ch;
-    const W = Math.max(340, Math.min(640, cw * 1.02));
+    const W = Math.max(360, Math.min(680, cw * 1.0));
     const k = W / HAND.w;
     const hide = Math.max(0, 1 - p);
     const hit = Math.max(0, p - 1);
