@@ -59,6 +59,17 @@ export function addPending(n = 1) {
   setPending(pending() + n);
 }
 
+const SEEDED_KEY = 'yuelao:merit:seeded';
+/**
+ * 排行榜上線前（或這台瀏覽器第一次開榜前）今天已經敲的下數，補送一次，
+ * 免得頁面寫「今天已敲 453 下」榜上卻是 0。只補今天的，每台瀏覽器只補一次。
+ */
+export function seedToday(today: number) {
+  if (get(SEEDED_KEY)) return;
+  set(SEEDED_KEY, '1');
+  if (today > 0) addPending(Math.min(today, 600));
+}
+
 function payload(hans: boolean, delta: number) {
   const nick = nickname(hans);
   // 法號改過才帶上（第一次也帶）；平常只送下數，省得每次重寫

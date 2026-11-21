@@ -41,6 +41,7 @@ import {
   fetchBoard,
   flush,
   nickname as savedNickname,
+  seedToday,
   setNickname,
 } from '~/site/merit-sync';
 import site from '../../site.config';
@@ -133,6 +134,7 @@ function MeritPage() {
     setRec(r);
     recRef.current = r;
     setDay(localDayKey(new Date()));
+    seedToday(todayCount(r, localDayKey(new Date())));
     setSoundState(isSoundOn());
     const read = () => {
       const h = location.hash.slice(1);
