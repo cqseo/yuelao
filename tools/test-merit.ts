@@ -87,3 +87,47 @@ assert.match(h, /^[0-9a-f]{64}$/);
 assert.notEqual(h, dev, 'the key itself is never stored');
 assert.equal(h, await hashDevice(dev));
 console.log('PASS: leaderboard input is checked and device keys are hashed');
+
+// 後台：每日人數、回來的人、次日回來率
+const { computeMeritStats } = await import('../packages/core/src/admin-merit');
+const A = 'a'.repeat(64);
+const B = 'b'.repeat(64);
+const C = 'c'.repeat(64);
+const now = Date.parse('2026-11-23T04:00:00Z'); // 台北 11/23 中午
+const st = computeMeritStats(
+  [
+    { device_hash: A, day: '2026-11-21', count: 100 },
+    { device_hash: A, day: '2026-11-22', count: 50 },
+    { device_hash: B, day: '2026-11-22', count: 10 },
+    { device_hash: A, day: '2026-11-23', count: 5 },
+    { device_hash: B, day: '2026-11-23', count: 7 },
+    { device_hash: C, day: '2026-11-23', count: 0 },
+  ],
+  [
+    { device_hash: A, nickname: '甲', hidden: false, created_at: '2026-11-21T10:00:00Z' },
+    { device_hash: B, nickname: '乙', hidden: true, created_at: '2026-11-22T10:00:00Z' },
+    { device_hash: C, nickname: '丙', hidden: false, created_at: '2026-11-23T01:00:00Z' },
+  ],
+  now,
+);
+assert.equal(st.today, '2026-11-23');
+assert.equal(st.daily.length, 30);
+assert.deepEqual(st.daily.at(-1), { day: '2026-11-23', players: 2, taps: 12, fresh: 0, returning: 2 });
+assert.deepEqual(st.daily.at(-2), { day: '2026-11-22', players: 2, taps: 60, fresh: 1, returning: 1 });
+assert.deepEqual(st.retention, [
+  { day: '2026-11-21', base: 1, back: 1 },
+  { day: '2026-11-22', base: 1, back: 1 },
+]);
+assert.equal(st.kpi.allPlayers, 3 - 1, 'someone who never tapped is not a player');
+assert.deepEqual(
+  st.board.map((b) => [b.nickname, b.today, b.days, b.hidden]),
+  [
+    ['乙', 7, 2, true],
+    ['甲', 5, 3, false],
+  ],
+);
+assert.deepEqual(
+  st.hidden.map((h) => h.nickname),
+  ['乙'],
+);
+console.log('PASS: admin merit stats count players, returning visitors and next-day return');

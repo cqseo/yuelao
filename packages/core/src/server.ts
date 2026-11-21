@@ -1,6 +1,7 @@
 import { env as workerEnv } from 'cloudflare:workers';
 import { accountSnapshot } from './account';
 import { adminUsersRequest, adminWishesRequest, adminWishReviewRequest } from './admin-manage';
+import { adminMeritRequest } from './admin-merit';
 import { adminStatsRequest } from './admin-stats';
 import {
   aiGenerationEnabled,
@@ -156,6 +157,12 @@ export function createCore(site: SiteConfig, options: CoreOptions = {}) {
         return request.method === 'POST'
           ? adminWishReviewRequest(request, ctx.supabaseService, user, admins())
           : adminWishesRequest(ctx.supabaseService, user, admins());
+      },
+      /** 功德排行榜：每日上榜人數、回來的人；GET 統計，POST 收起／放回法號。 */
+      adminMerit: async (request: Request) => {
+        const ctx = context();
+        const user = await getUserFromRequest(request, ctx.env);
+        return adminMeritRequest(request, ctx.supabaseService, user, admins());
       },
       adminUsers: async (request: Request) => {
         const ctx = context();
