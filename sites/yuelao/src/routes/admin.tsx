@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+import type { MeritAdminStats } from '@yuelao/core/admin-merit';
 import type { AdminStats } from '@yuelao/core/admin-stats';
 import { findProduct } from '@yuelao/core/site';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
@@ -38,6 +39,7 @@ type SectionId =
   | 'sales'
   | 'users'
   | 'wishes'
+  | 'merit'
   | 'ops'
   | 'pages'
   | 'traffic'
@@ -65,6 +67,12 @@ const SECTIONS: { id: SectionId; label: string; icon: string; desc: string }[] =
     label: '许愿池审核',
     icon: '❋',
     desc: '用户写的愿望要你放行才会挂上树；被举报的也在这里处理。',
+  },
+  {
+    id: 'merit',
+    label: '功德排行榜',
+    icon: '♨',
+    desc: '功德台每天多少人上榜、敲了多少下、有多少人是回来的。按台湾/北京时间换日，不受上方时间范围影响。',
   },
   { id: 'ops', label: '内容与运营', icon: '✎', desc: '各功能被用了多少次，以及现在等着你处理的事。' },
   { id: 'pages', label: '页面与动作', icon: '▤', desc: '哪些页面看的人多、哪些按钮按的人多。' },
@@ -549,7 +557,8 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
             ])}
           />
           <p className="admin-muted">
-            算命摊：{num(stats.fortuneMulti.visitors)} 人排过盘，其中 {num(stats.fortuneMulti.twoOrMore)} 人看了两种以上、
+            算命摊：{num(stats.fortuneMulti.visitors)} 人排过盘，其中 {num(stats.fortuneMulti.twoOrMore)}{' '}
+            人看了两种以上、
             {num(stats.fortuneMulti.allThree)} 人三种都看。三种都看的人多，就值得做「算命摊三合一」。
           </p>
         </section>
@@ -731,6 +740,7 @@ function Dashboard({ stats, section }: { stats: Stats; section: SectionId }) {
 
       {section === 'users' && <Users />}
       {section === 'wishes' && <Wishes />}
+      {section === 'merit' && <Merit />}
       {section === 'partners' && <Partners />}
       {section === 'feedback' && <Feedback />}
 
@@ -1066,6 +1076,152 @@ const FEEDBACK_KIND: Record<FeedbackRow['kind'], string> = {
 };
 const FEEDBACK_STATUS: Record<FeedbackRow['status'], string> = { new: '新', read: '已读', done: '已处理' };
 
+type MeritStats = MeritAdminStats;
+
+function Merit() {
+  const [data, setData] = useState<MeritStats | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState('');
+  const [tick, setTick] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tick 只用來在收起／放回後重新讀取
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/admin/merit', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (res) => {
+        if (!alive) return;
+        if (!res.ok) return setFailed(true);
+        setFailed(false);
+        setData((await res.json()) as MeritStats);
+      })
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [tick]);
+  const toggle = async (id: string, hidden: boolean) => {
+    setBusy(id);
+    try {
+      const res = await fetch('/api/admin/merit', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id, hidden }),
+      });
+      if (!res.ok) setFailed(true);
+    } catch {
+      setFailed(true);
+    }
+    setBusy('');
+    setTick((t) => t + 1);
+  };
+  if (failed && !data) return <p className="admin-empty">排行榜数据暂时取不到，稍后再试。</p>;
+  if (!data) return <p className="admin-empty">正在读取……</p>;
+  const { kpi } = data;
+  const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '—');
+  return (
+    <>
+      {failed && <div className="admin-note">刚才那一步没成功，列表已重新读取，请再试一次。</div>}
+      <section className="admin-kpis" aria-label="今天">
+        <Kpi
+          label="今天上榜人数"
+          value={num(kpi.playersToday)}
+          foot={`近 7 天平均每天 ${kpi.avgPlayers7} 人`}
+        />
+        <Kpi label="今天敲的下数" value={num(kpi.tapsToday)} foot="木鱼和念珠合计" />
+        <Kpi
+          label="今天回来的人"
+          value={num(kpi.returningToday)}
+          foot={`今天上榜的人里，之前来过的（${pct(kpi.returningToday, kpi.playersToday)}）`}
+        />
+        <Kpi label="累计上过榜" value={num(kpi.allPlayers)} foot="不同的浏览器，换手机算两个人" />
+      </section>
+      <section className="admin-card">
+        <h2>每日趋势（近 30 天）</h2>
+        <p className="admin-muted">
+          滑过柱子看当天数字。「回来的人」是那天之前就来过功德台的人，这个数字涨，说明大家每天会回来。
+        </p>
+        <div className="admin-multiples">
+          <MiniBars title="上榜人数" days={data.daily} pick={(d) => d.players} fmt={num} />
+          <MiniBars title="回来的人" days={data.daily} pick={(d) => d.returning} fmt={num} />
+          <MiniBars title="新来的人" days={data.daily} pick={(d) => d.fresh} fmt={num} />
+          <MiniBars title="敲的下数" days={data.daily} pick={(d) => d.taps} fmt={num} />
+        </div>
+      </section>
+      <section className="admin-card">
+        <h2>次日回来率</h2>
+        <p className="admin-muted">某天第一次来敲的人，第二天又来敲的比例。今天还没过完，所以只看前两天。</p>
+        <Table
+          head={['第一次来的日子', '当天新来', '第二天回来', '回来率']}
+          rows={data.retention.map((r) => [
+            r.day.slice(5).replace('-', '/'),
+            num(r.base),
+            num(r.back),
+            pct(r.back, r.base),
+          ])}
+        />
+      </section>
+      <section className="admin-card">
+        <h2>今日榜单</h2>
+        <p className="admin-muted">
+          法号是用户自己取的，所有人都看得到。不合适的就「从榜上收起」，那个人还能继续敲，只是不再上榜。
+        </p>
+        {data.board.length ? (
+          <ul className="admin-wishes">
+            {data.board.map((b, i) => (
+              <li key={b.id} className="admin-wish">
+                <div>
+                  <p className="admin-wish-body">
+                    {i + 1}. {b.nickname}
+                    {b.hidden ? '（已收起）' : ''}
+                  </p>
+                  <p className="admin-muted">
+                    今天 {num(b.today)} 下 · 近 30 天来了 {num(b.days)} 天 · 第一次{' '}
+                    {b.since.slice(5).replace('-', '/')}
+                  </p>
+                </div>
+                <div className="admin-wish-actions">
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    disabled={busy === b.id}
+                    onClick={() => void toggle(b.id, !b.hidden)}
+                  >
+                    {b.hidden ? '放回榜上' : '从榜上收起'}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="admin-empty">今天还没有人敲。</p>
+        )}
+      </section>
+      {data.hidden.length > 0 && (
+        <section className="admin-card">
+          <h2>已收起的法号（{num(data.hidden.length)}）</h2>
+          <ul className="admin-wishes">
+            {data.hidden.map((h) => (
+              <li key={h.id} className="admin-wish">
+                <p className="admin-wish-body">{h.nickname}</p>
+                <div className="admin-wish-actions">
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    disabled={busy === h.id}
+                    onClick={() => void toggle(h.id, false)}
+                  >
+                    放回榜上
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  );
+}
+
 function Feedback() {
   const [rows, setRows] = useState<FeedbackRow[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -1346,15 +1502,15 @@ function Kpi({
 
 type Day = Stats['daily'][number];
 
-function MiniBars({
+function MiniBars<D extends { day: string } = Day>({
   title,
   days,
   pick,
   fmt,
 }: {
   title: string;
-  days: Day[];
-  pick: (d: Day) => number;
+  days: D[];
+  pick: (d: D) => number;
   fmt: (v: number) => string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
