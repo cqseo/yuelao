@@ -121,6 +121,7 @@ function MeritPage() {
   const hand = useRef<HTMLImageElement>(null);
   const mala = useRef<HTMLDivElement>(null);
   const malaCanvas = useRef<HTMLCanvasElement>(null);
+  const [malaReady, setMalaReady] = useState(false);
   const malaStrand = useRef<{ flick: () => void; dispose: () => void } | null>(null);
   const scene = useRef<Scene | null>(null);
   const lastTap = useRef(0);
@@ -328,8 +329,19 @@ function MeritPage() {
       />
       {/* 第一人稱撥念珠：左手掌心朝自己、拇指推珠；手上方那串是循環的珠子，每撥一下往下走一顆 */}
       {tab === 'beads' && (
-        <div ref={mala} className="mt-mala" aria-hidden="true">
-          <img src="/merit/mala-hand.webp" alt="" width={640} height={960} decoding="async" />
+        <div ref={mala} className={`mt-mala${malaReady ? ' on' : ''}`} aria-hidden="true">
+          {/* 手圖載好才整組顯示，不然拇指那層會先浮在半空中 */}
+          <img
+            src="/merit/mala-hand.webp"
+            alt=""
+            width={640}
+            height={960}
+            decoding="async"
+            onLoad={() => setMalaReady(true)}
+            ref={(el) => {
+              if (el?.complete && el.naturalWidth) setMalaReady(true);
+            }}
+          />
           <canvas ref={malaCanvas} />
           <img src="/merit/mala-front.webp" alt="" width={640} height={960} decoding="async" />
         </div>
