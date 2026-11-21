@@ -54,6 +54,8 @@ const NAV = [
 const MORE = [
   { hash: 'bazi', name: () => m.home_market_room_bazi(), hint: () => m.home_more_bazi_hint() },
   { hash: 'caishen', name: () => m.home_market_room_caishen(), hint: () => m.home_more_caishen_hint() },
+  // 功德台是獨立的 2D 頁（2026-11-21）
+  { hash: 'merit', href: '/merit', name: () => m.home_more_merit(), hint: () => m.home_more_merit_hint() },
 ];
 
 const ROOMS = [
@@ -251,7 +253,7 @@ export function Home() {
               {MORE.map((x) => (
                 <a
                   key={x.hash}
-                  href={localizeHref(`/market#${x.hash}`)}
+                  href={localizeHref(('href' in x && x.href) || `/market#${x.hash}`)}
                   data-rybbit-event={`home_more_${x.hash}`}
                   onClick={() => track('home_quick_entry_click', { destination: x.hash, mode: '3d' })}
                 >

@@ -100,3 +100,61 @@ export function vibrate(pattern: number | number[]): void {
     }
   }
 }
+
+/** 木魚「篤」（功德台）：短促的木頭聲＝高頻正弦快速衰減＋一點噪聲。 */
+export function woodblock(): void {
+  const ctx = audio();
+  if (!ctx || !noiseBuf) return;
+  const t = ctx.currentTime;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(820, t);
+  o.frequency.exponentialRampToValueAtTime(560, t + 0.09);
+  g.gain.setValueAtTime(0.45, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+  o.connect(g);
+  g.connect(ctx.destination);
+  o.start(t);
+  o.stop(t + 0.18);
+  const n = ctx.createBufferSource();
+  n.buffer = noiseBuf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 2400;
+  bp.Q.value = 3;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.12, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+  n.connect(bp);
+  bp.connect(ng);
+  ng.connect(ctx.destination);
+  n.start(t, 0, 0.04);
+}
+
+/** 念珠：珠子相碰的輕響。 */
+export function bead(): void {
+  clack(0.35);
+}
+
+/** 磬（念珠滿一圈、聖筊）：兩個泛音慢慢散開。 */
+export function chime(base = 660): void {
+  const ctx = audio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  for (const [mul, vol] of [
+    [1, 0.18],
+    [2.76, 0.06],
+  ] as const) {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = base * mul;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + 2.4);
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start(t);
+    o.stop(t + 2.5);
+  }
+}

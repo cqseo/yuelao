@@ -617,3 +617,122 @@ export async function shareDaily({ kind, dateLabel, title, name, sub, kw = [], l
   g.fillText(`${host()} ・ 每天來抽一次`, SW / 2, SH - 82);
   return deliver(c, kind === 'tarot' ? 'yuelao-today-card.png' : 'yuelao-today-sign.png', title);
 }
+
+/**
+ * 功德圖（功德台，2026-11-21）：1080×1350，今日功德大數字＋累計，底部 QR 到 /merit。
+ */
+export async function shareMerit({ today, total, kind = 'muyu' }) {
+  await ready();
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  night(g);
+  g.textAlign = 'center';
+  g.fillStyle = GOLD;
+  g.font = `600 44px ${SERIF}`;
+  g.fillText(kind === 'beads' ? '今日撥珠' : '今日敲木魚', W / 2, 250);
+  g.fillStyle = 'rgba(239,229,207,0.65)';
+  g.font = `400 34px ${SERIF}`;
+  g.fillText('功德', W / 2, 340);
+  g.fillStyle = PAPER;
+  g.font = `700 ${String(today).length > 5 ? 150 : 200}px ${SERIF}`;
+  g.fillText(`+${Number(today).toLocaleString()}`, W / 2, 560);
+  g.fillStyle = 'rgba(239,229,207,0.7)';
+  g.font = `400 38px ${SERIF}`;
+  g.fillText(`累計功德 ${Number(total).toLocaleString()}`, W / 2, 660);
+  g.fillStyle = GOLD;
+  g.font = `600 52px ${SERIF}`;
+  g.fillText('心亂的時候，來敲一下', W / 2, 820);
+  footerQr(g, shareUrl('/merit'), '掃碼一起敲木魚、擲筊');
+  return deliver(c, 'yuelao-merit.png', '今日功德');
+}
+
+/**
+ * 手機桌布（功德台，2026-11-21）：1080×2340。上方留給時鐘、下方留給 Dock，
+ * 中間一個大字（緣／財／安）＋今日一籤的籤號、等第、籤詩直排，最下面小字站名。
+ */
+export async function shareWallpaper({ glyph, title, wish, color, no, grade, poem, date }) {
+  await ready();
+  const SW = 1080;
+  const SH = 2340;
+  const c = document.createElement('canvas');
+  c.width = SW;
+  c.height = SH;
+  const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, SH);
+  bg.addColorStop(0, '#0d0e22');
+  bg.addColorStop(0.55, '#14112a');
+  bg.addColorStop(1, NIGHT);
+  g.fillStyle = bg;
+  g.fillRect(0, 0, SW, SH);
+  const halo = g.createRadialGradient(SW / 2, 1050, 40, SW / 2, 1050, 780);
+  halo.addColorStop(0, `${color}77`);
+  halo.addColorStop(0.5, `${color}1f`);
+  halo.addColorStop(1, `${color}00`);
+  g.fillStyle = halo;
+  g.fillRect(0, 0, SW, SH);
+  g.fillStyle = 'rgba(239,229,207,0.5)';
+  for (let i = 0; i < 90; i++) {
+    const x = Math.abs((Math.sin(i * 12.9898) * 43758.5453) % 1);
+    const y = Math.abs((Math.sin(i * 78.233) * 12345.678) % 1);
+    g.globalAlpha = 0.18 + ((i * 7) % 10) / 24;
+    g.fillRect(x * SW, 300 + y * 1900, 2, 2);
+  }
+  g.globalAlpha = 1;
+  // 一彎月
+  g.fillStyle = 'rgba(239,229,207,0.85)';
+  g.beginPath();
+  g.arc(SW - 210, 640, 54, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#100f26';
+  g.beginPath();
+  g.arc(SW - 186, 624, 50, 0, Math.PI * 2);
+  g.fill();
+
+  g.textAlign = 'center';
+  // 大字
+  g.save();
+  g.shadowColor = color;
+  g.shadowBlur = 70;
+  g.fillStyle = PAPER;
+  g.font = `900 360px ${SERIF}`;
+  g.fillText(glyph, SW / 2, 1110);
+  g.restore();
+  g.fillStyle = color;
+  g.font = `600 64px ${SERIF}`;
+  g.fillText(wish, SW / 2, 1240);
+  g.fillStyle = 'rgba(239,229,207,0.6)';
+  g.font = `400 34px ${SERIF}`;
+  g.fillText(`${title} · ${date}`, SW / 2, 1310);
+
+  // 今日一籤：細框裡籤號、等第，籤詩直排（右起，每行一直欄）
+  const bw = 620;
+  const bh = 460;
+  const bx = SW / 2 - bw / 2;
+  const by = 1400;
+  g.strokeStyle = 'rgba(220,187,124,0.55)';
+  g.lineWidth = 2;
+  g.strokeRect(bx, by, bw, bh);
+  g.fillStyle = GOLD;
+  g.font = `600 32px ${SERIF}`;
+  g.fillText(`今日一籤 · ${no} · ${grade}`, SW / 2, by + 60);
+  const cols = String(poem || '')
+    .split(/[\n，。、；！？]/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  g.fillStyle = 'rgba(239,229,207,0.88)';
+  g.font = `500 38px ${SERIF}`;
+  const gap = 78;
+  cols.forEach((l, i) => {
+    const cx = SW / 2 + ((cols.length - 1) / 2 - i) * gap;
+    [...l].slice(0, 8).forEach((ch, k) => {
+      g.fillText(ch, cx, by + 130 + k * 42);
+    });
+  });
+  g.fillStyle = 'rgba(239,229,207,0.42)';
+  g.font = `400 28px ${SERIF}`;
+  g.fillText(`月下 · ${host() || 'yuexia.app'}`, SW / 2, SH - 330);
+  return deliver(c, 'yuelao-wallpaper.png', `${title}桌布`);
+}

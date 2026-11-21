@@ -17,6 +17,7 @@ export const PAGES = [
   '/questions',
   '/tests',
   '/daily',
+  '/merit',
   ...TESTS.map((t) => `/tests/${t.slug}`),
   '/privacy',
   '/terms',

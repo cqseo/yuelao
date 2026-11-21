@@ -788,6 +788,11 @@ export function startMarket(root, opts = {}) {
       }
       return;
     }
+    // 功德台是另一頁（2D，載得快）：直接換過去
+    if (id.startsWith('link:')) {
+      location.assign(`/${id.slice(5)}`);
+      return;
+    }
     if (id === 'wish') {
       standUp();
       goToPool();
